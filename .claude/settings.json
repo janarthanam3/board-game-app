@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Grep(**)",
+      "Glob(**)",
+      "Edit(apps/**)",
+      "Edit(packages/**)",
+      "Edit(e2e/**)",
+      "Edit(docs/bug-log.md)",
+      "Edit(docs/design-concerns.md)",
+      "Edit(docs/OPEN-QUESTIONS.md)",
+      "Edit(TASKS.md)",
+      "Write(apps/**)",
+      "Write(packages/**)",
+      "Write(e2e/**)",
+      "Bash(pnpm:*)",
+      "Bash(node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git log:*)",
+      "Bash(docker compose:*)",
+      "Bash(adb:*)",
+      "Bash(./gradlew:*)",
+      "Bash(keytool:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(rm:*)",
+      "Bash(pnpm --filter server migrate:*)",
+      "Write(apps/server/migrations/**)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/*.keystore)",
+      "Read(**/gradle.properties)",
+      "Edit(docs/00-overview.md)",
+      "Edit(docs/01-architecture.md)",
+      "Edit(docs/02-design-tokens.md)",
+      "Edit(docs/03-design-system.md)",
+      "Edit(docs/04-navigation-map.md)",
+      "Edit(docs/05-game-rules.md)",
+      "Edit(docs/06-state-machines.md)",
+      "Edit(docs/07-api-contract.md)",
+      "Edit(docs/08-database.md)",
+      "Edit(docs/09-server-config.md)",
+      "Edit(docs/10-testing-strategy.md)",
+      "Edit(docs/11-build-and-release.md)",
+      "Edit(docs/12-accessibility-and-responsive.md)",
+      "Edit(docs/13-error-catalog.md)",
+      "Edit(docs/14-analytics-and-logging.md)",
+      "Edit(docs/DECISIONS.md)",
+      "Edit(docs/screens/**)",
+      "Edit(docs/flows/**)",
+      "Bash(git push --force:*)",
+      "Bash(eas build:*)"
+    ],
+    "_note": "Web access is intentionally not granted in the allow list: only the web-researcher agent, which declares WebSearch and WebFetch in its own tool list, may reach the network. Everything else works from the repo docs."
+  },
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "includeCoAuthoredBy": false
+}
