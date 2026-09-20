@@ -16,9 +16,12 @@
     "test:mobile": "pnpm --filter @royal-navy/mobile test",
     "dev:server": "pnpm --filter @royal-navy/server dev",
     "dev:mobile": "pnpm --filter @royal-navy/mobile dev",
-    "dev:engine": "pnpm --filter @royal-navy/game-engine dev"
+    "dev:engine": "pnpm --filter @royal-navy/game-engine dev",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "typescript": "~5.3.3"
+    "typescript": "~5.3.3",
+    "eslint": "~9.17.0",
+    "@typescript-eslint/parser": "~8.18.2"
   }
 }

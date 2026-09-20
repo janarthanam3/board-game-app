@@ -1,0 +1,594 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`design tokens > match the recorded snapshot of every value 1`] = `
+{
+  "color": {
+    "accent": {
+      "blue": "#5FC0FF",
+      "blueDeep": "#2E86D6",
+    },
+    "danger": {
+      "border": "rgba(255,138,122,.6)",
+      "fill": {
+        "angle": 180,
+        "stops": [
+          {
+            "color": "#8E2B24",
+            "position": 0,
+          },
+          {
+            "color": "#6E1D18",
+            "position": 100,
+          },
+        ],
+      },
+      "soft": "#FFD7D2",
+      "text": "#FF9A93",
+      "wash": {
+        "angle": 180,
+        "stops": [
+          {
+            "color": "rgba(255,107,122,.1)",
+            "position": 0,
+          },
+          {
+            "color": "rgba(8,26,64,.5)",
+            "position": 100,
+          },
+        ],
+      },
+    },
+    "gold": {
+      "deep": "#E0A31C",
+      "flat": "#FFC84A",
+      "gradient": {
+        "angle": 180,
+        "stops": [
+          {
+            "color": "#FFC84A",
+            "position": 0,
+          },
+          {
+            "color": "#E0A31C",
+            "position": 100,
+          },
+        ],
+      },
+    },
+    "green": {
+      "flat": "#7ADB25",
+      "gradient": {
+        "angle": 180,
+        "stops": [
+          {
+            "color": "#7ADB25",
+            "position": 0,
+          },
+          {
+            "color": "#3FA209",
+            "position": 100,
+          },
+        ],
+      },
+    },
+    "stroke": {
+      "blue": "#2C6BE0",
+    },
+    "surface": {
+      "card": {
+        "angle": 180,
+        "stops": [
+          {
+            "color": "#17489F",
+            "position": 0,
+          },
+          {
+            "color": "#123B88",
+            "position": 100,
+          },
+        ],
+      },
+      "cardBorder": {
+        "color": "rgba(126,180,255,.34)",
+        "style": "solid",
+        "width": 1,
+      },
+      "cardShadow": [
+        {
+          "blur": 0,
+          "color": "rgba(6,20,54,.4)",
+          "inset": false,
+          "x": 0,
+          "y": 2,
+        },
+        {
+          "blur": 0,
+          "color": "rgba(255,255,255,.08)",
+          "inset": true,
+          "x": 0,
+          "y": 1,
+        },
+      ],
+      "dashed": {
+        "color": "rgba(126,180,255,.4)",
+        "style": "dashed",
+        "width": 1,
+      },
+      "divider": {
+        "color": "rgba(126,180,255,.28)",
+        "style": "solid",
+        "width": 1,
+      },
+      "dividerFaint": {
+        "color": "rgba(126,180,255,.22)",
+        "style": "solid",
+        "width": 1,
+      },
+      "inset": "rgba(8,26,64,.35)",
+      "insetStrong": "rgba(8,26,64,.5)",
+      "scrim": "rgba(5,15,40,.66)",
+      "scrimLight": "rgba(5,15,40,.45)",
+      "sunken": {
+        "angle": 180,
+        "stops": [
+          {
+            "color": "#0C2A63",
+            "position": 0,
+          },
+          {
+            "color": "#0A2050",
+            "position": 100,
+          },
+        ],
+      },
+      "sunkenBorder": {
+        "color": "rgba(126,180,255,.22)",
+        "style": "solid",
+        "width": 1,
+      },
+      "sunkenShadow": {
+        "blur": 8,
+        "color": "rgba(4,12,32,.55)",
+        "inset": true,
+        "x": 0,
+        "y": 2,
+      },
+      "well": "rgba(10,30,75,.22)",
+    },
+    "text": {
+      "dim": "rgba(198,220,255,0.72)",
+      "faint": "rgba(198,220,255,0.75)",
+      "muted": "rgba(198,220,255,0.8)",
+      "onGold": "#3A2402",
+      "primary": "#FFFFFF",
+      "primarySoft": "#EDF3FF",
+      "secondary": "rgba(198,220,255,0.95)",
+    },
+    "warn": {
+      "background": "rgba(224,163,28,.12)",
+      "text": "#E0A31C",
+    },
+  },
+  "control": {
+    "chip": {
+      "paddingHorizontal": 12,
+      "paddingVertical": 7,
+      "radius": 14,
+    },
+    "destructiveButton": {
+      "height": 44,
+      "radius": 15,
+    },
+    "dialogButton": {
+      "height": 46,
+      "radius": 15,
+    },
+    "iconButton": {
+      "height": 39,
+      "radius": 14,
+      "width": 39,
+    },
+    "listRow": {
+      "minHeight": 56,
+      "radius": 17,
+    },
+    "pillBadge": {
+      "paddingHorizontal": 8,
+      "paddingVertical": 3,
+      "radius": 999,
+    },
+    "playerTokenList": {
+      "diameter": 25,
+    },
+    "primaryButton": {
+      "height": 50,
+      "radius": 16,
+    },
+    "progressBar": {
+      "height": 6,
+      "radius": 999,
+      "track": "rgba(8,26,64,.5)",
+    },
+    "secondaryButton": {
+      "border": {
+        "color": "#2C6BE0",
+        "style": "solid",
+        "width": 1,
+      },
+      "height": 50,
+    },
+    "segmented": {
+      "border": {
+        "color": "rgba(126,180,255,.34)",
+        "style": "solid",
+        "width": 1,
+      },
+      "height": 40,
+      "paddingVertical": 10,
+      "radius": 14,
+    },
+    "sheetGrabber": {
+      "color": "rgba(126,180,255,.3)",
+      "height": 4,
+      "radius": 999,
+      "width": 44,
+    },
+    "stepperButton": {
+      "height": 36,
+      "width": 36,
+    },
+  },
+  "font": {
+    "fallback": "system-ui",
+    "family": "Baloo 2",
+    "lineHeightRatio": 1.25,
+    "monoFamily": "ui-monospace",
+    "weightNames": {
+      "600": "Baloo2-SemiBold",
+      "700": "Baloo2-Bold",
+      "800": "Baloo2-ExtraBold",
+    },
+  },
+  "frame": {
+    "border": {
+      "color": "#2C6BE0",
+      "style": "solid",
+      "width": 2,
+    },
+    "height": 780,
+    "padding": 17,
+    "radius": 16,
+    "width": 360,
+  },
+  "motion": {
+    "base": {
+      "durationMs": 220,
+      "easing": "cubic-bezier(.2,.8,.2,1)",
+    },
+    "count": {
+      "durationMs": 600,
+      "easing": "ease-out",
+    },
+    "dice": {
+      "durationMs": 700,
+      "easing": "ease-out",
+    },
+    "fast": {
+      "durationMs": 140,
+      "easing": "ease-out",
+    },
+    "instant": {
+      "durationMs": 90,
+      "easing": "linear",
+    },
+    "pulse": {
+      "durationMs": 1200,
+      "easing": "ease-in-out",
+      "loop": true,
+    },
+    "slow": {
+      "durationMs": 320,
+      "easing": "cubic-bezier(.2,.8,.2,1)",
+    },
+    "toast": {
+      "easing": "ease-out",
+      "holdMs": 3000,
+      "inMs": 220,
+      "outMs": 180,
+    },
+    "token": {
+      "durationMs": 260,
+      "easing": "ease-in-out",
+    },
+  },
+  "player": {
+    "ring": {
+      "color": "rgba(255,255,255,.35)",
+      "style": "solid",
+      "width": 1.5,
+    },
+    "seats": [
+      {
+        "fill": "#FFC84A",
+        "name": "gold",
+        "seat": 1,
+      },
+      {
+        "fill": {
+          "angle": 180,
+          "stops": [
+            {
+              "color": "#5BB8F5",
+              "position": 0,
+            },
+            {
+              "color": "#2E86D6",
+              "position": 100,
+            },
+          ],
+        },
+        "name": "blue",
+        "seat": 2,
+      },
+      {
+        "fill": {
+          "angle": 180,
+          "stops": [
+            {
+              "color": "#4CD964",
+              "position": 0,
+            },
+            {
+              "color": "#2BA84A",
+              "position": 100,
+            },
+          ],
+        },
+        "name": "green",
+        "seat": 3,
+      },
+      {
+        "fill": {
+          "angle": 180,
+          "stops": [
+            {
+              "color": "#F0524A",
+              "position": 0,
+            },
+            {
+              "color": "#C4231F",
+              "position": 100,
+            },
+          ],
+        },
+        "name": "red",
+        "seat": 4,
+      },
+      {
+        "fill": {
+          "angle": 180,
+          "stops": [
+            {
+              "color": "#E08A0C",
+              "position": 0,
+            },
+            {
+              "color": "#C06405",
+              "position": 100,
+            },
+          ],
+        },
+        "name": "amber",
+        "seat": 5,
+      },
+      {
+        "fill": {
+          "angle": 180,
+          "stops": [
+            {
+              "color": "#9B7BE8",
+              "position": 0,
+            },
+            {
+              "color": "#6C4BC4",
+              "position": 100,
+            },
+          ],
+        },
+        "name": "violet",
+        "seat": 6,
+      },
+    ],
+  },
+  "radius": {
+    "button": 16,
+    "buttonSm": 15,
+    "card": 17,
+    "cardLg": {
+      "max": 19,
+      "min": 18,
+    },
+    "control": 14,
+    "field": 12,
+    "pill": 999,
+    "token": 21,
+    "tokenLg": 34,
+  },
+  "responsive": {
+    "fontScale130": {
+      "buttonMinHeight": 56,
+      "rowMinHeight": 56,
+    },
+    "largePhone": {
+      "max": 430,
+      "min": 390,
+    },
+    "minWidth": 360,
+    "tabletContentMaxWidth": 480,
+    "tabletMinWidth": 600,
+  },
+  "screenBackground": {
+    "angle": 180,
+    "stops": [
+      {
+        "color": "#133D8C",
+        "position": 0,
+      },
+      {
+        "color": "#0B2456",
+        "position": 58,
+      },
+      {
+        "color": "#0E2E66",
+        "position": 100,
+      },
+    ],
+  },
+  "shadow": {
+    "card": [
+      {
+        "blur": 0,
+        "color": "rgba(6,20,54,.4)",
+        "inset": false,
+        "x": 0,
+        "y": 2,
+      },
+      {
+        "blur": 0,
+        "color": "rgba(255,255,255,.08)",
+        "inset": true,
+        "x": 0,
+        "y": 1,
+      },
+    ],
+    "insetSunken": {
+      "blur": 8,
+      "color": "rgba(4,12,32,.55)",
+      "inset": true,
+      "x": 0,
+      "y": 2,
+    },
+    "raised": {
+      "blur": 30,
+      "color": "rgba(5,15,40,.5)",
+      "inset": false,
+      "x": 0,
+      "y": 12,
+    },
+    "sheet": {
+      "blur": 40,
+      "color": "rgba(4,12,32,.55)",
+      "inset": false,
+      "x": 0,
+      "y": -10,
+    },
+    "token": {
+      "blur": 0,
+      "color": "rgba(5,15,40,.22)",
+      "inset": true,
+      "x": 0,
+      "y": -5,
+    },
+  },
+  "stackGap": {
+    "default": 11,
+    "inner": 8,
+    "tight": 9,
+  },
+  "type": {
+    "body": {
+      "size": 13,
+      "weight": 600,
+    },
+    "bodySm": {
+      "size": 12,
+      "weight": 600,
+    },
+    "button": {
+      "size": 16,
+      "weight": 800,
+    },
+    "buttonSm": {
+      "size": 15,
+      "weight": 800,
+    },
+    "buttonXs": {
+      "size": 14,
+      "weight": 800,
+    },
+    "chip": {
+      "size": {
+        "max": 11.5,
+        "min": 10.5,
+      },
+      "weight": 600,
+    },
+    "display": {
+      "size": 35,
+      "weight": 800,
+    },
+    "h1": {
+      "size": 21,
+      "weight": 700,
+    },
+    "h2": {
+      "size": 19,
+      "weight": 700,
+    },
+    "h3": {
+      "size": 17,
+      "weight": 700,
+    },
+    "h4": {
+      "size": 16,
+      "weight": 700,
+    },
+    "hero": {
+      "size": 28,
+      "weight": 800,
+    },
+    "kicker": {
+      "color": "#5FC0FF",
+      "size": 10,
+      "tracking": 0.18,
+      "uppercase": true,
+      "weight": 700,
+    },
+    "label": {
+      "size": 11,
+      "tracking": 0.12,
+      "uppercase": true,
+      "weight": 800,
+    },
+    "mono": {
+      "family": "mono",
+      "size": 13,
+      "weight": 400,
+    },
+    "tile": {
+      "size": {
+        "max": 9,
+        "min": 7,
+      },
+      "weight": 700,
+    },
+    "title": {
+      "size": 15,
+      "weight": 700,
+    },
+    "value": {
+      "size": 13,
+      "weight": 700,
+    },
+  },
+  "zIndex": {
+    "base": 0,
+    "boardCentreModal": 30,
+    "cover": 60,
+    "dialog": 40,
+    "pinnedFooter": 10,
+    "sheet": 20,
+    "toast": 50,
+  },
+}
+`;

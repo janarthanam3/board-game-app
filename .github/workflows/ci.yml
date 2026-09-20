@@ -51,4 +51,6 @@ jobs:
       # The root scripts exclude the root package itself, so they cannot recurse into themselves.
       - run: pnpm typecheck
 
+      - run: pnpm lint
+
       - run: pnpm test
