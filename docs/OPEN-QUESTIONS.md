@@ -348,3 +348,31 @@ Raised 20 September 2026 during C1. Does not block a task.
 
 **Recommendation:** (1). Level 5 for a hotel is the only reading under which the rulebook's own
 build sequence (4 houses, then a hotel, then the next tile's hotel) never trips the invariant.
+
+---
+
+## OQ-16 · `percentFromAmount` cannot produce the 21 % / 54 % the design displays
+
+**Affects:** rulebook §3 "The formula" and "Worked examples"; `docs/10-testing-strategy.md`
+(pricing.ts required case "percent-from-amount 300/1400 → 21 %"); `1x` tile editor's derived
+read-only side; `packages/game-engine/src/pricing.ts` (task **C4**, implemented).
+
+**Why it matters:** §3 gives `percentFromAmount(cost, amt) = round(amt / cost × 1000) / 10` (one
+decimal) and in the same breath says a flat ₹300 on ₹1,400 "displays as 21 %" and ₹750 "as 54 %".
+The formula gives 21.4 % and 53.6 %. The design file is the authority and shows 21 and 54, so
+either the formula is wrong (integer rounding for derived percents) or the design's editor rounds
+for display only. C4 implements the formula as written — it affects display only, never money —
+and its tests assert 21.4 and 53.6 so the choice is visible.
+
+Raised 21 September 2026 during C4. Does not block a task (the `1x` screen task will need it).
+
+**Options**
+1. Derived percent rounds to the nearest whole percent (matches 21 and 54; 35/1,400 would show
+   3 % rather than 2.5 % if ever typed flat).
+2. Keep one decimal (the formula) and accept that the design's 21 % / 54 % were rounded by hand
+   in the mock-up; regenerate the worked examples to 21.4 % and 53.6 %.
+3. One decimal, but drop the decimal when it is within ±0.5 of a whole number — reproduces every
+   design value, at the cost of a rule the design never states.
+
+**Recommendation:** (1) if the design file's editor never shows a decimal on a derived value;
+otherwise (2). (3) is an invention.

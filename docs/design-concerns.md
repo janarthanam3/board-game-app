@@ -258,3 +258,22 @@ and `/create/rules/[ruleId]`.
 `/create/decks`, `/create/rules`), which the route table gives as their Back target; landing a user
 on the boards list after opening someone else's tile is disorienting. The map should probably give
 the owner guard a per-route failure target. Raised 20 September 2026 at the Phase B gate.
+
+## `1j` shows a doubled base rent on a tile with two houses
+
+**Implemented:** rent per rulebook §7 — building rent replaces base rent, and the set multiplier
+applies to base rent only (`packages/game-engine/src/rent.ts`).
+
+**Concern:** the `1j` layout map shows, on one card, `Rent now ₹350 · doubled` and `Houses 2 of 4`.
+Under §7 a tile with two houses charges its 2-house rent, not a doubled base, so the two lines
+cannot both be live values of one tile. The engine reproduces each figure separately (₹350 as a
+doubled ₹175 base with no buildings; `With 1 house ₹700` from the ladder) but never the card as
+drawn. The screen task for `1j` should render whatever `rentFor` returns. Raised 21 September 2026
+during C4.
+
+## A trademarked property name in `1j`
+
+**Concern:** `1j-property-card.md` §8 gives the accessibility label example "Park Place, you own 3
+of 5 in the purple set, set held". Shipped names are Chennai / Royal Navy only (CLAUDE.md,
+rulebook §20); the example should use a board name such as Marina Drive so it is not copied into
+code or tests. Raised 21 September 2026 during C4.

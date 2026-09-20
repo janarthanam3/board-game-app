@@ -1,5 +1,6 @@
 // Public surface of the rules engine (SPEC.md "Public surface"). Grows task by task:
 // C1 — state shape and invariants. C2 — seeded RNG. C3 — board geometry and movement.
+// C4 — pricing, colour sets and rent.
 export * from "./state";
 export { checkInvariants, checkTransitionInvariants, invariants } from "./invariants";
 export type { InvariantName, InvariantViolation } from "./invariants";
@@ -20,3 +21,21 @@ export {
   validateGrid,
 } from "./board";
 export type { DraftRing, GridCell, GridValidation, Move } from "./board";
+export {
+  amountFromPercent,
+  clampCost,
+  clampPercent,
+  COST_MAX,
+  COST_MIN,
+  MIN_DERIVED_AMOUNT,
+  MONEY_STEP,
+  PERCENT_MAX,
+  PERCENT_MIN,
+  percentFromAmount,
+  resolvePrice,
+  roundToStep,
+} from "./pricing";
+export { countTowardSet, holdsSet, isCustomThresholdValid, setProgress, thresholdFor, validateGroup } from "./sets";
+export type { GroupValidation, SetProgress } from "./sets";
+export { applyRentEffects, rentFor } from "./rent";
+export type { RentEffects } from "./rent";

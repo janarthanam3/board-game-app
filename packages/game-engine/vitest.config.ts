@@ -6,6 +6,8 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**"],
+      // index.ts only re-exports; it has no branches or logic to cover.
+      exclude: ["src/index.ts"],
       // docs/10-testing-strategy.md: engine gate is >= 90% lines, >= 85% branches.
       thresholds: { lines: 90, branches: 85 },
     },
