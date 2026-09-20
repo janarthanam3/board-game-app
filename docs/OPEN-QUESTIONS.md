@@ -264,3 +264,26 @@ Raised 20 September 2026 during A3. Does not block a task; must be settled befor
 
 **Recommendation:** (1). Socket.IO already provides a `connect` event, so `hello` adds nothing the
 client needs, and (3) would make test and production sockets behave differently.
+
+---
+
+## OQ-13 · Where does Android back go from Spectating (`1h`)?
+
+**Affects:** `/match/[matchId]/spectate`, `docs/04-navigation-map.md` route table, task **B4**
+(implemented) and **E1**/`1h`.
+
+**Why it matters:** the route table says back from `/match/[matchId]/spectate` goes to
+"`/profile/friends` or `/modes`", but `/profile/friends` is not a route anywhere in the map —
+friends live at `/lobby/[matchId]/friends` (reached from the lobby, per "Group order"). B4
+implemented back → `/modes` so the route tree is complete; the alternative is undefined.
+
+Raised 20 September 2026 during B4. Does not block a task.
+
+**Options**
+1. Back always goes to `/modes` (as implemented).
+2. Back returns to the caller (`router.back()`), which is the lobby friends list when spectating
+   was entered from there, else `/modes`.
+3. Add a `/profile/friends` route to the map (a design change — no `3g` frame exists under profile).
+
+**Recommendation:** (2). It matches how `1e` and `2c` already describe "caller" back behaviour and
+needs no new screen.

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "jsx": "react-native",
-    "types": ["react-native", "jest"],
+    "types": ["react-native", "jest", "node"],
     // The "@/" alias mirrors Expo's default so imports read `@/screens/...` instead of `../../`.
     "baseUrl": ".",
     "paths": { "@/*": ["./src/*"] }

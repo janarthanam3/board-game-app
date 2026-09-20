@@ -19,3 +19,8 @@ jest.mock("expo-splash-screen", () => ({
 
 // Animated with useNativeDriver needs the native animation module, which Jest does not have.
 jest.mock("react-native/Libraries/Animated/NativeAnimatedHelper");
+
+// React Native's own BackHandler mock adds mockPressBack() for testing hardware back.
+jest.mock("react-native/Libraries/Utilities/BackHandler", () =>
+  require("react-native/Libraries/Utilities/__mocks__/BackHandler"),
+);

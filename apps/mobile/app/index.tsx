@@ -1,17 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Redirect } from "expo-router";
 
-import { fontFamilyForWeight } from "../src/ui/fonts";
-
-// Placeholder route so the shell boots (A2). Replaced by /splash (3a) when B4 builds the route tree.
+// Cold start lands on the splash (3a), which decides between onboarding, auth and modes.
 export default function IndexRoute() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Royal Navy</Text>
-    </View>
-  );
+  return <Redirect href="/splash" />;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 24, fontFamily: fontFamilyForWeight(800) },
-});

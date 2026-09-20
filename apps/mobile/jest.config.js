@@ -2,6 +2,8 @@
 /** @type {import('jest').Config} */
 module.exports = {
   preset: "jest-expo",
+  // Mirrors the "@/*" path alias in tsconfig.json (Metro reads it from tsconfig directly).
+  moduleNameMapper: { "^@/(.*)$": "<rootDir>/src/$1" },
   setupFiles: ["<rootDir>/jest.setup.ts"],
   // Adds toHaveStyle and friends to expect().
   setupFilesAfterEnv: ["@testing-library/react-native/extend-expect"],
