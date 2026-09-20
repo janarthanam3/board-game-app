@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { tokens } from "../src/tokens.js";
+import { tokens } from "../src/tokens";
 
 const tokensDoc = readFileSync(
   resolve(__dirname, "../../../docs/02-design-tokens.md"),

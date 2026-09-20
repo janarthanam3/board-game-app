@@ -3,6 +3,8 @@
 module.exports = {
   preset: "jest-expo",
   setupFiles: ["<rootDir>/jest.setup.ts"],
+  // Adds toHaveStyle and friends to expect().
+  setupFilesAfterEnv: ["@testing-library/react-native/extend-expect"],
   testMatch: ["<rootDir>/src/**/*.test.tsx", "<rootDir>/src/**/*.test.ts"],
   // React Native ships untranspiled ES modules; Jest must transform these packages too.
   transformIgnorePatterns: [

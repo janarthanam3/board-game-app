@@ -1,1 +1,2 @@
-export * from "./tokens.js";
+// Extensionless on purpose: Metro and Jest resolve these, Node-style ".js" specifiers they do not.
+export * from "./tokens";

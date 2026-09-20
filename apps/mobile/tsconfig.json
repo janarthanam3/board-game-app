@@ -9,5 +9,5 @@
     "paths": { "@/*": ["./src/*"] }
   },
   // `expo start` checks that app, src, *.js and *.ts are listed here and rewrites the list if not.
-  "include": ["app", "src", "*.js", "*.ts"]
+  "include": ["app", "src", "*.js", "*.ts", "*.d.ts"]
 }

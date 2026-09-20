@@ -5,3 +5,14 @@ jest.mock(
   "react-native-safe-area-context",
   () => require("react-native-safe-area-context/jest/mock").default,
 );
+
+// Font files cannot load under Jest. Tests control `useFonts` per case; default is "loaded".
+jest.mock("expo-font", () => ({
+  useFonts: jest.fn(() => [true, null]),
+  isLoaded: jest.fn(() => true),
+}));
+
+jest.mock("expo-splash-screen", () => ({
+  preventAutoHideAsync: jest.fn(() => Promise.resolve(true)),
+  hideAsync: jest.fn(() => Promise.resolve(true)),
+}));
