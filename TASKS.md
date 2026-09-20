@@ -31,7 +31,7 @@ Effort is in ideal solo days for a developer new to React Native.
 
 ## Phase C · Game engine (7 tasks)
 
-- [ ] **C1 | State shape and invariants** | depends-on: A1 | files: `packages/game-engine/src/state.ts`, `invariants.ts` | acceptance: the state shape in `packages/game-engine/SPEC.md` is implemented; every invariant is a runnable assertion | tests: unit tests per invariant | effort: 1
+- [x] **C1 | State shape and invariants** | depends-on: A1 | files: `packages/game-engine/src/state.ts`, `invariants.ts` | acceptance: the state shape in `packages/game-engine/SPEC.md` is implemented; every invariant is a runnable assertion | tests: unit tests per invariant | effort: 1
 - [ ] **C2 | Seeded RNG** | depends-on: C1 | files: `packages/game-engine/src/rng.ts` | acceptance: same seed gives the same sequence across platforms; `Math.random` appears nowhere in the package | tests: determinism test over 10,000 draws; lint rule | effort: 0.5
 - [ ] **C3 | Board generation and movement** | depends-on: C1 | files: `src/board.ts` | acceptance: ring maths `2r + 2c − 4`; sizes 16/24/40/custom; wrapping; pass-GO detection — all worked examples in `docs/05-game-rules.md` reproduce | tests: table tests for every documented size and every worked example | effort: 1
 - [ ] **C4 | Pricing, rent and colour sets** | depends-on: C3 | files: `src/pricing.ts`, `src/sets.ts` | acceptance: percentage pricing with the documented rounding and clamps; variable thresholds; set rent multipliers; `rent now` matches the `1j` examples | tests: table tests from the rulebook; property test that rent is monotonic in buildings | effort: 1.5

@@ -1,7 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    // Pure TypeScript over plain data: no DOM, no Node types. Anything platform-specific fails here.
+    "lib": ["ES2022"],
+    "types": []
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }

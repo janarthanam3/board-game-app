@@ -316,3 +316,35 @@ Raised 20 September 2026 at the Phase B gate. Does not block a task.
 
 **Recommendation:** (2) if the design file has them, otherwise (1) — each choice reuses an
 existing token so it stays consistent with the rest of the system.
+
+---
+
+## OQ-15 · Three gaps in `packages/game-engine/SPEC.md`'s state shape and invariants
+
+**Affects:** `packages/game-engine/src/state.ts`, `invariants.ts`; task **C1** (implemented), **C5**.
+
+**Why it matters:** the spec is the contract two developers must implement identically, and three
+things it relies on are not in it:
+
+1. **The cash ledger.** `cashConservation` is defined against "a running ledger total", but the
+   `bank` shape lists only `houses`, `hotels`, `finePot`. C1 added
+   `bank.ledger: { issued: number; absorbed: number }` (money the bank has put into play and taken
+   out) so the invariant is checkable.
+2. **Token position.** `PlayerState` has no field for the tile a token stands on, yet movement,
+   rent and the board map all need it. C1 added `position: TileIndex`.
+3. **Even build with hotels.** `evenBuild` compares `houses` only. A hotel tile has `houses === 0`,
+   so a hotel beside a four-house tile in the same group would violate the invariant, although
+   that is exactly what building a hotel produces (rulebook §8: 4 houses → hotel). C1 treats a
+   hotel as build level 5 for the comparison.
+
+Raised 20 September 2026 during C1. Does not block a task.
+
+**Options**
+1. Confirm the three additions and regenerate `SPEC.md` to include them.
+2. Different names or placement for the ledger and position fields (the additions are minimal;
+   moving them costs little now, more once the reducer uses them).
+3. For (3), treat a hotel tile as level 4 instead of 5 (a hotel would then never be "one above"
+   its neighbours; building a second hotel in the group would be the constrained step).
+
+**Recommendation:** (1). Level 5 for a hotel is the only reading under which the rulebook's own
+build sequence (4 houses, then a hotel, then the next tile's hotel) never trips the invariant.
