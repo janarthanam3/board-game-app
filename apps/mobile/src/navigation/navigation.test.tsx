@@ -231,6 +231,8 @@ describe("deep links", () => {
 
   it("royalnavy://join/<CODE> with an unknown code lands on /modes with E_ROOM_NOT_FOUND", async () => {
     renderRouter(APP_DIR, { initialUrl: parseDeepLink("royalnavy://join/ZZZZZZ")!.href });
+    // The route awaits resolveJoinCode() before it can redirect; flush that promise under fake timers.
+    await act(async () => {});
     await waitFor(() => expect(screen).toHavePathname("/modes"));
     expect(screen).toHaveSearchParams(expect.objectContaining({ toast: "E_ROOM_NOT_FOUND" }));
   });

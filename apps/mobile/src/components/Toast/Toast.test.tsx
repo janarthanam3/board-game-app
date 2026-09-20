@@ -4,14 +4,6 @@ import { frame, motion, radius } from "@royal-navy/shared";
 import { Toast } from "./index";
 
 describe("Toast", () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
   it("renders the message and icon on a radius-15 card, inset 17 dp from the top", () => {
     render(<Toast toast={{ id: "t1", message: "Report sent.", icon: "ph-check" }} onHidden={jest.fn()} />);
 

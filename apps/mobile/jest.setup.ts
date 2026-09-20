@@ -18,6 +18,14 @@ jest.mock("expo-splash-screen", () => ({
 }));
 
 // Animated with useNativeDriver needs the native animation module, which Jest does not have.
+// React Native's documented test double is this automock. Note what it implies: the automocked
+// shouldUseNativeDriver() returns undefined, so every `useNativeDriver: true` animation falls back
+// to the JS driver and runs on requestAnimationFrame timers. (Forcing the native path instead is
+// not an option: AnimatedProps.__connectAnimatedView needs a native view tag, which the test
+// renderer cannot provide.) Two rules follow for tests that mount an animating component:
+//   1. the component must stop its animations on unmount, so nothing ticks after cleanup;
+//   2. the test file uses jest.useFakeTimers(), so frames only advance when the test says so and
+//      never land between tests or after the environment is torn down.
 jest.mock("react-native/Libraries/Animated/NativeAnimatedHelper");
 
 // React Native's own BackHandler mock adds mockPressBack() for testing hardware back.

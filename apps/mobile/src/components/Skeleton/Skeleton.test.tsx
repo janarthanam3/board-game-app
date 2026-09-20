@@ -34,6 +34,19 @@ describe("Skeleton", () => {
     expect(screen.getByTestId("skeleton-sweep", { includeHiddenElements: true })).toHaveStyle({ width: 80 });
   });
 
+  it("stops its animation loop on unmount, leaving no timer running", () => {
+    const { unmount } = render(<Skeleton width={200} height={16} />);
+    fireEvent(screen.getByTestId("skeleton", { includeHiddenElements: true }), "layout", {
+      nativeEvent: { layout: { width: 200 } },
+    });
+    // The loop has started: a frame is pending.
+    expect(jest.getTimerCount()).toBeGreaterThan(0);
+
+    unmount();
+    jest.advanceTimersByTime(50);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
   it("is hidden from assistive technology", () => {
     render(<Skeleton width={44} height={16} />);
 

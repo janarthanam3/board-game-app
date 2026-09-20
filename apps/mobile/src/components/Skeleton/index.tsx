@@ -23,6 +23,10 @@ export function Skeleton({ width, height, borderRadius = control.skeletonRadius,
   const reducedMotion = useReducedMotion();
   const [barWidth, setBarWidth] = useState(0);
   const sweep = useRef(new Animated.Value(0)).current;
+  // The running loop, so unmount (and any re-run of the effect) can stop it. Under Jest the
+  // animation runs on JS timers; a loop left running after unmount would keep scheduling frames
+  // into a torn-down test environment.
+  const loopRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (reducedMotion || barWidth === 0) {
@@ -37,8 +41,16 @@ export function Skeleton({ width, height, borderRadius = control.skeletonRadius,
         useNativeDriver: true,
       }),
     );
+    loopRef.current = loop;
     loop.start();
-    return () => loop.stop();
+
+    return () => {
+      loopRef.current?.stop();
+      loopRef.current = null;
+      // Also settle the value itself so no frame stays pending on it.
+      sweep.stopAnimation();
+      sweep.setValue(0);
+    };
   }, [reducedMotion, barWidth, sweep]);
 
   function onLayout(event: LayoutChangeEvent) {

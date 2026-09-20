@@ -5,14 +5,6 @@ import { Modal, Text } from "react-native";
 import { Sheet } from "./index";
 
 describe("Sheet", () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
   it("renders its content, a 44×4 grabber and 22 dp top corners with 17 dp padding", () => {
     render(
       <Sheet visible onDismiss={jest.fn()}>

@@ -88,7 +88,6 @@ describe("Button", () => {
   });
 
   it("animates the press over motion.instant (90 ms) and swaps the gradient to gold.deep", () => {
-    jest.useFakeTimers();
     render(<Button variant="primary" label="Play" onPress={jest.fn()} />);
     const button = screen.getByRole("button");
 
@@ -103,7 +102,6 @@ describe("Button", () => {
       jest.advanceTimersByTime(motion.instant.durationMs);
     });
     expect(screen.getByTestId("button-fill").props.colors).toEqual(gold.gradient.stops.map((s) => processColor(s.color)));
-    jest.useRealTimers();
   });
 
   it("renders a leading icon when given", () => {
