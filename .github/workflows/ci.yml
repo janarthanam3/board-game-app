@@ -8,8 +8,33 @@ on:
   pull_request:
 
 jobs:
-  install-and-typecheck:
+  install-typecheck-test:
     runs-on: ubuntu-latest
+
+    # The same Postgres 16 and Redis 7 that docker-compose.yml runs locally, so apps/server's
+    # integration tests reach them at the documented localhost URLs (docs/09-server-config.md).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: royalnavy
+          POSTGRES_PASSWORD: royalnavy
+          POSTGRES_DB: royalnavy
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U royalnavy"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -25,5 +50,4 @@ jobs:
 
       - run: pnpm -r typecheck
 
-      # Tests are added per package from A2 onward; --if-present keeps this green until then.
       - run: pnpm -r --if-present test
