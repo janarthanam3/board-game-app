@@ -4,6 +4,8 @@
 //
 // All money is an integer number of rupees (rulebook, top). No floats anywhere in this file.
 
+import type { MatchEvent } from "./events";
+
 // ─── Identifiers ────────────────────────────────────────────────────────────────
 
 export type MatchId = string;
@@ -273,6 +275,8 @@ export interface AuctionState {
   escrow: Record<PlayerId, number>;
   passed: PlayerId[];
   deadlineMs: number | null;
+  /** Where the turn continues once the lot resolves: preRoll for a lot opened at turn start. */
+  resumeStage: "preRoll" | "postRoll";
 }
 
 /** What one side of a trade puts in (rulebook §11). */
@@ -298,18 +302,6 @@ export interface Debt {
   creditorId: PlayerId | "bank";
   amount: number;
   createdRound: number;
-}
-
-/**
- * One entry of the append-only match log. The full event union (one per notification card in
- * 1n) is defined in events.ts when the reducer lands; the log only needs a stable envelope here.
- */
-export interface MatchEvent {
-  /** Monotonic within the match. */
-  seq: number;
-  kind: string;
-  atMs: number;
-  payload: Record<string, unknown>;
 }
 
 export type MatchMode = "online" | "passAndPlay" | "solo";
@@ -358,6 +350,12 @@ export interface BankState {
    * them with the money currently held. SPEC.md names this ledger without listing it in the shape.
    */
   ledger: { issued: number; absorbed: number };
+  /**
+   * Lots a bank bankruptcy queued for auction. Each opens, one at a time, at the start of the
+   * first turn of `fromRound` (docs/06 "Auction", docs/flows/bankruptcy.md step 3: "Auctions
+   * begin next round"). Not in SPEC.md's shape — OQ-15.
+   */
+  pendingAuctions: { tileIndex: TileIndex; fromRound: number }[];
 }
 
 export interface MatchState {
@@ -394,3 +392,5 @@ export function isOwnable(tile: FrozenTile): tile is PropertyTile | UtilityTile 
 export function isSolvent(player: PlayerState): boolean {
   return player.bankrupt === null;
 }
+
+export type { MatchEvent };

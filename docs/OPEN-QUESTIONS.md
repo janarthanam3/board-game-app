@@ -337,7 +337,9 @@ things it relies on are not in it:
    that is exactly what building a hotel produces (rulebook §8: 4 houses → hotel). C1 treats a
    hotel as build level 5 for the comparison.
 
-Raised 20 September 2026 during C1. Does not block a task.
+Raised 20 September 2026 during C1. Does not block a task. C5 (21 September) added two more of
+the same kind: `bank.pendingAuctions` (lots a bank-bankruptcy queues for the next round, §14) and
+`auction.resumeStage` (which turn stage a mid-turn auction returns to) — same options apply.
 
 **Options**
 1. Confirm the three additions and regenerate `SPEC.md` to include them.
@@ -376,3 +378,48 @@ Raised 21 September 2026 during C4. Does not block a task (the `1x` screen task 
 
 **Recommendation:** (1) if the design file's editor never shows a decimal on a derived value;
 otherwise (2). (3) is an invention.
+
+---
+
+## OQ-17 · Five rule gaps met while writing the actions reducer
+
+**Affects:** `packages/game-engine/src/reducer/*` (task **C5**, implemented with the defaults
+below); later the `1t` auction sheet, the `1n` tax card and the `1z` deck editor.
+
+**Why it matters:** each item is a play-affecting value or behaviour the rulebook (§05) and
+`SPEC.md` leave open. The reducer had to pick something to be testable; every pick is one line
+and is marked in code with `OQ-17`. None blocks C5, but all must be settled before the phase-D
+server freezes the wire behaviour.
+
+1. **Jail entry charge on a third double or a `sendToJail` card.** §12 lists the ₹100 entry charge
+   only under "landing on a GET IN-active corner". Engine: charged on landing, **not** charged
+   when sent by a third double or a card (`sentToJail.entryCharge` is 0 for those reasons).
+2. **The free-parking pot payout.** §13 says Chennai Edition "pays out the accumulated fine pot to
+   whoever lands on it" and calls that "a board-level money-destination setting, not a separate
+   tile type" — but no tile kind or corner section is named as "it". Engine: fines and taxes
+   accumulate in `bank.finePot` when a payment's destination is the pot; **nothing pays it out**.
+3. **"Player's choice" tax mode.** `1x` offers Flat / Percent / Player's choice, and the tax card
+   shows "Pay flat / Pay 10%", but `SPEC.md` has no action carrying the choice. Engine: resolves
+   as **Flat** (the editor's default mode) with a code comment.
+4. **"Hotel returns houses to the bank" switched off.** §8 gives only the on-value. Engine: with the
+   toggle off the four houses leave the tile and are **not** returned to `bank.houses`, so the
+   bank's house supply shrinks by four for the rest of the match. (On the shipped board the toggle
+   is on, and the fuzz suite runs with it on.)
+5. **Minimum raise in an auction.** §10 says a bid is invalid "below `max(minBid, leadingBid + 1)`";
+   `docs/flows/auction.md` says "≥ leading + bid step" with "Bid step ₹100". Two derived docs
+   disagree. Engine: **+1** (the rulebook), so a ₹1,401 bid over ₹1,400 is accepted.
+
+Raised 21 September 2026 during C5.
+
+**Options**
+1. Confirm every default above and regenerate the rulebook / SPEC to state them.
+2. (1) charge on every entry; (2) pay the pot to whoever lands on the rest-house corner, as the
+   Chennai variant reads; (3) add `chooseTax: "flat" | "percent"` to the `PAY_DEBT`-style action
+   set; (4) houses stay on the tile under the hotel (rent unaffected); (5) ₹100 step.
+3. Remove the ambiguous features instead: no charge on card entry, no pot payout, drop
+   "Player's choice", drop the toggle, keep +1.
+
+**Recommendation:** (1) for items 1, 3 and 5 — they are the conservative readings of the
+rulebook. For item 2 the Chennai copy in `3m` should decide the landing tile (option 2). For item 4
+the toggle needs a stated off-behaviour or should be removed (option 3); today it only loses
+houses.

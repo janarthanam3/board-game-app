@@ -36,6 +36,7 @@ describe("cashConservation", () => {
       escrow: { "p-priya": 300 },
       passed: [],
       deadlineMs: null,
+      resumeStage: "postRoll",
     };
     state.players["p-priya"]!.cash = 9700;
     expect(names(state)).not.toContain("cashConservation");
@@ -221,7 +222,7 @@ describe("turnActor", () => {
 describe("auctionExclusive", () => {
   it("flags a live auction whose tile is not marked underAuction", () => {
     const state = cloneState(baseState());
-    state.auction = { tileIndex: 1, minBid: 1400, leadingBid: 0, leadingBidderId: null, escrow: {}, passed: [], deadlineMs: null };
+    state.auction = { tileIndex: 1, minBid: 1400, leadingBid: 0, leadingBidderId: null, escrow: {}, passed: [], deadlineMs: null, resumeStage: "postRoll" };
     expect(names(state)).toContain("auctionExclusive");
   });
 
@@ -233,7 +234,7 @@ describe("auctionExclusive", () => {
 
   it("flags a second tile under auction at the same time", () => {
     const state = cloneState(baseState());
-    state.auction = { tileIndex: 1, minBid: 1400, leadingBid: 0, leadingBidderId: null, escrow: {}, passed: [], deadlineMs: null };
+    state.auction = { tileIndex: 1, minBid: 1400, leadingBid: 0, leadingBidderId: null, escrow: {}, passed: [], deadlineMs: null, resumeStage: "postRoll" };
     state.tiles[1]!.underAuction = true;
     state.tiles[2]!.underAuction = true;
     expect(names(state)).toContain("auctionExclusive");
@@ -296,18 +297,18 @@ describe("transition invariants", () => {
 
   it("logAppendOnly: existing entries never change and the log never shrinks", () => {
     const before = cloneState(baseState());
-    before.log = [{ seq: 1, kind: "matchStarted", atMs: 0, payload: {} }];
+    before.log = [{ seq: 1, kind: "matchStarted", atMs: 0, playerIds: ["p-naveen", "p-priya"], seed: 42 }];
 
     const shrunk = cloneState(before);
     shrunk.log = [];
     expect(checkTransitionInvariants(before, shrunk).map((v) => v.name)).toContain("logAppendOnly");
 
     const rewritten = cloneState(before);
-    rewritten.log = [{ seq: 1, kind: "matchStarted", atMs: 99, payload: {} }];
+    rewritten.log = [{ seq: 1, kind: "matchStarted", atMs: 99, playerIds: ["p-naveen", "p-priya"], seed: 42 }];
     expect(checkTransitionInvariants(before, rewritten).map((v) => v.name)).toContain("logAppendOnly");
 
     const appended = cloneState(before);
-    appended.log = [...before.log, { seq: 2, kind: "diceRolled", atMs: 10, payload: { dice: [3, 4] } }];
+    appended.log = [...before.log, { seq: 2, kind: "diceRolled", atMs: 10, playerId: "p-naveen", dice: [3, 4], doubles: false, chosen: false }];
     expect(checkTransitionInvariants(before, appended)).toEqual([]);
   });
 

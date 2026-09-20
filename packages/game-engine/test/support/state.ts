@@ -125,7 +125,7 @@ export function baseState(): MatchState {
     turn: { playerId: "p-naveen", stage: "preRoll", doublesThisTurn: 0, dice: null, deadlineMs: null },
     players,
     tiles: board.tiles.map(() => emptyTile()),
-    bank: { houses: 32, hotels: 12, finePot: 0, ledger: { issued: 20000, absorbed: 0 } },
+    bank: { houses: 32, hotels: 12, finePot: 0, ledger: { issued: 20000, absorbed: 0 }, pendingAuctions: [] },
     auction: null,
     offers: [],
     debts: [],

@@ -1,6 +1,6 @@
 // Public surface of the rules engine (SPEC.md "Public surface"). Grows task by task:
 // C1 — state shape and invariants. C2 — seeded RNG. C3 — board geometry and movement.
-// C4 — pricing, colour sets and rent.
+// C4 — pricing, colour sets and rent. C5 — the actions reducer.
 export * from "./state";
 export { checkInvariants, checkTransitionInvariants, invariants } from "./invariants";
 export type { InvariantName, InvariantViolation } from "./invariants";
@@ -39,3 +39,13 @@ export { countTowardSet, holdsSet, isCustomThresholdValid, setProgress, threshol
 export type { GroupValidation, SetProgress } from "./sets";
 export { applyRentEffects, rentFor } from "./rent";
 export type { RentEffects } from "./rent";
+export type { Action, ActionKind, PlayerAction } from "./actions";
+export { ACTION_KINDS, isPlayerAction } from "./actions";
+export type { EngineErrorCode, ValidationResult } from "./errors";
+export type { MatchEvent, MatchEventKind } from "./events";
+export { apply, legalActions, validate } from "./reducer/index";
+export type { ApplyResult } from "./reducer/index";
+export { createMatch, replay } from "./match";
+export type { MatchSetup } from "./match";
+export { netWorth, standings } from "./endgame";
+export { raiseCashHeadroom, redeemCost } from "./reducer/property";

@@ -277,3 +277,12 @@ during C4.
 of 5 in the purple set, set held". Shipped names are Chennai / Royal Navy only (CLAUDE.md,
 rulebook §20); the example should use a board name such as Marina Drive so it is not copied into
 code or tests. Raised 21 September 2026 during C4.
+
+## Trademarked property names throughout `1n`
+
+**Concern:** `1n-notification-cards.md` §3 fills its sample cards with "Park Place", "Baltic
+Avenue", "Boardwalk" and "Baltic + Oriental", and §8's announcement pattern repeats "Park Place".
+Shipped names are Chennai / Royal Navy only (CLAUDE.md, rulebook §20) and are blocked at publish
+time, so the samples should be regenerated with board names (Marina Drive, Mount Road…) before the
+`1n` screen task copies them into fixtures. C5's tests use board names only. Raised 21 September
+2026 during C5.
