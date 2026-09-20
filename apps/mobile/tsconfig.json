@@ -1,7 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    "jsx": "react-native",
+    "types": ["react-native", "jest"],
+    // The "@/" alias mirrors Expo's default so imports read `@/screens/...` instead of `../../`.
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src"]
+  // `expo start` checks that app, src, *.js and *.ts are listed here and rewrites the list if not.
+  "include": ["app", "src", "*.js", "*.ts"]
 }

@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Royal Navy",
+    "slug": "royal-navy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B2456",
+    "scheme": "royalnavy",
+    "android": {
+      "package": "com.royalnavy.game",
+      "versionCode": 1,
+      "minSdkVersion": 26,
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
+      "adaptiveIcon": { "backgroundColor": "#0B2456" },
+      "permissions": ["INTERNET"],
+      "blockedPermissions": ["RECORD_AUDIO", "CAMERA", "ACCESS_FINE_LOCATION"]
+    },
+    "assetBundlePatterns": ["**/*"],
+    "plugins": ["expo-router", "expo-font"]
+  }
+}
