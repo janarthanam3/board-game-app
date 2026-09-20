@@ -111,6 +111,19 @@ export const surface = {
   divider: { width: 1, color: "rgba(126,180,255,.28)", style: "solid" } satisfies Stroke, // divider
   dividerFaint: { width: 1, color: "rgba(126,180,255,.22)", style: "solid" } satisfies Stroke, // divider.faint
   dashed: { width: 1, color: "rgba(126,180,255,.4)", style: "dashed" } satisfies Stroke, // dashed — empty slot / placeholder
+  // ── Values used by docs/03 and the screen specs that the 02 census does not list
+  //    (recorded in docs/design-concerns.md "Token census gaps").
+  dashedStrong: { width: 1, color: "rgba(126,180,255,.45)", style: "dashed" } satisfies Stroke, // ImageSlot border (1c, 1n, 1o, 2a, 3n)
+  inputBorder: { width: 1, color: "rgba(126,180,255,0.27)", style: "solid" } satisfies Stroke, // Input border (1a, 1b)
+  imageSlotWash: {
+    angle: 180,
+    stops: [
+      { color: "rgba(126,180,255,0.09)", position: 0 },
+      { color: "rgba(8,26,64,.5)", position: 100 },
+    ],
+  } as const satisfies Gradient, // ImageSlot hero fill (1w2)
+  imageSlotHighlight: "rgba(255,255,255,.05)", // ImageSlot inset highlight (1w2)
+  pressOverlay: "rgba(255,255,255,.04)", // Row pressed — "surface lightens 4%" (03)
 } as const;
 
 // ─── Colour — text ──────────────────────────────────────────────────────────────
@@ -179,6 +192,7 @@ export const danger = {
       { color: "rgba(8,26,64,.5)", position: 100 },
     ],
   } as const satisfies Gradient, // danger.wash — destructive block bg
+  fillSoft: "rgba(255,138,122,.08)", // destructive Button fill (03 "Actions")
 } as const;
 
 export const warn = {
@@ -302,6 +316,11 @@ export const radius = {
   field: 12, // radius.field — input, small tile
   token: 21, // radius.token — 62 dp icon tile
   tokenLg: 34, // radius.token.lg — 120 dp handover token
+  // From docs/03-design-system.md surfaces (not in the 02 radius table).
+  sheet: 22, // Sheet top corners
+  dialog: 20, // Dialog
+  toast: 15, // Toast
+  input: 17, // Input (1a, 1b)
 } as const;
 
 // ─── Control sizes (all ≥ 44 dp where tappable) ─────────────────────────────────

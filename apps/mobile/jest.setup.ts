@@ -16,3 +16,6 @@ jest.mock("expo-splash-screen", () => ({
   preventAutoHideAsync: jest.fn(() => Promise.resolve(true)),
   hideAsync: jest.fn(() => Promise.resolve(true)),
 }));
+
+// Animated with useNativeDriver needs the native animation module, which Jest does not have.
+jest.mock("react-native/Libraries/Animated/NativeAnimatedHelper");

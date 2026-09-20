@@ -176,3 +176,43 @@ the owner and the auction screen is a read-only display of it.
 
 **If accepted:** `1s` would show whatever Rule lab holds, and the design file's 30 s would be
 corrected to 20 s.
+
+---
+
+## Token census gaps between `02-design-tokens.md` and `03` / the screen specs
+
+**Implemented:** as the screen specs state, with the values added to `packages/shared/src/tokens.ts`
+under a "census gap" comment naming their source.
+
+**Concern:** `02-design-tokens.md` claims to be a complete value census, but `03-design-system.md`
+and several screen specs use values it does not list: the destructive button fill
+`rgba(255,138,122,.08)`; the `Input` border `rgba(126,180,255,0.27)` and radius 17 (`1a`, `1b`); the
+`ImageSlot` dashed border `rgba(126,180,255,.45)` (five screens — `02` only has `.4`), its hero wash
+gradient and `rgba(255,255,255,.05)` highlight (`1w2`); the Sheet (22), Dialog (20) and Toast (15)
+radii; and the Row pressed state "surface lightens 4%", which has no colour value at all and is
+implemented as a `rgba(255,255,255,.04)` overlay.
+
+**Action taken:** the values are used exactly as the specs give them. When `02` is next regenerated
+from the design these should appear in its tables so the census is complete. Raised 20 September
+2026 during B3.
+
+## Platform limits on shadows
+
+**Concern:** React Native 0.74 on Android renders no box shadows except the platform `elevation`
+shadow, which is black, blurred by the OS and cannot be inset. The design's `shadow.card`
+(`0 2 0 rgba(6,20,54,.4)` plus an inset 1 dp white highlight), `shadow.inset.sunken` and
+`shadow.token` therefore cannot be reproduced on Android. `shadowStyle()` in
+`apps/mobile/src/components/shadows.ts` emits the iOS shadow props (exact on iOS) and **no**
+`elevation`, because a black OS shadow would look further from the design than no shadow. Inset
+shadows are dropped on both platforms. Raised 20 September 2026 during B3.
+
+## Status tag colours: `03` and `2a2` disagree
+
+**Implemented:** `Pill` tones as `03-design-system.md` names them (`gold` = published, `green` =
+completed, `amber` = pending), each drawn with the tinted pattern the screen specs use — role colour
+at 18% fill, 45% border, flat colour text.
+
+**Concern:** `2a2-boards-list.md` §3 row 7 colours the same three states differently: published is
+green (`#7ADB25`), completed is blue (`#5FC0FF`) and pending is gold (`#FFC84A`), with radius 9 and
+called `Tag`. Screens follow their own spec, so `2a2` will pass explicit colours; but the two derived
+docs should agree after the next regeneration. Raised 20 September 2026 during B3.

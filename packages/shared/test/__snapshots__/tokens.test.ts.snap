@@ -22,6 +22,7 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
           },
         ],
       },
+      "fillSoft": "rgba(255,138,122,.08)",
       "soft": "#FFD7D2",
       "text": "#FF9A93",
       "wash": {
@@ -114,6 +115,11 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
         "style": "dashed",
         "width": 1,
       },
+      "dashedStrong": {
+        "color": "rgba(126,180,255,.45)",
+        "style": "dashed",
+        "width": 1,
+      },
       "divider": {
         "color": "rgba(126,180,255,.28)",
         "style": "solid",
@@ -124,8 +130,28 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
         "style": "solid",
         "width": 1,
       },
+      "imageSlotHighlight": "rgba(255,255,255,.05)",
+      "imageSlotWash": {
+        "angle": 180,
+        "stops": [
+          {
+            "color": "rgba(126,180,255,0.09)",
+            "position": 0,
+          },
+          {
+            "color": "rgba(8,26,64,.5)",
+            "position": 100,
+          },
+        ],
+      },
+      "inputBorder": {
+        "color": "rgba(126,180,255,0.27)",
+        "style": "solid",
+        "width": 1,
+      },
       "inset": "rgba(8,26,64,.35)",
       "insetStrong": "rgba(8,26,64,.5)",
+      "pressOverlay": "rgba(255,255,255,.04)",
       "scrim": "rgba(5,15,40,.66)",
       "scrimLight": "rgba(5,15,40,.45)",
       "sunken": {
@@ -409,8 +435,12 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
       "min": 18,
     },
     "control": 14,
+    "dialog": 20,
     "field": 12,
+    "input": 17,
     "pill": 999,
+    "sheet": 22,
+    "toast": 15,
     "token": 21,
     "tokenLg": 34,
   },

@@ -18,6 +18,9 @@ export default [
       "**/__snapshots__/**",
       // The one file that is allowed to hold colour literals.
       "packages/shared/src/tokens.ts",
+      // withAlpha() assembles rgba() strings from tokens; its test asserts the literal results.
+      "packages/shared/src/colour.ts",
+      "packages/shared/test/colour.test.ts",
       // The rule's own test must contain raw colours to prove it catches them.
       "packages/shared/test/no-raw-color.test.ts",
     ],
