@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // Tests may use Node (file scans, fixtures); src/ is checked separately without it.
+    "types": ["node"]
+  },
+  "include": ["src", "test"]
+}

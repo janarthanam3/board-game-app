@@ -37,4 +37,43 @@ export default [
       "royal-navy/no-raw-color": "error",
     },
   },
+  {
+    // Determinism (docs/05 section 19, CLAUDE.md): every random draw comes from the seeded RNG and
+    // time arrives as action data. The engine and server match code may not read either directly.
+    files: ["packages/game-engine/src/**/*.ts", "apps/server/src/match/**/*.ts", "apps/server/src/sockets/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[object.name='Math'][property.name='random']",
+          message: "Use the seeded RNG in packages/game-engine/src/rng.ts (rulebook section 19).",
+        },
+        {
+          selector: "MemberExpression[object.name='Date'][property.name='now']",
+          message: "Time is action data (atMs); the engine never reads the clock.",
+        },
+        {
+          selector: "NewExpression[callee.name='Date']",
+          message: "Time is action data (atMs); the engine never reads the clock.",
+        },
+      ],
+    },
+  },
+  {
+    // Module boundaries (docs/01-architecture.md "Dependency rules"): the engine is pure and
+    // platform-free. It may import packages/shared and nothing else.
+    files: ["packages/game-engine/src/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { group: ["node:*", "fs", "path", "os", "crypto", "http", "https", "net", "child_process"], message: "No Node standard library in the engine." },
+            { group: ["react", "react-*", "expo*", "@react-native/*"], message: "No React or React Native in the engine." },
+            { group: ["@royal-navy/server", "@royal-navy/mobile", "**/apps/*"], message: "The engine never imports from apps/*." },
+          ],
+        },
+      ],
+    },
+  },
 ];
