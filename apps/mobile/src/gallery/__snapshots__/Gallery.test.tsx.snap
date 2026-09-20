@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`component gallery has a section for every component in docs/03-design-system.md that B3 delivered 1`] = `
+[
+  "Screen",
+  "ScreenHeader",
+  "ScrollRegion",
+  "Card",
+  "SunkenPanel",
+  "SectionLabel",
+  "Sheet",
+  "Dialog",
+  "Toast",
+  "Button",
+  "IconButton",
+  "Chip",
+  "Pill",
+  "Segmented",
+  "Stepper",
+  "Toggle",
+  "Row",
+  "ValueRow",
+  "ProgressBar",
+  "EmptyState",
+  "ValidationPanel",
+  "StepChecklist",
+  "Input",
+  "Skeleton",
+  "ImageSlot",
+]
+`;

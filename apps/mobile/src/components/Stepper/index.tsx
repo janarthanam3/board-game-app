@@ -71,7 +71,7 @@ function StepButton({ icon, label, disabled, onPress }: StepButtonProps) {
 }
 
 // 36 dp buttons; 4 dp of slop each side makes the tap target 44.
-const slop = (44 - control.stepperButton.width) / 2;
+const slop = (control.minTapTarget - control.stepperButton.width) / 2;
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: stackGap.inner },

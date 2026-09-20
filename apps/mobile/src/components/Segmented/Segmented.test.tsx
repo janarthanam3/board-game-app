@@ -13,7 +13,7 @@ describe("Segmented", () => {
     render(<Segmented options={options} selectedKey="card" onSelect={jest.fn()} label="View" />);
 
     expect(screen.getByTestId("segmented")).toHaveStyle({
-      height: control.segmented.height,
+      minHeight: control.segmented.height,
       borderRadius: control.segmented.radius,
       borderWidth: control.segmented.border.width,
       borderColor: control.segmented.border.color,

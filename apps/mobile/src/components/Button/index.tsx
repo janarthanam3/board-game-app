@@ -1,8 +1,10 @@
-import { accent, danger, gold, green, surface, text } from "@royal-navy/shared";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { accent, danger, gold, green, motion, surface, text } from "@royal-navy/shared";
+import { useRef, useState } from "react";
+import { ActivityIndicator, Animated, Pressable, Text, View } from "react-native";
 
 import { GradientView } from "../GradientView";
 import { Icon } from "../Icon";
+import { easingFor, effectiveDuration, useReducedMotion } from "../motion";
 import { styles, variantStyles } from "./styles";
 
 export type ButtonVariant = "primary" | "secondary" | "confirm" | "ghost" | "destructive" | "text";
@@ -29,9 +31,12 @@ const pressedGradient = {
   confirm: { angle: 180, stops: [{ color: green.gradient.stops[1].color, position: 0 }, { color: green.gradient.stops[1].color, position: 100 }] },
 } as const;
 
+const PRESSED_SCALE = 0.98;
+
 /**
  * The six button variants from docs/03-design-system.md "Actions". Never two primaries in one
- * row: a row of two is ghost + primary, ghost first.
+ * row: a row of two is ghost + primary, ghost first. Heights are minimums so the label can grow
+ * at 130% font scale (docs/02 "Heights are never fixed on a text-bearing box").
  */
 export function Button({
   variant,
@@ -46,42 +51,49 @@ export function Button({
 }: ButtonProps) {
   const v = variantStyles[variant];
   const inert = disabled || loading;
+  const reducedMotion = useReducedMotion();
+  const [pressed, setPressed] = useState(false);
+  const scale = useRef(new Animated.Value(1)).current;
+
+  // Press state: scale .98 over 90 ms linear (03 "pressed", 02 motion.instant).
+  function animatePress(toPressed: boolean) {
+    setPressed(toPressed);
+    Animated.timing(scale, {
+      toValue: toPressed ? PRESSED_SCALE : 1,
+      duration: effectiveDuration(motion.instant.durationMs, reducedMotion),
+      easing: easingFor(motion.instant.easing),
+      useNativeDriver: true,
+    }).start();
+  }
 
   return (
-    <Pressable
-      testID={testID ?? `button-${variant}`}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled: inert, busy: loading }}
-      onPress={onPress}
-      disabled={inert}
-      style={({ pressed }) => [
-        styles.base,
-        v.frame,
-        size === "dialog" && styles.dialogSize,
-        block ? styles.block : styles.inline,
-        pressed && !inert && styles.pressed,
-        disabled && styles.disabled,
-      ]}
-    >
-      {({ pressed }) => (
-        <>
-          {fillFor(variant, pressed && !inert)}
-          <View style={styles.content}>
-            {loading ? (
-              <ActivityIndicator testID="button-spinner" size={19} color={v.labelColor} />
-            ) : (
-              <>
-                {icon ? <Icon name={icon} size={19} color={v.labelColor} /> : null}
-                <Text style={[v.label, { color: v.labelColor }]} numberOfLines={1}>
-                  {label}
-                </Text>
-              </>
-            )}
+    <Animated.View testID={`${testID ?? `button-${variant}`}-frame`} style={[block ? styles.block : styles.inline, { transform: [{ scale }] }]}>
+      <Pressable
+        testID={testID ?? `button-${variant}`}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: inert, busy: loading }}
+        onPress={onPress}
+        onPressIn={() => !inert && animatePress(true)}
+        onPressOut={() => animatePress(false)}
+        disabled={inert}
+        style={[styles.base, v.frame, size === "dialog" && styles.dialogSize, disabled && styles.disabled]}
+      >
+        {fillFor(variant, pressed && !inert)}
+        {/* The label stays in the tree while loading (invisible) so the button keeps its width. */}
+        <View testID="button-content" style={[styles.content, loading && styles.contentHidden]}>
+          {icon ? <Icon name={icon} size={19} color={v.labelColor} /> : null}
+          <Text style={[v.label, { color: v.labelColor }]} numberOfLines={1}>
+            {label}
+          </Text>
+        </View>
+        {loading ? (
+          <View style={styles.spinner}>
+            <ActivityIndicator testID="button-spinner" size={19} color={v.labelColor} />
           </View>
-        </>
-      )}
-    </Pressable>
+        ) : null}
+      </Pressable>
+    </Animated.View>
   );
 }
 

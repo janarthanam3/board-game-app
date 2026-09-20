@@ -33,8 +33,8 @@ describe("Dialog", () => {
 
     const stay = screen.getByLabelText("Stay");
     const leave = screen.getByLabelText("Leave");
-    expect(stay).toHaveStyle({ height: control.dialogButton.height });
-    expect(leave).toHaveStyle({ height: control.dialogButton.height });
+    expect(stay).toHaveStyle({ minHeight: control.dialogButton.height });
+    expect(leave).toHaveStyle({ minHeight: control.dialogButton.height });
     expect(screen.getByTestId("button-ghost")).toBeTruthy();
     expect(screen.getByTestId("button-primary")).toBeTruthy();
 

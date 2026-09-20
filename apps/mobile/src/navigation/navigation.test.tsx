@@ -33,7 +33,7 @@ function signedOut() {
 beforeEach(() => {
   jest.clearAllMocks();
   useMatchStore.setState({ current: null });
-  useBuilderStore.setState({ boards: {} });
+  useBuilderStore.setState({ boards: {}, tiles: {}, decks: {}, rules: {} });
   signedIn();
 });
 
@@ -121,6 +121,17 @@ describe("guards on the real route tree", () => {
     useBuilderStore.setState({ boards: { "b-1": { boardId: "b-1", ownerAccountId: "acc-1", publishedVersionId: null } } });
     renderRouter(APP_DIR, { initialUrl: "/create/boards/b-1/analytics" });
     await waitFor(() => expect(screen).toHavePathname("/create/boards/b-1"));
+  });
+
+  it("owner: a tile editor for someone else's tile returns to the tiles list, /new is mine", async () => {
+    useBuilderStore.setState({ tiles: { "t-1": { id: "t-1", ownerAccountId: "acc-2" } } });
+    renderRouter(APP_DIR, { initialUrl: "/create/tiles/t-1" });
+    await waitFor(() => expect(screen).toHavePathname("/create/tiles"));
+  });
+
+  it("owner: a new deck opens for the signed-in user", () => {
+    renderRouter(APP_DIR, { initialUrl: "/create/decks/new" });
+    expect(screen).toHavePathname("/create/decks/new");
   });
 
   it("local match: the handover cover needs a local match", async () => {

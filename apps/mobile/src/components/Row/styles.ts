@@ -1,4 +1,4 @@
-import { danger, gold, radius, shadow, stackGap, surface, text, type } from "@royal-navy/shared";
+import { control, danger, gold, radius, shadow, stackGap, surface, text, type } from "@royal-navy/shared";
 import { StyleSheet } from "react-native";
 
 import { shadowStyle } from "../shadows";
@@ -6,8 +6,8 @@ import { textStyle } from "../typography";
 
 export const styles = StyleSheet.create({
   frame: {
-    minHeight: 56,
-    borderRadius: radius.card,
+    minHeight: control.listRow.minHeight,
+    borderRadius: control.listRow.radius,
     borderWidth: surface.cardBorder.width,
     borderColor: surface.cardBorder.color,
     overflow: "hidden",
@@ -24,7 +24,7 @@ export const styles = StyleSheet.create({
     gap: stackGap.default,
     paddingVertical: 11,
     paddingHorizontal: 12,
-    minHeight: 56,
+    minHeight: control.listRow.minHeight,
   },
   leading: { alignItems: "center", justifyContent: "center" },
   middle: { flex: 1, minWidth: 0, gap: 2 },

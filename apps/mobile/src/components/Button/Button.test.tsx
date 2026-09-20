@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
-import { control, danger, stroke, type } from "@royal-navy/shared";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { processColor } from "react-native";
+import { control, danger, gold, motion, stroke, type } from "@royal-navy/shared";
 
 import { Button, buttonLabelColour, type ButtonVariant } from "./index";
 
@@ -14,12 +15,12 @@ const heights: Record<ButtonVariant, number> = {
 
 describe("Button", () => {
   describe.each(Object.keys(heights) as ButtonVariant[])("%s variant", (variant) => {
-    it("renders at its documented height, never under 44 dp", () => {
+    it("renders at least its documented height (a minimum, so 130% font scale can grow it), never under 44 dp", () => {
       render(<Button variant={variant} label="Go" onPress={jest.fn()} />);
 
       const button = screen.getByRole("button");
-      const style = variant === "text" ? { minHeight: heights[variant] } : { height: heights[variant] };
-      expect(button).toHaveStyle(style);
+      expect(button).toHaveStyle({ minHeight: heights[variant] });
+      expect(button).not.toHaveStyle({ height: heights[variant] });
       expect(heights[variant]).toBeGreaterThanOrEqual(44);
     });
 
@@ -76,13 +77,33 @@ describe("Button", () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
-  it("replaces the label with a spinner while loading and blocks presses", () => {
+  it("shows a spinner while loading, keeps the label in the tree invisibly to hold width, and blocks presses", () => {
     const onPress = jest.fn();
-    render(<Button variant="primary" label="Play" onPress={onPress} loading />);
+    render(<Button variant="primary" label="Play" onPress={onPress} loading block={false} />);
 
-    expect(screen.queryByText("Play")).toBeNull();
+    expect(screen.getByText("Play")).toBeTruthy(); // still laid out…
+    expect(screen.getByTestId("button-content")).toHaveStyle({ opacity: 0 }); // …just invisible
     expect(screen.getByTestId("button-spinner")).toBeTruthy();
     expect(screen.getByRole("button")).toBeDisabled();
+  });
+
+  it("animates the press over motion.instant (90 ms) and swaps the gradient to gold.deep", () => {
+    jest.useFakeTimers();
+    render(<Button variant="primary" label="Play" onPress={jest.fn()} />);
+    const button = screen.getByRole("button");
+
+    fireEvent(button, "pressIn");
+    act(() => {
+      jest.advanceTimersByTime(motion.instant.durationMs);
+    });
+    expect(screen.getByTestId("button-fill").props.colors).toEqual([gold.deep, gold.deep].map((c) => processColor(c)));
+
+    fireEvent(button, "pressOut");
+    act(() => {
+      jest.advanceTimersByTime(motion.instant.durationMs);
+    });
+    expect(screen.getByTestId("button-fill").props.colors).toEqual(gold.gradient.stops.map((s) => processColor(s.color)));
+    jest.useRealTimers();
   });
 
   it("renders a leading icon when given", () => {
@@ -95,7 +116,7 @@ describe("Button", () => {
     render(<Button variant="primary" label="Keep" onPress={jest.fn()} size="dialog" />);
 
     expect(screen.getByRole("button")).toHaveStyle({
-      height: control.dialogButton.height,
+      minHeight: control.dialogButton.height,
       borderRadius: control.dialogButton.radius,
     });
   });
@@ -108,7 +129,7 @@ describe("Button", () => {
       </>,
     );
 
-    expect(screen.getByTestId("wide")).toHaveStyle({ alignSelf: "stretch" });
-    expect(screen.getByTestId("narrow")).toHaveStyle({ alignSelf: "flex-start" });
+    expect(screen.getByTestId("wide-frame")).toHaveStyle({ alignSelf: "stretch" });
+    expect(screen.getByTestId("narrow-frame")).toHaveStyle({ alignSelf: "flex-start" });
   });
 });

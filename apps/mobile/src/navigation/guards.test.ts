@@ -6,6 +6,7 @@ import {
   authGuard,
   bankruptGuard,
   firstRunGuard,
+  itemOwnerGuard,
   localMatchGuard,
   memberGuard,
   ownerGuard,
@@ -106,6 +107,20 @@ describe("owner guards", () => {
   it("owner + published also needs a published version, else back to the builder", () => {
     expect(ownerPublishedGuard(board, signedIn)).toEqual({ allow: false, redirect: "/create/boards/b-1" });
     expect(ownerPublishedGuard({ ...board, publishedVersionId: "bv-1" }, signedIn)).toEqual({ allow: true });
+  });
+});
+
+describe("item owner guard (tiles, decks, rules)", () => {
+  const tile = { id: "t-1", ownerAccountId: "acc-1" };
+
+  it("allows my own item and a new one, and sends anything else back to the list", () => {
+    expect(itemOwnerGuard(tile, "t-1", signedIn, "/create/tiles")).toEqual({ allow: true });
+    expect(itemOwnerGuard(undefined, "new", signedIn, "/create/tiles")).toEqual({ allow: true });
+    expect(itemOwnerGuard({ ...tile, ownerAccountId: "acc-2" }, "t-1", signedIn, "/create/tiles")).toEqual({
+      allow: false,
+      redirect: "/create/tiles",
+    });
+    expect(itemOwnerGuard(undefined, "t-9", signedIn, "/create/decks")).toEqual({ allow: false, redirect: "/create/decks" });
   });
 });
 

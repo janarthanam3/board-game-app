@@ -96,7 +96,8 @@ export function Segmented<Key extends string>({ options, selectedKey, onSelect, 
 const styles = StyleSheet.create({
   track: {
     flexDirection: "row",
-    height: control.segmented.height,
+    // A minimum, not a fixed height: the label grows at 130% font scale (docs/02 "Responsive").
+    minHeight: control.segmented.height,
     borderRadius: control.segmented.radius,
     borderWidth: control.segmented.border.width,
     borderColor: control.segmented.border.color,
@@ -116,6 +117,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: control.segmented.paddingVertical,
   },
-  segmentSlop: { top: (44 - control.segmented.height) / 2, bottom: (44 - control.segmented.height) / 2 },
+  segmentSlop: {
+    top: (control.minTapTarget - control.segmented.height) / 2,
+    bottom: (control.minTapTarget - control.segmented.height) / 2,
+  },
   label: textStyle(type.bodySm),
 });

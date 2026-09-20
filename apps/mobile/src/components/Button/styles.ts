@@ -12,14 +12,19 @@ import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
 
 import { textStyle } from "../typography";
 
+// 03 "Button": icon 19 dp with a 7 dp gap before the label; inline buttons hug with frame padding.
+const ICON_GAP = 7;
+const INLINE_PADDING = 17;
+
 export const styles = StyleSheet.create({
   base: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
   block: { alignSelf: "stretch" },
-  inline: { alignSelf: "flex-start", paddingHorizontal: 17 },
+  inline: { alignSelf: "flex-start" },
   fill: { ...StyleSheet.absoluteFillObject },
-  content: { flexDirection: "row", alignItems: "center", gap: 7 },
-  pressed: { transform: [{ scale: 0.98 }] },
-  dialogSize: { height: control.dialogButton.height, borderRadius: control.dialogButton.radius },
+  content: { flexDirection: "row", alignItems: "center", gap: ICON_GAP, paddingHorizontal: INLINE_PADDING },
+  contentHidden: { opacity: 0 },
+  spinner: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
+  dialogSize: { minHeight: control.dialogButton.height, borderRadius: control.dialogButton.radius },
   disabled: { opacity: 0.45 },
 });
 
@@ -29,19 +34,20 @@ interface VariantStyle {
   labelColor: string;
 }
 
-// One entry per row of the "Button" table in docs/03-design-system.md.
+// One entry per row of the "Button" table in docs/03-design-system.md. Heights are minimums
+// (docs/02 "Heights are never fixed on a text-bearing box"; buttons grow to 56 at 130% scale).
 export const variantStyles: Record<
   "primary" | "secondary" | "confirm" | "ghost" | "destructive" | "text",
   VariantStyle
 > = {
   primary: {
-    frame: { height: control.primaryButton.height, borderRadius: control.primaryButton.radius },
+    frame: { minHeight: control.primaryButton.height, borderRadius: control.primaryButton.radius },
     label: textStyle(type.button),
     labelColor: text.onGold,
   },
   secondary: {
     frame: {
-      height: control.secondaryButton.height,
+      minHeight: control.secondaryButton.height,
       borderRadius: control.primaryButton.radius,
       borderWidth: control.secondaryButton.border.width,
       borderColor: stroke.blue,
@@ -50,14 +56,14 @@ export const variantStyles: Record<
     labelColor: text.primary,
   },
   confirm: {
-    frame: { height: control.primaryButton.height, borderRadius: control.primaryButton.radius },
+    frame: { minHeight: control.primaryButton.height, borderRadius: control.primaryButton.radius },
     label: textStyle(type.button),
     // The design gives the confirm label as #0E2E66 — the screen background's bottom stop.
     labelColor: screenBackground.stops[2].color,
   },
   ghost: {
     frame: {
-      height: control.dialogButton.height,
+      minHeight: control.dialogButton.height,
       borderRadius: control.dialogButton.radius,
       borderWidth: surface.divider.width,
       borderColor: surface.divider.color,
@@ -67,16 +73,16 @@ export const variantStyles: Record<
   },
   destructive: {
     frame: {
-      height: control.destructiveButton.height,
+      minHeight: control.destructiveButton.height,
       borderRadius: control.destructiveButton.radius,
-      borderWidth: 1,
+      borderWidth: surface.divider.width,
       borderColor: danger.border,
     },
     label: textStyle(type.buttonXs),
     labelColor: danger.soft,
   },
   text: {
-    frame: { minHeight: 44 },
+    frame: { minHeight: control.minTapTarget },
     label: textStyle(type.body),
     labelColor: accent.blue,
   },

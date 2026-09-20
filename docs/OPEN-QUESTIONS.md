@@ -287,3 +287,32 @@ Raised 20 September 2026 during B4. Does not block a task.
 
 **Recommendation:** (2). It matches how `1e` and `2c` already describe "caller" back behaviour and
 needs no new screen.
+
+---
+
+## OQ-14 · Four component details the design does not specify
+
+**Affects:** `Dialog`, `Stepper`, `Skeleton`, `Row` in `apps/mobile/src/components`; task **B3**.
+
+**Why it matters:** `docs/03-design-system.md` names these elements but gives no value for one
+detail of each, and no screen spec supplies it either. B3 implemented each with the nearest
+existing token so the component ships, but the choice is the developer's, not the design's:
+
+1. Dialog destructive icon tile: "39 dp `danger.fill` icon tile" — **radius** not given.
+   Implemented with `radius.control` (14).
+2. Stepper minus/plus buttons: "36×36 dp" — **fill, border and radius** not given. Implemented
+   with the IconButton surface (`surface.inset`, `divider`, `radius.control`).
+3. Skeleton "shimmer sweep" (3c §9): the sweep band's **colour** is not given. Implemented with
+   `rgba(255,255,255,.05)` (the ImageSlot inset highlight token), 40% of the bar wide.
+4. Row selected state: "1 dp `gold.flat` ring, inset glow" — the glow's **colour, blur and
+   spread** are not given (and inset shadows do not render on Android). Only the ring is drawn.
+
+Raised 20 September 2026 at the Phase B gate. Does not block a task.
+
+**Options**
+1. Confirm the four choices above as the design.
+2. Supply the values from the design file and regenerate `03`.
+3. Drop the undefined details (no tile radius → 0; flat stepper buttons; no shimmer; no glow).
+
+**Recommendation:** (2) if the design file has them, otherwise (1) — each choice reuses an
+existing token so it stays consistent with the rest of the system.

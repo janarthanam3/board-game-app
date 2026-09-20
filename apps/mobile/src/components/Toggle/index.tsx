@@ -1,4 +1,4 @@
-import { green, motion, radius, surface, text } from "@royal-navy/shared";
+import { control, green, motion, radius, surface, text } from "@royal-navy/shared";
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, StyleSheet } from "react-native";
 
@@ -14,9 +14,9 @@ export interface ToggleProps {
   testID?: string;
 }
 
-const TRACK_WIDTH = 40;
-const TRACK_HEIGHT = 24;
-const KNOB = 20;
+const TRACK_WIDTH = control.toggle.trackWidth;
+const TRACK_HEIGHT = control.toggle.trackHeight;
+const KNOB = control.toggle.knob;
 const KNOB_INSET = (TRACK_HEIGHT - KNOB) / 2;
 const KNOB_TRAVEL = TRACK_WIDTH - KNOB - KNOB_INSET * 2;
 
@@ -58,8 +58,8 @@ export function Toggle({ value, onValueChange, label, disabled = false, testID }
 }
 
 // 24 dp tall; hit slop brings the tappable area to 44 dp on every side.
-const slopVertical = (44 - TRACK_HEIGHT) / 2;
-const slopHorizontal = (44 - TRACK_WIDTH) / 2;
+const slopVertical = (control.minTapTarget - TRACK_HEIGHT) / 2;
+const slopHorizontal = (control.minTapTarget - TRACK_WIDTH) / 2;
 
 const styles = StyleSheet.create({
   track: {

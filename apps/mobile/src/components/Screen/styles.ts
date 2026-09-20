@@ -1,4 +1,4 @@
-import { frame, stackGap } from "@royal-navy/shared";
+import { frame, responsive, stackGap } from "@royal-navy/shared";
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
@@ -7,4 +7,5 @@ export const styles = StyleSheet.create({
   body: { flex: 1, flexDirection: "column", gap: stackGap.default },
   padded: { padding: frame.padding },
   unpadded: { padding: 0 },
+  tabletColumn: { width: "100%", maxWidth: responsive.tabletContentMaxWidth, alignSelf: "center" },
 });

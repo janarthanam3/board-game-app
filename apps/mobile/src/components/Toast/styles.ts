@@ -1,7 +1,6 @@
-import { frame, radius, shadow, stackGap, surface, text, type, zIndex } from "@royal-navy/shared";
+import { frame, radius, stackGap, surface, text, type, zIndex } from "@royal-navy/shared";
 import { StyleSheet } from "react-native";
 
-import { shadowStyle } from "../shadows";
 import { textStyle } from "../typography";
 
 export const styles = StyleSheet.create({
@@ -11,7 +10,6 @@ export const styles = StyleSheet.create({
     left: frame.padding,
     right: frame.padding,
     zIndex: zIndex.toast,
-    ...shadowStyle(shadow.raised),
   },
   card: {
     borderRadius: radius.toast,

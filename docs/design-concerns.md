@@ -216,3 +216,34 @@ at 18% fill, 45% border, flat colour text.
 green (`#7ADB25`), completed is blue (`#5FC0FF`) and pending is gold (`#FFC84A`), with radius 9 and
 called `Tag`. Screens follow their own spec, so `2a2` will pass explicit colours; but the two derived
 docs should agree after the next regeneration. Raised 20 September 2026 during B3.
+
+---
+
+## Design-check concerns raised at the Phase B gate (20 September 2026)
+
+Reported by the design-guardian review of B1–B4, verbatim:
+
+**A.** 02/03 give the header title as `type.h3` 700/17, but 16 screen specs give `ScreenHeader`
+title as `700 19px` or `700 22px`. One of the derived docs is stale; needs regeneration, not a code
+pick.
+
+**B.** 03 `EmptyState` (62 dp dashed tile + 24 dp icon, `type.h2`, body max 240, one 200 dp-wide
+primary) vs 3n §2/§3 (44 dp bare glyph `rgba(126,180,255,.45)`, title `700 17px`, body max 260,
+action "min-height 44, radius 16, padding 13, label `700 15px`"). 3n is the primary user of
+`EmptyState` and cannot be built from the 03 component.
+
+**C.** 03 Button table (primary 800/16, no shadow) vs screen specs' `Button.primaryGold` /
+`Button.primaryGreen` (1a #6: `800 17px` letter-spacing .1em with a `0 6px 0 #2C7A06` hard shadow;
+3c #10 / 3n #6: `700 15px`, `0 4px 0 #B57F0C` shadow, min-height 44). The six-variant table and the
+screen specs describe different buttons.
+
+**D.** 04 route table sends Spectating back to `/profile/friends`, which is not a route — already
+logged as OQ-13; code goes to `/modes`.
+
+**E.** `Skeleton` and `ImageSlot` are required by TASKS B3 and by many screen specs but have no
+entry in `docs/03-design-system.md`; their values live only in per-screen tables (and differ per
+screen), so there is no single component spec to verify against.
+
+**Also noted (MINOR 15):** 03 describes the selected Row as "1 dp `gold.flat` ring, inset glow";
+no value is given for the glow and inset shadows are not representable on Android (see "Platform
+limits on shadows"), so only the ring is drawn.

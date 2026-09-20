@@ -1,7 +1,9 @@
-import { control, gold, surface, text, type } from "@royal-navy/shared";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { control, gold, motion, surface, text, type } from "@royal-navy/shared";
+import { useEffect, useRef } from "react";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { GradientView } from "../GradientView";
+import { easingFor, effectiveDuration, useReducedMotion } from "../motion";
 import { textStyle } from "../typography";
 
 export interface ChipProps {
@@ -15,9 +17,26 @@ export interface ChipProps {
 
 // Midpoint of the documented 10.5–11.5 range, for callers whose spec does not state a size.
 const DEFAULT_CHIP_SIZE = 11;
+// 03 "Chip": horizontal gap between chips in a filter row.
+const CHIP_GAP = 7;
 
-/** Filter chip: 7×12 padding, radius 14. Unselected inset + divider; selected gold gradient. */
+/**
+ * Filter chip: 7×12 padding, radius 14. Unselected inset + divider; selected gold gradient. The
+ * gold fill fades in and out over 90 ms linear (02 `motion.instant` "chip select").
+ */
 export function Chip({ label, selected, onPress, size = DEFAULT_CHIP_SIZE, testID }: ChipProps) {
+  const reducedMotion = useReducedMotion();
+  const fillOpacity = useRef(new Animated.Value(selected ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(fillOpacity, {
+      toValue: selected ? 1 : 0,
+      duration: effectiveDuration(motion.instant.durationMs, reducedMotion),
+      easing: easingFor(motion.instant.easing),
+      useNativeDriver: true,
+    }).start();
+  }, [selected, reducedMotion, fillOpacity]);
+
   return (
     <Pressable
       testID={testID ?? `chip-${label}`}
@@ -31,7 +50,9 @@ export function Chip({ label, selected, onPress, size = DEFAULT_CHIP_SIZE, testI
         pressed && styles.pressed,
       ]}
     >
-      {selected ? <GradientView gradient={gold.gradient} style={StyleSheet.absoluteFill} testID="chip-fill" /> : null}
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: fillOpacity }]} pointerEvents="none">
+        <GradientView gradient={gold.gradient} style={StyleSheet.absoluteFill} testID={selected ? "chip-fill" : "chip-fill-hidden"} />
+      </Animated.View>
       <Text style={[textStyle(type.chip, size), { color: selected ? text.onGold : text.secondary }]}>{label}</Text>
     </Pressable>
   );
@@ -63,9 +84,9 @@ export function ChipRow({ options, selectedKey, onSelect, size }: ChipRowProps) 
   );
 }
 
-// Chips are shorter than 44 dp; the hit slop tops the tappable height up to 44.
+// Chips are shorter than 44 dp; the hit slop tops the tappable height up to the minimum target.
 const chipHeight = control.chip.paddingVertical * 2 + Math.round(DEFAULT_CHIP_SIZE * 1.25);
-const verticalSlop = Math.max(0, (44 - chipHeight) / 2);
+const verticalSlop = Math.max(0, (control.minTapTarget - chipHeight) / 2);
 
 const styles = StyleSheet.create({
   chip: {
@@ -83,6 +104,6 @@ const styles = StyleSheet.create({
   },
   selected: { borderWidth: 0 },
   pressed: { transform: [{ scale: 0.98 }] },
-  row: { flexDirection: "row", gap: 7 },
+  row: { flexDirection: "row", gap: CHIP_GAP },
   hitSlop: { top: verticalSlop, bottom: verticalSlop, left: 0, right: 0 },
 });

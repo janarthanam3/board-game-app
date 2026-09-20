@@ -16,13 +16,13 @@ describe("Chip", () => {
       borderColor: surface.divider.color,
     });
     expect(screen.getByText("Property")).toHaveStyle({ color: text.secondary });
-    expect(screen.queryByTestId("chip-fill")).toBeNull();
+    expect(screen.queryByTestId("chip-fill", { includeHiddenElements: true })).toBeNull();
   });
 
   it("renders selected on the gold gradient with onGold text and no border", () => {
     render(<Chip label="All" selected onPress={jest.fn()} />);
 
-    expect(screen.getByTestId("chip-fill")).toBeTruthy();
+    expect(screen.getByTestId("chip-fill", { includeHiddenElements: true })).toBeTruthy();
     expect(screen.getByRole("button")).toHaveStyle({ borderWidth: 0 });
     expect(screen.getByRole("button")).toBeSelected();
     expect(screen.getByText("All")).toHaveStyle({ color: text.onGold });

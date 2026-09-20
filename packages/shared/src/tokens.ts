@@ -121,8 +121,9 @@ export const surface = {
       { color: "rgba(126,180,255,0.09)", position: 0 },
       { color: "rgba(8,26,64,.5)", position: 100 },
     ],
-  } as const satisfies Gradient, // ImageSlot hero fill (1w2)
-  imageSlotHighlight: "rgba(255,255,255,.05)", // ImageSlot inset highlight (1w2)
+  } as const satisfies Gradient, // ImageSlot hero fill (1a §3 #2)
+  imageSlotHighlight: "rgba(255,255,255,.05)", // ImageSlot inset highlight (1a §3 #2)
+  skeleton: "rgba(126,180,255,.16)", // Skeleton bars (3c, 3d, 3e)
   pressOverlay: "rgba(255,255,255,.04)", // Row pressed — "surface lightens 4%" (03)
 } as const;
 
@@ -193,6 +194,7 @@ export const danger = {
     ],
   } as const satisfies Gradient, // danger.wash — destructive block bg
   fillSoft: "rgba(255,138,122,.08)", // destructive Button fill (03 "Actions")
+  strong: "#F0524A", // Input error border (1a §4); also player.red's top stop
 } as const;
 
 export const warn = {
@@ -344,6 +346,10 @@ export const control = {
   playerTokenList: { diameter: 25 },
   sheetGrabber: { width: 44, height: 4, radius: 999, color: "rgba(126,180,255,.3)" },
   progressBar: { height: 6, radius: 999, track: "rgba(8,26,64,.5)" },
+  toggle: { trackWidth: 40, trackHeight: 24, knob: 20 }, // 03 "Toggle"
+  // Hard constraint (CLAUDE.md): every tap target is at least this tall and wide.
+  minTapTarget: 44,
+  skeletonRadius: 8, // 3c, 3d, 3e skeleton bars
 } as const;
 
 // ─── Shadow ─────────────────────────────────────────────────────────────────────

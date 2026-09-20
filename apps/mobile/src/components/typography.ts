@@ -1,6 +1,6 @@
 import type { TypeStyle } from "@royal-navy/shared";
 import { font } from "@royal-navy/shared";
-import type { TextStyle } from "react-native";
+import { Platform, type TextStyle } from "react-native";
 
 import { fontFamilyForWeight } from "../ui/fonts";
 
@@ -22,7 +22,7 @@ export function textStyle(style: TypeStyle, size?: number): TextStyle {
   const result: TextStyle = {
     fontSize: resolvedSize,
     lineHeight: Math.round(resolvedSize * font.lineHeightRatio),
-    fontFamily: style.family === "mono" ? font.monoFamily : fontFamilyForWeight(baloo(style.weight)),
+    fontFamily: style.family === "mono" ? monoFamily() : fontFamilyForWeight(baloo(style.weight)),
   };
   if (style.tracking !== undefined) {
     result.letterSpacing = style.tracking * resolvedSize;
@@ -34,6 +34,11 @@ export function textStyle(style: TypeStyle, size?: number): TextStyle {
     result.color = style.color;
   }
   return result;
+}
+
+// The design names `ui-monospace`, a CSS generic. Android resolves "monospace"; iOS needs a face.
+function monoFamily(): string {
+  return Platform.select({ android: "monospace", ios: "Menlo", default: font.monoFamily });
 }
 
 // Only the three bundled weights exist; type.mono's 400 is the platform monospace face.

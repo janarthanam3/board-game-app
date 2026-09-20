@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 
 import { Icon } from "../Icon";
 import { IconButton } from "../IconButton";
+import { textStyle } from "../typography";
 import { styles } from "./styles";
 
 export interface IconAction {
@@ -20,6 +21,11 @@ export interface ScreenHeaderProps {
   actions?: IconAction[];
   /** Opacity .45 while a sheet or dialog is over the screen. */
   dimmed?: boolean;
+  /**
+   * Title size. docs/03 says type.h3 (17); most screen specs say 19 or 22 — see
+   * docs/design-concerns.md "Design-check concerns" A. Screens pass what their spec states.
+   */
+  titleSize?: 17 | 19 | 22;
 }
 
 /** Row, 11 dp gap: optional back caret, title column (h3 + body.sm subtitle), 0–3 icon buttons. */
@@ -29,6 +35,7 @@ export function ScreenHeader({
   onBack,
   actions = [],
   dimmed = false,
+  titleSize = 17,
 }: ScreenHeaderProps) {
   return (
     <View testID="screen-header" style={[styles.row, dimmed && styles.dimmed]}>
@@ -44,7 +51,7 @@ export function ScreenHeader({
         </Pressable>
       ) : null}
       <View style={styles.titleColumn}>
-        <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+        <Text style={[styles.title, textStyle({ weight: 700, size: titleSize })]} numberOfLines={1} ellipsizeMode="tail">
           {title}
         </Text>
         {subtitle ? (

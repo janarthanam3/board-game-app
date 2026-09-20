@@ -45,10 +45,10 @@ describe("route table", () => {
     expect(missing).toEqual([]);
   });
 
-  it("does not add routes the map does not document, apart from the deep-link resolvers", () => {
+  it("does not add routes the map does not document, apart from the deep-link resolvers and the dev gallery", () => {
     const documented = new Set(documentedRoutes());
     const extras = [...implementedRoutes()].filter((route) => !documented.has(route));
 
-    expect(extras.sort()).toEqual(["/", "/board/[boardVersionId]", "/join/[code]"]);
+    expect(extras.sort()).toEqual(["/", "/board/[boardVersionId]", "/gallery", "/join/[code]"]);
   });
 });

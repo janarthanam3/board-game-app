@@ -2,7 +2,7 @@ import { control, surface } from "@royal-navy/shared";
 import { StyleSheet } from "react-native";
 
 // 39 dp visual, 44 dp tappable: the difference is split across the four sides as hit slop.
-const slop = (44 - control.iconButton.width) / 2;
+const slop = (control.minTapTarget - control.iconButton.width) / 2;
 
 export const styles = StyleSheet.create({
   button: {
