@@ -239,3 +239,28 @@ exists to prevent.
 **Recommendation:** (1). It is the settled decision, and (2) is exactly the silent-change failure D4
 was written to avoid. If (1) cannot be scheduled, (3) is safer than (2) but leaves no way to fix a
 rule across boards.
+
+---
+
+## OQ-12 · The `hello` socket event exists in TASKS.md but not in the API contract
+
+**Affects:** `apps/server/src/plugins/socket.ts`, `docs/07-api-contract.md` "Server → client", task
+**A3** (acceptance: "a socket client connects and receives `hello`"), task **D4**.
+
+**Why it matters:** `docs/07-api-contract.md` lists every server → client event and `hello` is not
+among them — the contract says the *client* opens the exchange with `match:subscribe`. The
+`socket-contract` skill treats an undocumented event as invented behaviour. A3 was implemented as
+written (the event is emitted, marked `SKELETON ONLY` in code) so the phase gate can pass, but the
+implementation and the contract now disagree, which Rule 0 forbids leaving unresolved.
+
+Raised 20 September 2026 during A3. Does not block a task; must be settled before **D4** closes.
+
+**Options**
+1. Remove `hello` in D4 when the real `/match` events land; the connect test then asserts on the
+   `match:subscribe` ack instead. The contract stays as generated.
+2. Regenerate `docs/07-api-contract.md` to include `hello { namespace }` as a connection
+   acknowledgement, if the design intends one.
+3. Keep it as a test-only event behind `NODE_ENV=test`.
+
+**Recommendation:** (1). Socket.IO already provides a `connect` event, so `hello` adds nothing the
+client needs, and (3) would make test and production sockets behave differently.
