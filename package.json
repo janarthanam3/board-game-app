@@ -1,0 +1,24 @@
+{
+  "name": "royal-navy",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Royal Navy - a Chennai board game for Android. React Native client, Fastify + Socket.IO server, shared pure TypeScript rules engine.",
+  "packageManager": "pnpm@9.4.0",
+  "engines": {
+    "node": "20.x",
+    "pnpm": "9.x"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --if-present test",
+    "test:engine": "pnpm --filter @royal-navy/game-engine test",
+    "test:server": "pnpm --filter @royal-navy/server test",
+    "test:mobile": "pnpm --filter @royal-navy/mobile test",
+    "dev:server": "pnpm --filter @royal-navy/server dev",
+    "dev:mobile": "pnpm --filter @royal-navy/mobile dev",
+    "dev:engine": "pnpm --filter @royal-navy/game-engine dev"
+  },
+  "devDependencies": {
+    "typescript": "~5.3.3"
+  }
+}

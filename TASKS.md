@@ -15,7 +15,7 @@ Effort is in ideal solo days for a developer new to React Native.
 
 ## Phase A · Skeleton (5 tasks)
 
-- [ ] **A1 | Monorepo and tooling** | depends-on: — | files: `pnpm-workspace.yaml`, `package.json`, `tsconfig.base.json`, `.editorconfig`, `.gitignore` | acceptance: `pnpm install` succeeds; `pnpm -r typecheck` passes on empty packages; Node 20 pinned via `.nvmrc` | tests: CI job runs install + typecheck | effort: 0.5
+- [x] **A1 | Monorepo and tooling** | depends-on: — | files: `pnpm-workspace.yaml`, `package.json`, `tsconfig.base.json`, `.editorconfig`, `.gitignore` | acceptance: `pnpm install` succeeds; `pnpm -r typecheck` passes on empty packages; Node 20 pinned via `.nvmrc` | tests: CI job runs install + typecheck | effort: 0.5
 - [ ] **A2 | Expo app shell** | depends-on: A1 | files: `apps/mobile/*`, `app.json`, `apps/mobile/app/_layout.tsx` | acceptance: Expo SDK 51 app boots on Pixel_6_API_34 and renders a placeholder route; TypeScript strict on | tests: RNTL smoke test renders the root | effort: 1
 - [ ] **A3 | Fastify + Socket.IO server shell** | depends-on: A1 | files: `apps/server/src/index.ts`, `apps/server/src/plugins/*` | acceptance: `GET /health` returns 200; a socket client connects and receives `hello` | tests: Supertest on `/health`; socket connect test | effort: 1
 - [ ] **A4 | Docker Compose: Postgres 16 + Redis 7** | depends-on: A3 | files: `docker-compose.yml`, `.env.example`, `docs/09-server-config.md` cross-check | acceptance: `docker compose up` gives a reachable DB and Redis; the server connects on boot and logs both | tests: integration test opens a DB session and a Redis ping | effort: 0.5

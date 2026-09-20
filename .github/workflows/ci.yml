@@ -1,0 +1,29 @@
+# Free-tier GitHub Actions: unit and integration checks only.
+# The release APK is never built here (docs/11-build-and-release.md).
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  install-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # Version comes from "packageManager" in package.json, so it is pinned in one place.
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -r typecheck
+
+      # Tests are added per package from A2 onward; --if-present keeps this green until then.
+      - run: pnpm -r --if-present test

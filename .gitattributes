@@ -1,0 +1,16 @@
+# Normalise line endings to LF in the repository regardless of each developer's
+# core.autocrlf, so Windows and the Linux CI runner see identical bytes.
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF to run under cmd.exe.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets are never line-ending converted.
+*.png binary
+*.jpg binary
+*.webp binary
+*.ttf binary
+*.otf binary
+*.keystore binary
+*.jks binary

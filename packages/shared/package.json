@@ -1,0 +1,15 @@
+{
+  "name": "@royal-navy/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Types, zod schemas, currency and id helpers shared by every package. No platform code.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "~5.3.3"
+  }
+}

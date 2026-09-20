@@ -1,0 +1,15 @@
+{
+  "name": "@royal-navy/game-engine",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pure TypeScript rules engine: state, actions, reducer, invariants. No I/O, no React, no Node stdlib.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "~5.3.3"
+  }
+}

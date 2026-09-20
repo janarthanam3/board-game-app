@@ -1,0 +1,5 @@
+# Every folder directly under apps/ and packages/ is a workspace package.
+# See docs/01-architecture.md "Dependency rules" for who may import whom.
+packages:
+  - "apps/*"
+  - "packages/*"
