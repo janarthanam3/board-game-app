@@ -9,8 +9,8 @@
     "pnpm": "9.x"
   },
   "scripts": {
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --filter=!royal-navy typecheck",
+    "test": "pnpm -r --filter=!royal-navy --if-present test",
     "test:engine": "pnpm --filter @royal-navy/game-engine test",
     "test:server": "pnpm --filter @royal-navy/server test",
     "test:mobile": "pnpm --filter @royal-navy/mobile test",

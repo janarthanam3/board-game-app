@@ -48,6 +48,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm -r typecheck
+      # The root scripts exclude the root package itself, so they cannot recurse into themselves.
+      - run: pnpm typecheck
 
-      - run: pnpm -r --if-present test
+      - run: pnpm test
