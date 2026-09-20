@@ -12,7 +12,7 @@ export default function CreateTilesTileIdArtRoute() {
   const session = useSessionStore((state) => state);
   const tile = useBuilderStore((state) => state.tiles[params.tileId ?? ""]);
   return (
-    <Guarded result={itemOwnerGuard(tile, params.tileId ?? "", session, "/create/tiles")}>
+    <Guarded result={itemOwnerGuard(tile, params.tileId ?? "", session)}>
       <PlaceholderScreen
         opt="1x"
         title="Tile art"

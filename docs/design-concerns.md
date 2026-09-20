@@ -247,3 +247,14 @@ screen), so there is no single component spec to verify against.
 **Also noted (MINOR 15):** 03 describes the selected Row as "1 dp `gold.flat` ring, inset glow";
 no value is given for the glow and inset shadows are not representable on Android (see "Platform
 limits on shadows"), so only the ring is drawn.
+
+## Owner-guard failure target for the tile, deck and rule editors
+
+**Implemented:** as `docs/04-navigation-map.md` "Guards" states — every `owner` guard failure
+redirects to `/create/boards`, including `/create/tiles/[tileId]`, `…/art`, `/create/decks/[deckId]`
+and `/create/rules/[ruleId]`.
+
+**Concern:** for those four routes the natural return is the editor's own list (`/create/tiles`,
+`/create/decks`, `/create/rules`), which the route table gives as their Back target; landing a user
+on the boards list after opening someone else's tile is disorienting. The map should probably give
+the owner guard a per-route failure target. Raised 20 September 2026 at the Phase B gate.

@@ -123,10 +123,10 @@ describe("guards on the real route tree", () => {
     await waitFor(() => expect(screen).toHavePathname("/create/boards/b-1"));
   });
 
-  it("owner: a tile editor for someone else's tile returns to the tiles list, /new is mine", async () => {
+  it("owner: a tile editor for someone else's tile redirects to /create/boards, /new is mine", async () => {
     useBuilderStore.setState({ tiles: { "t-1": { id: "t-1", ownerAccountId: "acc-2" } } });
     renderRouter(APP_DIR, { initialUrl: "/create/tiles/t-1" });
-    await waitFor(() => expect(screen).toHavePathname("/create/tiles"));
+    await waitFor(() => expect(screen).toHavePathname("/create/boards"));
   });
 
   it("owner: a new deck opens for the signed-in user", () => {

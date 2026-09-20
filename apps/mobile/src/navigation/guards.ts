@@ -60,17 +60,12 @@ export function ownerGuard(board: LocalBoardFacts | undefined, session: SessionF
 
 /**
  * `owner` for the tile, deck and rule editors (`[tileId]` is "tileId or new"): a new item belongs
- * to whoever is signed in; an existing one must be theirs. Failure goes to the list the editor
- * came from, e.g. /create/tiles.
+ * to whoever is signed in; an existing one must be theirs. docs/04 gives one failure target for
+ * every owner guard, /create/boards (see docs/design-concerns.md "Owner-guard failure target").
  */
-export function itemOwnerGuard(
-  item: LocalItemFacts | undefined,
-  itemId: string,
-  session: SessionFacts,
-  listHref: string,
-): GuardResult {
+export function itemOwnerGuard(item: LocalItemFacts | undefined, itemId: string, session: SessionFacts): GuardResult {
   if (session.accountId === null) {
-    return { allow: false, redirect: listHref };
+    return { allow: false, redirect: "/create/boards" };
   }
   if (itemId === "new") {
     return ALLOW;
@@ -78,7 +73,7 @@ export function itemOwnerGuard(
   if (item && item.ownerAccountId === session.accountId) {
     return ALLOW;
   }
-  return { allow: false, redirect: listHref };
+  return { allow: false, redirect: "/create/boards" };
 }
 
 /** `owner + published`: analytics is hidden until the board has a published version. */

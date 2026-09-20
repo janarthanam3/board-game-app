@@ -77,7 +77,13 @@ export function Button({
         onPressIn={() => !inert && animatePress(true)}
         onPressOut={() => animatePress(false)}
         disabled={inert}
-        style={[styles.base, v.frame, size === "dialog" && styles.dialogSize, disabled && styles.disabled]}
+        style={[
+          styles.base,
+          v.frame,
+          size === "dialog" && styles.dialogSize,
+          !block && styles.inlinePadding,
+          disabled && styles.disabled,
+        ]}
       >
         {fillFor(variant, pressed && !inert)}
         {/* The label stays in the tree while loading (invisible) so the button keeps its width. */}

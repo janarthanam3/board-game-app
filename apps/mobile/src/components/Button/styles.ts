@@ -2,7 +2,6 @@ import {
   accent,
   control,
   danger,
-  screenBackground,
   stroke,
   surface,
   text,
@@ -20,8 +19,10 @@ export const styles = StyleSheet.create({
   base: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
   block: { alignSelf: "stretch" },
   inline: { alignSelf: "flex-start" },
+  // Inline buttons hug their label; block buttons centre it across the full width.
+  inlinePadding: { paddingHorizontal: INLINE_PADDING },
   fill: { ...StyleSheet.absoluteFillObject },
-  content: { flexDirection: "row", alignItems: "center", gap: ICON_GAP, paddingHorizontal: INLINE_PADDING },
+  content: { flexDirection: "row", alignItems: "center", gap: ICON_GAP },
   contentHidden: { opacity: 0 },
   spinner: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   dialogSize: { minHeight: control.dialogButton.height, borderRadius: control.dialogButton.radius },
@@ -58,8 +59,7 @@ export const variantStyles: Record<
   confirm: {
     frame: { minHeight: control.primaryButton.height, borderRadius: control.primaryButton.radius },
     label: textStyle(type.button),
-    // The design gives the confirm label as #0E2E66 — the screen background's bottom stop.
-    labelColor: screenBackground.stops[2].color,
+    labelColor: text.onGreen,
   },
   ghost: {
     frame: {

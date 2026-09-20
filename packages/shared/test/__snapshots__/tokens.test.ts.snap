@@ -188,6 +188,7 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
       "faint": "rgba(198,220,255,0.75)",
       "muted": "rgba(198,220,255,0.8)",
       "onGold": "#3A2402",
+      "onGreen": "#0E2E66",
       "primary": "#FFFFFF",
       "primarySoft": "#EDF3FF",
       "secondary": "rgba(198,220,255,0.95)",

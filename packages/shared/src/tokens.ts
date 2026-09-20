@@ -139,6 +139,7 @@ export const text = {
   faint: "rgba(198,220,255,0.75)", // text.faint — captions
   dim: "rgba(198,220,255,0.72)", // text.dim — disabled row text
   onGold: "#3A2402", // text.onGold — text on any gold fill
+  onGreen: "#0E2E66", // confirm Button label (03 "Actions" table); same value as the screen bg bottom stop
 } as const;
 
 // ─── Colour — roles ─────────────────────────────────────────────────────────────

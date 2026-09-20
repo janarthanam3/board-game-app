@@ -21,7 +21,7 @@ export interface ImageSlotProps {
   border?: "strong" | "regular";
   /** Inner padding; the 1a hero uses 14. */
   padding?: number;
-  /** Optional accent glyph above the caption (3n empty states, 3b). */
+  /** Optional `accent.blue` glyph above the caption (3b). 3n's bare glyph is not an ImageSlot. */
   glyph?: string;
   glyphSize?: 24 | 36 | 44 | 60;
   /** Hero slots carry the wash gradient and inset highlight (1a §3 #2); small slots are transparent. */

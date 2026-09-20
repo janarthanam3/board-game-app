@@ -13,7 +13,7 @@ export default function CreateDecksDeckIdRoute() {
   const session = useSessionStore((state) => state);
   const deck = useBuilderStore((state) => state.decks[params.deckId ?? ""]);
   return (
-    <Guarded result={itemOwnerGuard(deck, params.deckId ?? "", session, "/create/decks")}>
+    <Guarded result={itemOwnerGuard(deck, params.deckId ?? "", session)}>
       <PlaceholderScreen opt="1y" title="Deck" back={{ kind: "route", href: "/create/decks" }} />
     </Guarded>
   );

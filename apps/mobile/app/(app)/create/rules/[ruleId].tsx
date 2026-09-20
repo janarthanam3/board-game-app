@@ -13,7 +13,7 @@ export default function CreateRulesRuleIdRoute() {
   const session = useSessionStore((state) => state);
   const rule = useBuilderStore((state) => state.rules[params.ruleId ?? ""]);
   return (
-    <Guarded result={itemOwnerGuard(rule, params.ruleId ?? "", session, "/create/rules")}>
+    <Guarded result={itemOwnerGuard(rule, params.ruleId ?? "", session)}>
       <PlaceholderScreen opt="1z" title="Rule" back={{ kind: "route", href: "/create/rules" }} />
     </Guarded>
   );

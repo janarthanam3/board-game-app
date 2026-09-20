@@ -113,14 +113,14 @@ describe("owner guards", () => {
 describe("item owner guard (tiles, decks, rules)", () => {
   const tile = { id: "t-1", ownerAccountId: "acc-1" };
 
-  it("allows my own item and a new one, and sends anything else back to the list", () => {
-    expect(itemOwnerGuard(tile, "t-1", signedIn, "/create/tiles")).toEqual({ allow: true });
-    expect(itemOwnerGuard(undefined, "new", signedIn, "/create/tiles")).toEqual({ allow: true });
-    expect(itemOwnerGuard({ ...tile, ownerAccountId: "acc-2" }, "t-1", signedIn, "/create/tiles")).toEqual({
+  it("allows my own item and a new one, and sends anything else to /create/boards as docs/04 says", () => {
+    expect(itemOwnerGuard(tile, "t-1", signedIn)).toEqual({ allow: true });
+    expect(itemOwnerGuard(undefined, "new", signedIn)).toEqual({ allow: true });
+    expect(itemOwnerGuard({ ...tile, ownerAccountId: "acc-2" }, "t-1", signedIn)).toEqual({
       allow: false,
-      redirect: "/create/tiles",
+      redirect: "/create/boards",
     });
-    expect(itemOwnerGuard(undefined, "t-9", signedIn, "/create/decks")).toEqual({ allow: false, redirect: "/create/decks" });
+    expect(itemOwnerGuard(undefined, "t-9", signedIn)).toEqual({ allow: false, redirect: "/create/boards" });
   });
 });
 
