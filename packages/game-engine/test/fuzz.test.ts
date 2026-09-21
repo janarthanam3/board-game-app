@@ -1,6 +1,7 @@
 // Property suite (state-machine skill, test-writer "Property invariants"): from any reachable
 // state, a random legal action sequence never breaks an engine invariant, and replaying the same
-// seed and actions reproduces byte-identical state. C7 scales this to 1,000 matches.
+// seed and actions reproduces byte-identical state. The default run plays 40 matches; the C7
+// gate (`pnpm test:gate`, vitest.gate.config.ts) sets FUZZ_MATCHES=1000.
 
 import { describe, expect, it } from "vitest";
 
@@ -167,33 +168,39 @@ function playRandom(seed: number, maxSteps: number): { actions: Action[]; final:
   return { actions, final: state };
 }
 
-describe("random legal play", () => {
-  it("never breaks an invariant across 40 seeded three-player matches, most of which reach the end", () => {
+const MATCHES = Number(process.env["FUZZ_MATCHES"] ?? 40);
+
+/** Cash held by players, the pot and auction escrow must equal what the bank has issued net. */
+function assertCashConserved(final: MatchState): void {
+  for (const player of Object.values(final.players)) {
+    expect(player.cash).toBeGreaterThanOrEqual(0);
+  }
+  expect(final.bank.houses).toBeGreaterThanOrEqual(0);
+  expect(final.bank.hotels).toBeGreaterThanOrEqual(0);
+  const held = Object.values(final.players).reduce((sum, p) => sum + p.cash, 0) + final.bank.finePot
+    + (final.auction ? Object.values(final.auction.escrow).reduce((a, b) => a + b, 0) : 0);
+  expect(held).toBe(final.bank.ledger.issued - final.bank.ledger.absorbed);
+}
+
+describe(`random legal play over ${MATCHES} seeded three-player matches`, () => {
+  it("never breaks an invariant, keeps cash conserved and non-negative, and mostly reaches the end", () => {
     let ended = 0;
-    for (let seed = 1; seed <= 40; seed++) {
+    for (let seed = 1; seed <= MATCHES; seed++) {
       const { final } = playRandom(seed, 400);
+      assertCashConserved(final);
       if (final.phase === "ended") ended++;
     }
-    expect(ended).toBeGreaterThan(20);
+    expect(ended).toBeGreaterThan(MATCHES / 2);
   });
 
-  it("replays byte-identically from the seed and action list", () => {
-    for (let seed = 1; seed <= 12; seed++) {
+  it("replays byte-identically from the seed and action list, and two replays of one seed agree", () => {
+    const replays = Math.max(4, Math.floor(MATCHES / 4));
+    for (let seed = 1; seed <= replays; seed++) {
       const { actions, final } = playRandom(seed, 300);
-      const replayed = replay(fuzzSetup(seed), actions);
-      expect(JSON.stringify(replayed)).toBe(JSON.stringify(final));
-    }
-  });
-
-  it("keeps cash conserved and non-negative at the end of every match", () => {
-    for (let seed = 100; seed <= 115; seed++) {
-      const { final } = playRandom(seed, 300);
-      for (const player of Object.values(final.players)) {
-        expect(player.cash).toBeGreaterThanOrEqual(0);
-      }
-      const held = Object.values(final.players).reduce((sum, p) => sum + p.cash, 0) + final.bank.finePot
-        + (final.auction ? Object.values(final.auction.escrow).reduce((a, b) => a + b, 0) : 0);
-      expect(held).toBe(final.bank.ledger.issued - final.bank.ledger.absorbed);
+      const once = replay(fuzzSetup(seed), actions);
+      const twice = replay(fuzzSetup(seed), actions);
+      expect(JSON.stringify(once)).toBe(JSON.stringify(final));
+      expect(JSON.stringify(twice)).toBe(JSON.stringify(once));
     }
   });
 });

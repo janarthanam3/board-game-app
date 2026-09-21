@@ -58,7 +58,7 @@ function utilityRent(state: MatchState, tile: UtilityTile, ownerId: PlayerId, di
     return 0;
   }
   const owned = utilitiesOwnedBy(state, ownerId);
-  const multiplier = tile.multipliers[Math.min(owned, tile.multipliers.length) - 1] ?? 0;
+  const multiplier = tile.multipliers[Math.min(owned, tile.multipliers.length) - 1] ?? 0; // 5+ utilities reuse the last entry — OQ-20 item 4
   return diceTotal * multiplier;
 }
 

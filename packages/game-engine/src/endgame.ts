@@ -22,7 +22,7 @@ export function netWorth(state: MatchState, playerId: PlayerId): number {
       return;
     }
     // "Mortgaged tiles count at half value" (3m); integer rupees, so halves round down.
-    worth += tile.mortgaged ? Math.floor(boardTile.cost / 2) : boardTile.cost;
+    worth += tile.mortgaged ? Math.floor(boardTile.cost / 2) : boardTile.cost; // floor is unstated — OQ-20 item 3
     if (boardTile.kind === "property") {
       worth += tile.houses * resolvePrice(boardTile.houseCost, boardTile.cost);
       if (tile.hotel) {

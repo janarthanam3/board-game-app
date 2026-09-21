@@ -505,3 +505,59 @@ target-choice features.
 
 **Recommendation:** (1) now; (2) as its own task once the `1n` decision-card pattern for a
 target pick is designed. (3) for item 6 — a publish-time check is cheaper than a runtime cap.
+
+---
+
+## OQ-20 · Phase C gate audit: five invented roundings/prices, one un-owned feature, and four doc contradictions
+
+**Affects:** `packages/game-engine/src/reducer/{property,debt,turn}.ts`, `src/endgame.ts`,
+`src/rent.ts` (phase **C**, gate **C7**); `docs/05-game-rules.md` §7, §9, §14, §16, §21;
+`docs/flows/{turn,raise-cash,bankruptcy}.md`; `TASKS.md` (item 6).
+
+**Why it matters:** the `rules-auditor` pass at the C7 gate found values the engine had to pick
+that no document states, plus places where the derived docs disagree with each other. Each item
+below is implemented as described and marked `OQ-20` in code; none blocks the gate, but item 1
+lets a player extract more than a tile's cost from the bank and item 6 leaves six authored card
+effects unplayable.
+
+1. **Selling a mortgaged property to the bank.** §9 and §16 never say whether a mortgaged tile
+   may be sold, or at what price. Engine: allowed, at the full sell-property price, mortgage
+   cleared — so Bay Road (₹1,400) mortgaged for ₹700 then sold for ₹980 yields ₹1,680.
+   *Recommendation:* refuse `SELL property` on a mortgaged tile ("redeem first"), mirroring row
+   18's "sell buildings first".
+2. **A mortgaged deed returning to the bank** (bank bankruptcy, row 43). `flows/bankruptcy.md`
+   invariant 3 says a mortgage is never silently cleared; nothing says what the bank does with
+   one. Engine: the flag is cleared and the auction lot opens unmortgaged.
+3. **Rounding rules absent from the rulebook:** percent tax (§2.3) — engine rounds to the rupee;
+   redeem interest (§9 "+10 %") — engine rounds to the rupee (₹705 → ₹71 interest); mortgaged
+   tiles at half cost in net worth (§14) — engine floors. §3's ₹5 step applies to tile price
+   fields only.
+4. **Utilities beyond four.** §7: "a fifth utility reuses the ×4 entry index 4" is self-
+   contradictory (×4 is index 0). Engine: reuses the last entry (×20).
+5. **Debt still unpayable at the next turn start.** `flows/raise-cash.md` (failure table) and
+   `flows/turn.md` step 5 say it "resolves as bankruptcy" automatically; rulebook §14 only says
+   raise cash reopens. Engine: reopens `1d`; the player declares. (`flows/turn.md` invariant 6,
+   "a turn cannot end with an unresolved debt", contradicts its own step 5.)
+6. **Playing the "Affects: Me" hold cards.** `rentWaiver`, `rentMultiplier`, `moveAnywhere`,
+   `skipTurn`, `chooseDice`, `clearDebt`, `freeBuild` are granted by C6 but `USE_CARD` accepts
+   only `jailPass`; `rent.ts`'s `applyRentEffects` is never called from a landing. No task in
+   `TASKS.md` owns this. Also row 6: with nothing to sell, `OFFER_TRADE` stays legal beside
+   `DECLARE_BANKRUPTCY` because it is the trade route — the rulebook's "only Declare bankruptcy
+   remains" reads as the `1d` screen state, not the action set.
+7. **Doc contradictions with no engine effect:** disconnect grace 90 s (rulebook row 27) vs
+   turn hold 45 s (`flows/turn.md`, `flows/reconnect.md` — two different clocks, or one?);
+   `flows/turn.md` "deck exhausted → reshuffles" vs §5.2 "with replacement, no discard pile"
+   (engine follows §5.2).
+
+Raised 21 September 2026 at the C7 gate.
+
+**Options**
+1. Confirm every engine default above and regenerate the rulebook to state them; add a task
+   "C8 · Hold-card play" for item 6 (one `USE_CARD` branch per Me-effect, `applyRentEffects`
+   wired into rent, `moveAnywhere` through the card-move path).
+2. Item 1 → refuse the sale (recommended); item 2 → the lot opens mortgaged and the winner
+   inherits the redeem cost, as a player creditor would; items 3–4 → state the rules; item 5 →
+   keep reopening `1d` (the player, never the server, liquidates: raise-cash.md invariant 2).
+3. Leave all as implemented and only regenerate the docs.
+
+**Recommendation:** (2) for items 1–5, plus the C8 task from (1) for item 6.

@@ -273,7 +273,7 @@ function taxAmount(state: MatchState, playerId: PlayerId, tax: NonNullable<Extra
       return tax.flatAmount;
     case "percent": {
       const base = tax.percentOf === "cash" ? player.cash : netWorth(state, playerId);
-      return Math.round((base * tax.percent) / 100);
+      return Math.round((base * tax.percent) / 100); // rounding to the rupee is unstated — OQ-20 item 3
     }
     case "playersChoice":
       // The design offers "Pay flat / Pay 10%" but SPEC.md has no action for the choice — OQ-17.

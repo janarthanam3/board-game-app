@@ -322,6 +322,37 @@ describe("TIMER_EXPIRED (docs/flows/turn.md defaults)", () => {
     expect(state.turn.playerId).toBe(PRIYA);
   });
 
+  it("awaiting a roll that lands on an unowned tile: rolls, then declines, in that order", () => {
+    let state = forceNextRoll(newMatch(), [1, 1]);
+    state = step(state, expire);
+    expect(lastEvent(state, "timerExpired")).toMatchObject({ applied: ["rolled", "declined purchase"] });
+    expect(state.tiles[2]!.ownerId).toBeNull();
+    expect(state.auction).toMatchObject({ tileIndex: 2 });
+  });
+
+  it("with a jail decision open: rolls for doubles and pays no bail", () => {
+    let state = newMatch();
+    state.players[NAVEEN]!.jail = { in: true, roundsHeld: 0 };
+    state.players[NAVEEN]!.position = 8;
+    state.turn.stage = "jailChoice";
+    state = forceNextRoll(state, [1, 3]); // not a double: stays in jail
+    state = step(state, expire);
+    expect(lastEvent(state, "timerExpired")).toMatchObject({ applied: ["rolled for doubles"] });
+    expect(state.players[NAVEEN]!.cash).toBe(10000);
+    expect(state.players[NAVEEN]!.jail.in).toBe(true);
+    expect(state.turn.playerId).toBe(PRIYA);
+  });
+
+  it("with a trade offer open to the actor: rejects it before ending the turn", () => {
+    let state = forceNextRoll(newMatch(), [1, 3]);
+    state.offers.push({ id: "offer-p", from: PRIYA, to: NAVEEN, give: { cash: 100, tileIndexes: [], holdCardIds: [] }, get: { cash: 0, tileIndexes: [], holdCardIds: [] }, createdAtMs: 0, expiresAtMs: 60_000 });
+    state = step(state, expire);
+    expect(lastEvent(state, "timerExpired")).toMatchObject({ applied: ["rolled", "rejected offer offer-p"] });
+    expect(lastEvent(state, "tradeRejected")).toMatchObject({ offerId: "offer-p", from: PRIYA, to: NAVEEN });
+    expect(state.offers).toEqual([]);
+    expect(state.turn.playerId).toBe(PRIYA);
+  });
+
   it("with a purchase decision open: declines, which opens an auction when auctions are on", () => {
     let state = rollAs(newMatch(), NAVEEN, [1, 1]);
     state = step(state, expire);

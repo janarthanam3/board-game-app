@@ -77,10 +77,9 @@ export function applyPayDebt(ctx: Ctx, action: Extract<Action, { kind: "PAY_DEBT
   if (!debt) {
     return;
   }
-  const creditorSolvent = debt.creditorId === "bank" || isSolvent(playerOf(ctx, debt.creditorId));
-  // A creditor who went bankrupt in the meantime has had their estate transferred; the payment
-  // goes to the bank rather than vanishing (edge case #7 keeps money conserved).
-  settle(ctx, debt.debtorId, creditorSolvent ? debt.creditorId : "bank", debt.amount, "creditor");
+  // Edge case #7: a creditor who went bankrupt meanwhile has had their estate transferred, so the
+  // payment follows the estate to whoever they owed (docs/flows/bankruptcy.md "deeds cascade").
+  settle(ctx, debt.debtorId, effectiveCreditor(ctx.state, debt.creditorId), debt.amount, "creditor");
   ctx.state.debts = ctx.state.debts.filter((candidate) => candidate.id !== debt.id);
   emit(ctx, { kind: "debtSettled", debtId: debt.id, debtorId: debt.debtorId, creditorId: debt.creditorId, amount: debt.amount });
   if (ctx.state.turn.playerId === debt.debtorId && !ctx.state.debts.some((d) => d.debtorId === debt.debtorId)) {
@@ -110,12 +109,28 @@ export function validateDeclareBankruptcy(state: MatchState, action: Extract<Act
  *   5. elimination.
  * The oldest debt names the creditor.
  */
+/**
+ * Who actually receives money owed to `creditorId`: the creditor while solvent, otherwise the
+ * player (or bank) their own estate went to, following the chain (rulebook §21 #7; bankruptcy
+ * flow "Creditor goes bankrupt in the same chain: deeds cascade to the next creditor or the bank").
+ */
+export function effectiveCreditor(state: MatchState, creditorId: PlayerId | "bank"): PlayerId | "bank" {
+  let current = creditorId;
+  // Bounded by the seat count; a chain can only pass through each eliminated player once.
+  for (let hops = 0; hops <= state.seatOrder.length; hops++) {
+    if (current === "bank") return "bank";
+    const player = state.players[current];
+    if (!player || isSolvent(player)) return current;
+    current = player.bankrupt?.owedTo ?? "bank";
+  }
+  return "bank";
+}
+
 export function resolveBankruptcy(ctx: Ctx, playerId: PlayerId): void {
   const state = ctx.state;
   const player = playerOf(ctx, playerId);
   const debt = state.debts.find((candidate) => candidate.debtorId === playerId);
-  const creditorId: PlayerId | "bank" =
-    debt && debt.creditorId !== "bank" && isSolvent(playerOf(ctx, debt.creditorId)) ? debt.creditorId : "bank";
+  const creditorId: PlayerId | "bank" = debt ? effectiveCreditor(state, debt.creditorId) : "bank";
 
   // 1. Buildings first.
   state.tiles.forEach((tile, index) => {
@@ -157,7 +172,7 @@ export function resolveBankruptcy(ctx: Ctx, playerId: PlayerId): void {
     tiles.push(index);
     if (creditorId === "bank") {
       tile.ownerId = null;
-      tile.mortgaged = false; // the bank holds no mortgage on its own tile
+      tile.mortgaged = false; // the bank holds no mortgage on its own tile — OQ-20 item 2
       if (state.rules.auction.enabled) {
         state.bank.pendingAuctions.push({ tileIndex: index, fromRound: state.round + 1 });
       }

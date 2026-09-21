@@ -9,7 +9,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:gate": "vitest run --config vitest.gate.config.ts"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",

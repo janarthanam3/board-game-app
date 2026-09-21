@@ -7,7 +7,27 @@ import { describe, expect, it } from "vitest";
 import type { Action } from "../src/actions";
 import { moveBackward } from "../src/board";
 import { legalActions } from "../src/reducer/index";
-import { at, grant, lastEvent, NAVEEN, newMatch, PRIYA, refusal, rollAs, setCash, step } from "./support/match";
+import type { FrozenDeck, MatchState, RuleDefinition } from "../src/state";
+import { ARUN, at, eventsOf, grant, lastEvent, NAVEEN, newMatch, PRIYA, refusal, rollAs, setCash, step } from "./support/match";
+
+/** Three seats, so a creditor chain has somewhere to cascade to (rows 7). */
+function threeSeats(): MatchState {
+  return newMatch({
+    players: [
+      { id: NAVEEN, name: "Naveen", colour: "gold" },
+      { id: PRIYA, name: "Priya", colour: "blue" },
+      { id: ARUN, name: "Arun", colour: "green" },
+    ],
+  });
+}
+
+/** A single-rule Chance deck on the test board; Naveen rolling [1, 3] from Start lands on it. */
+function withChanceRule(state: MatchState, rule: Partial<RuleDefinition>, deck: Partial<FrozenDeck> = {}): MatchState {
+  const next = JSON.parse(JSON.stringify(state)) as MatchState;
+  const full: RuleDefinition = { id: "r", name: "Rule", conditions: null, money: null, move: null, holdCard: null, ...rule };
+  next.board.decks = [{ id: "d-chance", name: "Chance", drawMode: "myOrder", fallback: "nothing", rules: [{ rule: full, active: true, diceTotals: [] }], ...deck }];
+  return next;
+}
 
 const PURPLE = [1, 2, 3, 13, 14];
 
@@ -57,20 +77,37 @@ describe("rulebook §21 — engine rows", () => {
     state.bank.houses -= 5;
     state = setCash(state, NAVEEN, 10);
     state = rollAs(state, NAVEEN, [1, 1]);
-    const legal = legalActions(state, NAVEEN);
-    expect(legal).toContain("DECLARE_BANKRUPTCY");
-    expect(legal).not.toContain("MORTGAGE");
-    expect(legal).not.toContain("PAY_DEBT");
+    // Only Declare bankruptcy remains among the raise-cash routes; OFFER_TRADE is the trade route
+    // (docs/flows/raise-cash.md) and stays open even with nothing to sell — OQ-20 item 6.
+    expect([...legalActions(state, NAVEEN)].sort()).toEqual(["DECLARE_BANKRUPTCY", "OFFER_TRADE"]);
   });
 
-  it("#7 a creditor who went bankrupt: the payment does not vanish — it goes to the bank", () => {
+  it("#7 a creditor who went bankrupt: the payment joins their estate — it reaches whoever they owed", () => {
+    let state = grant(threeSeats(), PRIYA, PURPLE);
+    for (const index of PURPLE) state.tiles[index]!.houses = 1;
+    state.bank.houses -= 5;
+    state = grant(state, NAVEEN, [5]);
+    state = setCash(state, NAVEEN, 50);
+    state = rollAs(state, NAVEEN, [1, 1]); // Naveen owes Priya ₹70
+    state.players[PRIYA]!.bankrupt = { out: true, round: 1, owedTo: ARUN, amount: 0 }; // (creditor eliminated meanwhile, estate to Arun)
+    for (const index of PURPLE) { state.tiles[index]!.ownerId = null; state.tiles[index]!.houses = 0; }
+    state.bank.houses += 5;
+    state = step(state, { kind: "MORTGAGE", by: NAVEEN, tileIndexes: [5], atMs: 0 });
+    const arunBefore = state.players[ARUN]!.cash;
+    const absorbedBefore = state.bank.ledger.absorbed;
+    state = step(state, { kind: "PAY_DEBT", by: NAVEEN, debtId: state.debts[0]!.id, atMs: 0 });
+    expect(state.players[ARUN]!.cash).toBe(arunBefore + 70);
+    expect(state.bank.ledger.absorbed).toBe(absorbedBefore);
+  });
+
+  it("#7 a chain of eliminated creditors cascades to the bank when nobody solvent is left in it", () => {
     let state = grant(newMatch(), PRIYA, PURPLE);
     for (const index of PURPLE) state.tiles[index]!.houses = 1;
     state.bank.houses -= 5;
     state = grant(state, NAVEEN, [5]);
     state = setCash(state, NAVEEN, 50);
     state = rollAs(state, NAVEEN, [1, 1]); // Naveen owes Priya ₹70
-    state.players[PRIYA]!.bankrupt = { out: true, round: 1, owedTo: "bank", amount: 0 }; // (creditor eliminated meanwhile)
+    state.players[PRIYA]!.bankrupt = { out: true, round: 1, owedTo: "bank", amount: 0 };
     for (const index of PURPLE) { state.tiles[index]!.ownerId = null; state.tiles[index]!.houses = 0; }
     state.bank.houses += 5;
     state = step(state, { kind: "MORTGAGE", by: NAVEEN, tileIndexes: [5], atMs: 0 });
@@ -106,6 +143,16 @@ describe("rulebook §21 — engine rows", () => {
     expect(state.turn.playerId).toBe(PRIYA);
   });
 
+  it("#10 (engine half) sending a player to jail on a board with no jail tile is a no-op logged as noJailOnBoard", () => {
+    const state = newMatch();
+    // A GET IN-active corner of type "none": the sentence fires, but there is no jail to go to.
+    state.board.tiles[8] = { ...state.board.tiles[8]!, kind: "corner", name: "Checkpoint", cornerType: "none", drawMode: "fixed", getOut: null, stayHere: null, getIn: { amount: 100, payTo: "bank" }, blockActionsWhileHeld: true, collectRentWhileHeld: true };
+    const after = rollAs(state, NAVEEN, [4, 4]);
+    expect(lastEvent(after, "noJailOnBoard")).toMatchObject({ playerId: NAVEEN });
+    expect(after.players[NAVEEN]!.jail.in).toBe(false);
+    expect(after.players[NAVEEN]!.position).toBe(8);
+  });
+
   it("#11 a chosen dice total is never a double: no extra roll", () => {
     let state = grant(newMatch(), NAVEEN, [6]); // own Anna Salai so the landing resolves
     state.players[NAVEEN]!.holdCards.push({ id: "card-cd", effect: { kind: "chooseDice" }, uses: 1, expires: "never", tradeable: false, grantedRound: 1 });
@@ -119,6 +166,18 @@ describe("rulebook §21 — engine rows", () => {
 
   it("#12 moving backward across index 0 pays no bonus (board maths)", () => {
     expect(moveBackward(2, 3, 16)).toEqual({ to: 15, passedStart: false });
+  });
+
+  it("#13 a card move onto an owned tile charges full rent", () => {
+    const state = withChanceRule(grant(newMatch(), PRIYA, [7]), { move: { direction: "forward", count: 3, targetTileIndex: null, collectPassBonus: false } });
+    expect(lastEvent(rollAs(state, NAVEEN, [1, 3]), "rentPaid")).toMatchObject({ payerId: NAVEEN, ownerId: PRIYA, tileIndex: 7 });
+  });
+
+  it("#14 a card move onto Start pays the bonus only when the rule collects it", () => {
+    const on = withChanceRule(newMatch(), { move: { direction: "toTile", count: 0, targetTileIndex: 0, collectPassBonus: true } });
+    expect(rollAs(on, NAVEEN, [1, 3]).players[NAVEEN]!.cash).toBe(12_000);
+    const off = withChanceRule(newMatch(), { move: { direction: "toTile", count: 0, targetTileIndex: 0, collectPassBonus: false } });
+    expect(rollAs(off, NAVEEN, [1, 3]).players[NAVEEN]!.cash).toBe(10_000);
   });
 
   it("#15 supply exhausted: nothing is built, E_SUPPLY_EXHAUSTED", () => {
@@ -235,6 +294,20 @@ describe("rulebook §21 — engine rows", () => {
     expect(lastEvent(state, "matchEnded")).toMatchObject({ standings: [PRIYA, NAVEEN] });
   });
 
+  it("#37 a dice-number deck with an unassigned total applies its fallback (Nothing)", () => {
+    const state = withChanceRule(newMatch(), { id: "on-seven" }, { drawMode: "diceNumber", fallback: "nothing" });
+    state.board.decks[0]!.rules[0]!.diceTotals = [7];
+    const after = rollAs(state, NAVEEN, [1, 3]);
+    expect(lastEvent(after, "cardDrawn")).toMatchObject({ ruleId: null, source: "fallbackNothing", applied: false });
+    expect(after.players[NAVEEN]!.cash).toBe(10_000);
+  });
+
+  it("#38 a deck with zero active rules contributes nothing and the log records the empty deck", () => {
+    const after = rollAs(newMatch(), NAVEEN, [1, 3]); // the test board's deck has no rules
+    expect(lastEvent(after, "cardDrawn")).toMatchObject({ source: "emptyDeck", applied: false });
+    expect(eventsOf(after, "cardMoney")).toHaveLength(0);
+  });
+
   it("#40 a round-scoped hold card is discarded at the start of the next round", () => {
     let state = newMatch();
     state.players[NAVEEN]!.holdCards.push({ id: "card-r", effect: { kind: "rentWaiver" }, uses: 1, expires: "round", tradeable: false, grantedRound: 1 });
@@ -261,9 +334,7 @@ describe("rulebook §21 — rows owned elsewhere", () => {
   // Each row is named with its owner so the table is accounted for in full. A row moves into the
   // engine block above when its owner task lands.
   const owners: Record<number, string> = {
-    10: "C6 (card effects: sendToJail with no jail tile logs noJailOnBoard)",
-    13: "C6 (card effects: moveAnywhere onto an owned tile)",
-    14: "C6 (card effects: moveAnywhere onto the start tile)",
+    10: "OQ-19 (the sendToJail hold card needs a target-choice action; sendToJail itself logs noJailOnBoard, see #9)",
     24: "OQ-2 / D4 server (queued offer while the target is in a modal)",
     27: "D4 server (disconnect grace and auto-play)",
     28: "D4 server (host transfer)",
@@ -272,17 +343,15 @@ describe("rulebook §21 — rows owned elsewhere", () => {
     34: "D3 API (running matches keep their frozen version, D5)",
     35: "D3 API (unpublish leaves running matches alone)",
     36: "D3 API (published versions carry copies of decks and rules)",
-    37: "C6 (dice-number deck fallback)",
-    38: "C6 / F2 (empty deck logs 'empty deck'; publish warning)",
     39: "D1/D5 (rules come from the frozen version; not reachable)",
-    41: "C6 (forceTradeAccept on a player who cannot pay)",
-    42: "C6 (zeroCash on a player who owes a debt)",
+    41: "OQ-19 (forceTradeAccept needs a target-choice action)",
+    42: "OQ-19 (zeroCash needs a target-choice action)",
     44: "E7 / offline-local-mode (handover cover skips a bankrupt player)",
     45: "F5 (fast mode changes no rule)",
   };
 
   it("accounts for every one of the 45 rows exactly once", () => {
-    const engineRows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 30, 32, 33, 40, 43];
+    const engineRows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 30, 32, 33, 37, 38, 40, 43];
     const all = [...engineRows, ...Object.keys(owners).map(Number)].sort((a, b) => a - b);
     expect(all).toEqual(Array.from({ length: 45 }, (_, i) => i + 1));
   });

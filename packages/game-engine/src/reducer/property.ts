@@ -231,7 +231,7 @@ export function applySell(ctx: Ctx, action: Sell): void {
         ? resolvePrice(boardTile.sellToBank, boardTile.cost)
         : 0;
     tile.ownerId = null;
-    tile.mortgaged = false;
+    tile.mortgaged = false; // a mortgaged tile sells at full price today — OQ-20 item 1
   } else if (boardTile.kind === "property" && action.what === "hotel") {
     proceeds = resolvePrice(boardTile.sellHotel, resolvePrice(boardTile.hotelCost, boardTile.cost));
     tile.hotel = false;
@@ -256,7 +256,7 @@ function mortgageValue(state: MatchState, index: TileIndex): number {
 /** Redeem = mortgage amount + interest (10 % on the design board), rounded to a rupee. */
 export function redeemCost(state: MatchState, index: TileIndex): number {
   const value = mortgageValue(state, index);
-  return value + Math.round((value * state.rules.mortgage.interestPercent) / 100);
+  return value + Math.round((value * state.rules.mortgage.interestPercent) / 100); // rounding to the rupee is unstated — OQ-20 item 3
 }
 
 export function validateMortgage(state: MatchState, action: Mortgage): ValidationResult {
