@@ -423,3 +423,38 @@ Raised 21 September 2026 during C5.
 rulebook. For item 2 the Chennai copy in `3m` should decide the landing tile (option 2). For item 4
 the toggle needs a stated off-behaviour or should be removed (option 3); today it only loses
 houses.
+
+---
+
+## OQ-18 · Three places where `docs/06-state-machines.md` and the flow docs disagree
+
+**Affects:** `packages/game-engine/src/machines/{lifecycle,trade}.ts` (task **C5a**, implemented
+per `docs/06`, the task's named authority); later the `3k` reconnect overlay and the `1p` composer.
+
+**Why it matters:** the machines are transcribed arrow for arrow from `docs/06`, but three details
+differ from the flow docs that describe the same behaviour, and the client screens will be built
+from the flow docs.
+
+1. **Reconnect backoff.** `docs/06` "Reconnect": `backoff 1,2,4,8,16s`. `docs/flows/reconnect.md`
+   "Parameters": `1s, 2s, 4s, 8s, 15s`. C5a ships `RECONNECT_BACKOFF_SECONDS = [1, 2, 4, 8, 16]`.
+2. **When the reconnect grace can expire.** `docs/06` draws `disconnected → graceExpired` only,
+   so a seat that is mid-attempt (`reconnecting`) never times out; `reconnect.md` says the hold
+   runs "from the disconnect, independent of" anything else. C5a follows the diagram: a
+   `graceElapsed` event in `reconnecting` is an explicit no-op.
+3. **Trade counter-offers.** `docs/flows/trade.md` has a "target counters" branch
+   (`tradeResponse {accept:false, counter:true}`, `1p` reopens with the sides swapped);
+   `docs/06` "Trade" has no `countered` state or arrow, and `SPEC.md`'s `RESPOND_TRADE` has no
+   `counter` field. C5a models a counter as `reject` followed by a fresh `composing`.
+
+Raised 21 September 2026 during C5a. Does not block a task.
+
+**Options**
+1. Regenerate the flow docs from the design so they match `docs/06` (16 s; grace only from
+   `disconnected`; counter = reject + recompose).
+2. Regenerate `docs/06` to match the flows (15 s; `reconnecting → graceExpired` arrow; a
+   `countered` state and a `counter` flag on `RESPOND_TRADE`).
+3. Mixed: (1) for the backoff — the design's attempt counter decides which; (2) for the grace
+   arrow, since a seat must not be un-timeout-able while its socket keeps failing; (1) for the
+   counter, since it needs no new wire field.
+
+**Recommendation:** (3).

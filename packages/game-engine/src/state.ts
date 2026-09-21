@@ -5,6 +5,7 @@
 // All money is an integer number of rupees (rulebook, top). No floats anywhere in this file.
 
 import type { MatchEvent } from "./events";
+import type { TurnStageKind } from "./machines/turn";
 
 // ─── Identifiers ────────────────────────────────────────────────────────────────
 
@@ -316,20 +317,11 @@ export type MatchPhase =
   | "abandoned"
   | "closed";
 
-export type TurnStage =
-  | "jailChoice"
-  | "preRoll"
-  | "rolling"
-  | "moving"
-  | "landing"
-  | "decision"
-  | "payment"
-  | "cardDraw"
-  | "cornerEffect"
-  | "auction"
-  | "raiseCash"
-  | "postRoll"
-  | "turnEnd";
+/**
+ * The turn's flow stage. Derived from the turn machine (src/machines/turn.ts) so the reducer can
+ * never store a stage the design's state diagram does not have (state-machine skill rule 3).
+ */
+export type TurnStage = TurnStageKind;
 
 export interface TurnState {
   playerId: PlayerId;
