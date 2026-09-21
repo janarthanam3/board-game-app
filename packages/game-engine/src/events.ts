@@ -5,7 +5,9 @@
 // Names, subjects and amounts are carried as data; copy is composed at the render edge from the
 // board's own tile and player names, never from the engine.
 
-import type { PlayerId, TileIndex } from "./state";
+import type { DrawSource } from "./decks";
+import type { RuleCategory } from "./effects";
+import type { CardEffect, DeckId, PlayerId, RuleId, TileIndex } from "./state";
 
 interface Base {
   /** Monotonic within the match; the log is append-only. */
@@ -33,8 +35,27 @@ export type MatchEvent = Base &
     | { kind: "rentPaid"; payerId: PlayerId; ownerId: PlayerId; tileIndex: TileIndex; amount: number }
     /** 1n #12 INCOME TAX — any tax office charge */
     | { kind: "taxCharged"; playerId: PlayerId; tileIndex: TileIndex; amount: number; debtId: string | null }
-    /** Chance / chest spaces: the draw itself arrives with C6; the landing is logged now */
+    /** A card space with no deck, or one reached past the card-chain cap: the landing only */
     | { kind: "cardSpaceLanded"; playerId: PlayerId; tileIndex: TileIndex; cardType: "chance" | "chest" | "none" }
+    /** 1n #10 CHANCE / #11 COMMUNITY CHEST — the draw; `applied` is false for a failed gate or no rule */
+    | {
+        kind: "cardDrawn";
+        playerId: PlayerId;
+        tileIndex: TileIndex;
+        deckId: DeckId;
+        ruleId: RuleId | null;
+        ruleName: string | null;
+        source: DrawSource;
+        category: RuleCategory | null;
+        applied: boolean;
+        skipped: "noRule" | "conditions" | null;
+      }
+    /** One MONEY transfer of a drawn rule; `debtId` is set when the payer could not pay */
+    | { kind: "cardMoney"; playerId: PlayerId; ruleId: RuleId; from: PlayerId | "bank"; to: PlayerId | "bank"; amount: number; debtId: string | null }
+    | { kind: "cardBlockSkipped"; playerId: PlayerId; ruleId: RuleId; block: "move"; reason: "debtOpen" }
+    | { kind: "holdCardGranted"; playerId: PlayerId; ruleId: RuleId; cardId: string; effect: CardEffect["kind"] }
+    /** OQ-19: "Affects another player" needs a target-choice action that does not exist yet */
+    | { kind: "holdCardSkipped"; playerId: PlayerId; ruleId: RuleId; reason: "needsTarget" }
     /** 1n #4 AUCTION LIVE */
     | { kind: "auctionOpened"; tileIndex: TileIndex; minBid: number; bidders: PlayerId[]; reason: "declined" | "bankruptcy" }
     | { kind: "bidPlaced"; playerId: PlayerId; tileIndex: TileIndex; amount: number }

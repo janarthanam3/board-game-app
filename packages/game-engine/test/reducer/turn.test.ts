@@ -305,9 +305,9 @@ describe("corner and card spaces", () => {
     expect(state.bank.finePot).toBe(1000);
   });
 
-  it("a chance space logs the landing; the draw arrives with C6", () => {
+  it("a chance space draws from its deck (the test board's deck is empty, edge case #38)", () => {
     const state = rollAs(newMatch(), NAVEEN, [1, 3]);
-    expect(lastEvent(state, "cardSpaceLanded")).toMatchObject({ tileIndex: 4, cardType: "chance" });
+    expect(lastEvent(state, "cardDrawn")).toMatchObject({ tileIndex: 4, deckId: "d-chance", source: "emptyDeck", applied: false });
     expect(state.turn.stage).toBe("postRoll");
   });
 });

@@ -9,7 +9,7 @@ import { checkInvariants, checkTransitionInvariants } from "../src/invariants";
 import { createMatch, replay } from "../src/match";
 import { apply, legalActions, validate } from "../src/reducer/index";
 import { nextUint32, type Rng } from "../src/rng";
-import { isSolvent, type MatchState, type PlayerId } from "../src/state";
+import { type FrozenDeck, isSolvent, type MatchState, type PlayerId } from "../src/state";
 import { ARUN, NAVEEN, PRIYA, setup } from "./support/match";
 
 /** Concrete candidates for every legal kind, built the same way the actions sheet would. */
@@ -96,10 +96,32 @@ const THREE = [
   { id: ARUN, name: "Arun", colour: "green" as const },
 ];
 
+/** A Chance deck that exercises every block kind, including a card move onto another card space. */
+const fuzzDeck: FrozenDeck = {
+  id: "d-chance",
+  name: "Chance",
+  drawMode: "shuffle",
+  fallback: "nothing",
+  rules: [
+    { active: true, diceTotals: [], rule: { id: "bank-error", name: "Bank error", conditions: null, money: { direction: "bankPaysYou", amount: 1500, basis: "flat" }, move: null, holdCard: null } },
+    { active: true, diceTotals: [], rule: { id: "repairs", name: "Street repairs", conditions: null, money: { direction: "shareToAllPlayers", amount: 500, basis: "perPlayer" }, move: { direction: "backward", count: 3, targetTileIndex: null, collectPassBonus: false }, holdCard: null } },
+    { active: true, diceTotals: [], rule: { id: "levy", name: "Levy", conditions: null, money: { direction: "youPayBank", amount: 4000, basis: "flat" }, move: null, holdCard: null } },
+    { active: true, diceTotals: [], rule: { id: "birthday", name: "Birthday", conditions: null, money: { direction: "collectFromAllPlayers", amount: 300, basis: "flat" }, move: null, holdCard: null } },
+    { active: true, diceTotals: [], rule: { id: "advance", name: "Advance to Start", conditions: null, money: null, move: { direction: "toTile", count: 0, targetTileIndex: 0, collectPassBonus: true }, holdCard: null } },
+    { active: true, diceTotals: [], rule: { id: "again", name: "Draw again", conditions: null, money: null, move: { direction: "toTile", count: 0, targetTileIndex: 12, collectPassBonus: false }, holdCard: null } },
+    { active: true, diceTotals: [], rule: { id: "pass", name: "Free bail", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "jailPass" }, uses: 1, expires: "round", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "rich", name: "Landlord bonus", conditions: { holdsColourSet: true, ownsEveryTileInSet: false, cashAbove: null, hasHouseOrHotel: false }, money: { direction: "bankPaysYou", amount: 2000, basis: "perTileOwned" }, move: null, holdCard: null } },
+  ],
+};
+
 /** A short match (round cap 4) so random play reaches the endgame within the step budget. */
 function fuzzSetup(seed: number) {
   const base = setup({ seed, players: THREE });
-  return { ...base, rules: { ...base.rules, rounds: { cap: 4, turnTimerSeconds: 30 } } };
+  return {
+    ...base,
+    board: { ...base.board, decks: [fuzzDeck] },
+    rules: { ...base.rules, rounds: { cap: 4, turnTimerSeconds: 30 } },
+  };
 }
 
 /** Plays one seeded match to the end (or a step cap) with random legal actions; returns the actions. */

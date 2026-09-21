@@ -458,3 +458,50 @@ Raised 21 September 2026 during C5a. Does not block a task.
    counter, since it needs no new wire field.
 
 **Recommendation:** (3).
+
+---
+
+## OQ-19 · Card rules: six gaps between rulebook §5, `1z` §4 and what the reducer can do
+
+**Affects:** `packages/game-engine/src/{decks,effects}.ts`, `src/reducer/cards.ts` (task **C6**,
+implemented with the defaults below, each marked `OQ-19` in code); later `1z` (rule editor),
+`1n` #10/#11 (the CHANCE / COMMUNITY CHEST cards) and `SPEC.md`'s action union.
+
+**Why it matters:** the rule grammar is authored in `1z` and played by the engine; where the two
+disagree, a board can be authored that the engine cannot play as written.
+
+1. **MONEY directions.** `1z` §4.1 lists six (`Collect from one player`, `Pay to one player`
+   included); rulebook §5.1 and the C1 state shape have four. The two "one player" directions
+   need the drawer to choose a target, and `SPEC.md` has no action carrying that choice. Engine:
+   **four directions**; the other two cannot be stored.
+2. **"Affects: Another player" hold cards** (send to jail, zero cash, remove a building, force
+   trade acceptance, double rent paid) likewise need a target-choice action. Engine: the block
+   is **not applied**; the log records `holdCardSkipped · needsTarget`.
+3. **Basis under Share / Collect.** For the two fan-out directions the design's own preview
+   (Share to all players · 500 · Per player → "Pay 500 to every player") reads `Per player` as
+   the amount *each* player moves. Engine: `Flat` and `Per player` both mean "amount per
+   counterpart"; `Per house` / `Per tile owned` multiply that by the drawer's count. Under the
+   bank directions `Per player` multiplies by the number of other solvent players.
+4. **A MOVE block after a MONEY block that opened a debt.** Nothing says whether the token still
+   moves. Engine: the move is **dropped** (`cardBlockSkipped · debtOpen`) because a second landing
+   would resolve over an unsettled debt; the HOLD CARD block still applies.
+5. **Ranges and expiry.** Rulebook §5.1: Uses 1–3, tile count 0–40, Expires `Never / End of
+   round / End of match`. `1z` §4.2–4.3: Uses 1–5, tile count 1–20, Expires `Never / End of round
+   / After <n> rounds`. Engine stores `never | round | match` (C1) and does not clamp counts.
+6. **Card chains.** A rule can move the token onto another card space (the design's `To tile`),
+   which draws again; a rule targeting its own space would loop. Engine: **at most 3 draws per
+   landing** (`MAX_CARD_CHAIN`), then the landing is only logged. The number is a safety limit,
+   not a design value.
+
+Raised 21 September 2026 during C6. Does not block a task; blocks authoring the two
+target-choice features.
+
+**Options**
+1. Confirm the defaults, regenerate `1z` §4 to four directions and the rulebook's ranges, and
+   defer target-choice effects to a later `CHOOSE_TARGET` action (items 1, 2).
+2. Add `{ kind: 'CHOOSE_TARGET'; by; playerId; atMs }` to the action union now, with a
+   `chooseTarget` turn stage, and keep all six directions and thirteen effects.
+3. For item 6, forbid `To tile` targets that are card spaces at publish time instead of capping.
+
+**Recommendation:** (1) now; (2) as its own task once the `1n` decision-card pattern for a
+target pick is designed. (3) for item 6 — a publish-time check is cheaper than a runtime cap.

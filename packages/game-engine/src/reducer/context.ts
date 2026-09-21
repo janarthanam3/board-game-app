@@ -13,6 +13,8 @@ export interface Ctx {
   state: MatchState;
   events: MatchEvent[];
   atMs: number;
+  /** Card draws triggered by card moves within this one action; capped in reducer/cards.ts. */
+  cardChain: number;
 }
 
 /** Plain-data deep copy. State is JSON-safe by design (state.ts), so this is exact. */
@@ -21,7 +23,7 @@ export function cloneState(state: MatchState): MatchState {
 }
 
 export function makeCtx(state: MatchState, atMs: number): Ctx {
-  return { state: cloneState(state), events: [], atMs };
+  return { state: cloneState(state), events: [], atMs, cardChain: 0 };
 }
 
 /** Omit that distributes over a union, so each event kind keeps its own fields. */

@@ -1,6 +1,6 @@
 // Public surface of the rules engine (SPEC.md "Public surface"). Grows task by task:
 // C1 — state shape and invariants. C2 — seeded RNG. C3 — board geometry and movement.
-// C4 — pricing, colour sets and rent. C5 — the actions reducer. C5a — the state machines.
+// C4 — pricing, colour sets and rent. C5 — the actions reducer. C5a — the state machines. C6 — decks and effects.
 export * from "./state";
 export { checkInvariants, checkTransitionInvariants, invariants } from "./invariants";
 export type { InvariantName, InvariantViolation } from "./invariants";
@@ -49,5 +49,11 @@ export { createMatch, replay } from "./match";
 export type { MatchSetup } from "./match";
 export { netWorth, standings } from "./endgame";
 export { raiseCashHeadroom, redeemCost } from "./reducer/property";
+// C6 — decks and the rule-effect grammar.
+export { activeRules, drawFromDeck } from "./decks";
+export type { DrawResult, DrawSource } from "./decks";
+export { conditionsHold, moneyPlan, moveDestination, ruleCategory } from "./effects";
+export type { MoneyTransfer, RuleCategory } from "./effects";
+export { MAX_CARD_CHAIN } from "./reducer/cards";
 // C5a — the five state machines (docs/06).
 export * from "./machines/index";

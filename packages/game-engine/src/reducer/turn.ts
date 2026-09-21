@@ -13,6 +13,7 @@ import { rentFor } from "../rent";
 import { pick, rollDice } from "../rng";
 import { type CornerTile, isSolvent, type MatchState, type PlayerId, type TileIndex } from "../state";
 import { openAuction } from "./auction";
+import { resolveCardSpace } from "./cards";
 import { type Ctx, emit, payFine, playerOf } from "./context";
 import { charge, resolveBankruptcy } from "./debt";
 import { actorInMatch, all, inStage, isActorsTurn, matchIsLive, noOpenDebt } from "./guards";
@@ -186,6 +187,17 @@ export function moveAndResolve(ctx: Ctx, playerId: PlayerId, steps: number): voi
   resolveLanding(ctx, playerId, move.to);
 }
 
+/** A card move: the token jumps to `to` (bonus per the rule's toggle) and the landing resolves. */
+export function moveTokenTo(ctx: Ctx, playerId: PlayerId, to: TileIndex, passedStart: boolean): void {
+  const player = playerOf(ctx, playerId);
+  emit(ctx, { kind: "moved", playerId, from: player.position, to, passedStart });
+  player.position = to;
+  if (passedStart) {
+    payStartBonus(ctx, playerId);
+  }
+  resolveLanding(ctx, playerId, to);
+}
+
 export function payStartBonus(ctx: Ctx, playerId: PlayerId): void {
   const amount = ctx.state.rules.money.passBonus;
   if (amount > 0) {
@@ -242,9 +254,7 @@ export function resolveLanding(ctx: Ctx, playerId: PlayerId, tileIndex: TileInde
         }
         return;
       }
-      // Chance / chest draws arrive with C6 (decks and the effect grammar); the landing is logged.
-      emit(ctx, { kind: "cardSpaceLanded", playerId, tileIndex, cardType: boardTile.cardType === "tax" ? "none" : boardTile.cardType });
-      state.turn.stage = "postRoll";
+      resolveCardSpace(ctx, playerId, tileIndex, boardTile, moveTokenTo);
       return;
     }
     case "corner":
