@@ -353,8 +353,12 @@ the same kind: `bank.pendingAuctions` (lots a bank-bankruptcy queues for the nex
 3. For (3), treat a hotel tile as level 4 instead of 5 (a hotel would then never be "one above"
    its neighbours; building a second hotel in the group would be the constrained step).
 
-**Recommendation:** (1). Level 5 for a hotel is the only reading under which the rulebook's own
-build sequence (4 houses, then a hotel, then the next tile's hotel) never trips the invariant.
+**Recommendation:** (1), with item 3 amended as described above: the comparison runs over houses on
+tiles that do **not** hold a hotel. That is the only reading under which every legal action keeps
+the invariant and a group of hotels can still be sold down. Level 5 — the original recommendation
+here, and option 3 — is superseded: both let a legal BUILD or SELL hotel break `evenBuild`, and
+level 5 additionally strands a hotel-heavy estate in raise cash. `SPEC.md`'s `evenBuild` row still
+states the old comparison and should be regenerated when this question is answered (Rule 0).
 
 ---
 
@@ -648,3 +652,42 @@ the tile's cost and the starting price applies only to a player-initiated lot (`
 sits in the auction panel rather than on the tile.
 
 Raised 23 September 2026 by the full phase-C `rules-auditor` pass.
+
+---
+
+## OQ-22 · Two more unstated values, found re-auditing the phase-C fixes
+
+**Affects:** `packages/game-engine/src/board.ts` (`teleport`), `src/reducer/cards.ts` (task **C6**);
+later `1z`'s MOVE block and its money block.
+
+**Why it matters:** both are behaviours the engine had to choose, neither is covered by OQ-15–OQ-21,
+and both change money. Each is implemented as described and marked `OQ-22` at the line.
+
+### 1. Does a teleport pay the pass bonus when it never reaches the start tile?
+
+§1: a teleport "pays it **only if** the rule's `collectPassBonus` flag is set". That is a necessary
+condition; the engine also treats it as sufficient, so a `To tile` rule from tile 2 to tile 5 with
+the flag on pays the full ₹2,000 without crossing index 0. Edge case #14 only covers a teleport
+**onto** the start tile, so the paying-without-crossing case is untested and undescribed.
+
+**Options:** (1) the flag alone pays, as implemented — simplest to author, and "Collect pass-Go
+bonus" reads as a per-rule reward; (2) the flag is a permission and the bonus is paid only when the
+target is index 0 or the forward path to it crosses index 0; (3) the flag pays only on a landing
+exactly on index 0, which is row 14's literal case.
+**Recommendation:** (2). It keeps one meaning for "passing the start tile" across forward moves and
+teleports, and leaves the flag doing what its label says — permitting the bonus, not granting it.
+
+### 2. Is a card rule's "You pay bank" a fine for §6's money destination?
+
+§6 sends "fines and taxes" to the free-parking pot on a board that asks for it. Tax, bail, the
+rest-house skip fee and a GET IN charge all route as fines (OQ-21 item 5). A card MONEY block with
+direction `You pay bank` does not: it goes to the bank, so on a pot board two penalties that read
+identically on the notification card end up in different places.
+
+**Options:** (1) card money always goes to the bank, as implemented; (2) `You pay bank` is a fine
+and routes through the board's setting; (3) add a per-rule "Pay to" control in `1z` beside the
+direction picker.
+**Recommendation:** (2). A card that says "Pay ₹500" is a fine in every sense §6 uses the word, and
+(3) adds a control the design does not have.
+
+Raised 23 September 2026 by the phase-C re-audit.

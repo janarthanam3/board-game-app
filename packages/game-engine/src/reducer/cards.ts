@@ -70,6 +70,8 @@ function applyRule(ctx: Ctx, playerId: PlayerId, rule: RuleDefinition, moveToken
         emit(ctx, { kind: "cardMoney", playerId, ruleId: rule.id, from: "bank", to: transfer.to, amount: transfer.amount, debtId: null });
       } else {
         // A player who cannot pay owes a debt (to the bank or to the collector), as with rent.
+        // OQ-22 item 2: card money is not treated as a fine, so "You pay bank" reaches the bank
+        // even on a board that sends fines and taxes to the free-parking pot.
         const result = charge(ctx, transfer.from, transfer.to, transfer.amount, `card: ${rule.name}`);
         emit(ctx, { kind: "cardMoney", playerId, ruleId: rule.id, from: transfer.from, to: transfer.to, amount: transfer.amount, debtId: result.debtId });
       }

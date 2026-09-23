@@ -65,6 +65,9 @@ export function moveBackward(from: TileIndex, steps: number, size: number): Move
  * whatever the direction (rulebook §1; edge cases #13, #14).
  */
 export function teleport(_from: TileIndex, to: TileIndex, collectPassBonus: boolean): Move {
+  // OQ-22 item 1: the flag alone pays. §1 says a teleport pays "only if" the flag is set, which is
+  // a necessary condition; whether it is also sufficient — a jump that crosses nothing still
+  // paying — is unstated.
   return { to, passedStart: collectPassBonus };
 }
 

@@ -129,13 +129,13 @@ export type FixtureName = keyof typeof fixtures;
 // ─── The 40-tile board ──────────────────────────────────────────────────────────
 
 const GROUPS = [
-  { id: "g-purple", colour: "purple", names: ["Marina Drive", "Bay Road", "Fort Street"] },
-  { id: "g-sky", colour: "sky", names: ["Mount Road", "Anna Salai", "Harbour Lane"] },
-  { id: "g-rose", colour: "rose", names: ["Beach Road", "Mylapore", "Adyar"] },
-  { id: "g-amber", colour: "amber", names: ["Besant Nagar", "Triplicane", "Egmore"] },
-  { id: "g-green", colour: "green", names: ["Nungambakkam", "Kodambakkam", "Saidapet"] },
-  { id: "g-teal", colour: "teal", names: ["Velachery", "Guindy", "Perungudi"] },
-  { id: "g-coral", colour: "coral", names: ["Thiruvanmiyur", "Kottivakkam", "Neelankarai"] },
+  { id: "g-purple", colour: "purple", names: ["Marina Drive", "Bay Road", "Fort Street", "Parry's Corner"] },
+  { id: "g-sky", colour: "sky", names: ["Mount Road", "Anna Salai", "Harbour Lane", "Royapuram"] },
+  { id: "g-rose", colour: "rose", names: ["Beach Road", "Mylapore", "Adyar", "Alwarpet"] },
+  { id: "g-amber", colour: "amber", names: ["Besant Nagar", "Triplicane", "Egmore", "Chetpet"] },
+  { id: "g-green", colour: "green", names: ["Nungambakkam", "Kodambakkam", "Saidapet", "Ashok Nagar"] },
+  { id: "g-teal", colour: "teal", names: ["Velachery", "Guindy", "Perungudi", "Taramani"] },
+  { id: "g-coral", colour: "coral", names: ["Thiruvanmiyur", "Kottivakkam", "Neelankarai", "Injambakkam"] },
 ] as const;
 
 function property(name: string, groupId: string, cost: number): FrozenTile {
@@ -191,7 +191,7 @@ function classicBoard(): FrozenBoard {
       if (step === 6) {
         tiles.push({
           kind: "utility",
-          name: ["City Club", "Harbour Ferry", "Metro Line", "Power House"][side] ?? "City Club",
+          name: ["City Club", "Harbour Ferry", "Metro Rail", "Marina Lighthouse"][side] ?? "City Club",
           cost: 900,
           mortgage: { mode: "percent", percent: 50 },
           rentBasis: "dice",
@@ -204,13 +204,18 @@ function classicBoard(): FrozenBoard {
       const group = GROUPS[groupIndex % GROUPS.length]!;
       const placed = groups.find((candidate) => candidate.id === group.id);
       const position = placed ? placed.tileIndexes.length : 0;
-      tiles.push(property(group.names[position] ?? `${group.colour} ${position + 1}`, group.id, 1_200 + groupIndex * 200 + position * 100));
+      const name = group.names[position];
+      if (!name) {
+        // Never invent a filler name: every shipped name is a Chennai name (rulebook §20).
+        throw new Error(`classic-40: group ${group.id} has no name for position ${position}`);
+      }
+      tiles.push(property(name, group.id, 1_200 + groupIndex * 200 + position * 100));
       if (placed) {
         placed.tileIndexes.push(index);
       } else {
         groups.push({ id: group.id, colour: group.colour, tileIndexes: [index], thresholdOverride: null });
       }
-      if (position === 2) {
+      if (position === 3) {
         groupIndex++;
       }
     }

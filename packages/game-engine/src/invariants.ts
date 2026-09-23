@@ -90,9 +90,9 @@ const buildLimits: Check = (state) =>
   });
 
 /**
- * When Build evenly is on, within a group max(level) − min(level) ≤ 1. A hotel is one level above
- * four houses; SPEC.md compares houses only, which would flag every hotel next to a full tile —
- * see OQ-15.
+ * When Build evenly is on, within a group max(houses) − min(houses) ≤ 1 over the tiles that do not
+ * hold a hotel (see houseLadder below). SPEC.md still states the comparison over every tile, which
+ * is the reading that let a legal BUILD/SELL hotel break this invariant — see OQ-15 item 3.
  */
 const evenBuild: Check = (state) => {
   if (!state.rules.sets.buildEvenly) {

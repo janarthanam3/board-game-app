@@ -51,6 +51,7 @@ export function beginTurn(ctx: Ctx): void {
     );
     const fee = restHouse?.stayHere?.perSkipTurnAmount ?? 0;
     player.skipTurns -= 1;
+    // OQ-21 item 5: routed as a fine, so a pot board sends the skip fee to the pot.
     const result = charge(ctx, player.id, "bank", fee, "rest house", "fine");
     emit(ctx, { kind: "restHouse", playerId: player.id, turnsSkipped: 1, amount: fee });
     emit(ctx, { kind: "turnSkipped", playerId: player.id, remaining: player.skipTurns });
@@ -361,6 +362,7 @@ export function validatePayBail(state: MatchState, action: Extract<Action, { kin
 
 export function applyPayBail(ctx: Ctx, action: Extract<Action, { kind: "PAY_BAIL" }>): void {
   const bail = jailTile(ctx.state)?.getOut?.amount ?? 0;
+  // OQ-21 item 5: bail is routed as a fine, so a pot board sends it to the pot.
   payFine(ctx, action.by, bail);
   const player = playerOf(ctx, action.by);
   player.jail = { in: false, roundsHeld: 0 };
