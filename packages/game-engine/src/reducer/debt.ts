@@ -28,7 +28,7 @@ export function charge(
     return { paid: true, debtId: null };
   }
   const debtId = nextId(ctx, "debt");
-  ctx.state.debts.push({ id: debtId, debtorId, creditorId, amount, createdRound: ctx.state.round });
+  ctx.state.debts.push({ id: debtId, debtorId, creditorId, amount, createdRound: ctx.state.round, payTo });
   emit(ctx, { kind: "debtOpened", debtId, debtorId, creditorId, amount, cause });
   if (ctx.state.turn.playerId === debtorId) {
     ctx.state.turn.stage = "raiseCash";
@@ -79,7 +79,8 @@ export function applyPayDebt(ctx: Ctx, action: Extract<Action, { kind: "PAY_DEBT
   }
   // Edge case #7: a creditor who went bankrupt meanwhile has had their estate transferred, so the
   // payment follows the estate to whoever they owed (docs/flows/bankruptcy.md "deeds cascade").
-  settle(ctx, debt.debtorId, effectiveCreditor(ctx.state, debt.creditorId), debt.amount, "creditor");
+  // debt.payTo keeps a fine or tax heading for the pot even though it was paid late (§6).
+  settle(ctx, debt.debtorId, effectiveCreditor(ctx.state, debt.creditorId), debt.amount, debt.payTo);
   ctx.state.debts = ctx.state.debts.filter((candidate) => candidate.id !== debt.id);
   emit(ctx, { kind: "debtSettled", debtId: debt.id, debtorId: debt.debtorId, creditorId: debt.creditorId, amount: debt.amount });
   if (ctx.state.turn.playerId === debt.debtorId && !ctx.state.debts.some((d) => d.debtorId === debt.debtorId)) {

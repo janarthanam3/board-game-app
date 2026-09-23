@@ -147,7 +147,8 @@ export function applyRoll(ctx: Ctx, action: Extract<Action, { kind: "ROLL" | "CH
     if (doubles && jailTile(state)?.getOut?.doubleToGetOut) {
       player.jail = { in: false, roundsHeld: 0 };
       emit(ctx, { kind: "jailReleased", playerId: player.id, how: "double" });
-      // A double out of jail moves the player but grants no extra roll here.
+      // A double out of jail moves the player but grants no extra roll here — OQ-21 item 3
+      // (§12 and §15 disagree about whether the releasing double also earns another roll).
       moveAndResolve(ctx, player.id, dice[0] + dice[1]);
       // moveAndResolve set the stage (decision / raiseCash / auction / postRoll); nothing to add.
       return;
@@ -245,6 +246,8 @@ export function resolveLanding(ctx: Ctx, playerId: PlayerId, tileIndex: TileInde
       return;
     }
     case "card": {
+      // OQ-21 item 1: a Tax office tile charges its tax and never draws, so a deck attached to it
+      // can never fire.
       if (boardTile.cardType === "tax" && boardTile.tax) {
         const amount = taxAmount(state, playerId, boardTile.tax);
         const result = charge(ctx, playerId, "bank", amount, "tax", "fine");
@@ -303,6 +306,8 @@ function resolveCorner(ctx: Ctx, playerId: PlayerId, corner: CornerTile): void {
     case "getIn": {
       // Landing on a GET IN corner: pay the entry charge and go to jail.
       const amount = corner.getIn?.amount ?? 0;
+      // OQ-21 item 5: routed as a fine, so the board's finesTo decides and the tile's own
+      // "Pay to" is overridden on a pot board.
       const result = charge(ctx, playerId, "bank", amount, "jail entry", corner.getIn?.payTo === "pot" ? "fine" : "creditor");
       sendToJail(ctx, playerId, "landed", amount);
       if (result.paid) {
@@ -312,6 +317,8 @@ function resolveCorner(ctx: Ctx, playerId: PlayerId, corner: CornerTile): void {
     }
     case "stayHere": {
       const player = playerOf(ctx, playerId);
+      // OQ-21 item 2: any held skipTurn card counts as the "Free Rest house Card" and no use is
+      // consumed, so one card exempts its holder for the rest of the match.
       const hasFreeCard = corner.stayHere?.useFreeRestHouseCard && player.holdCards.some((card) => card.effect.kind === "skipTurn" && card.uses > 0);
       if (!hasFreeCard) {
         player.skipTurns += 1;

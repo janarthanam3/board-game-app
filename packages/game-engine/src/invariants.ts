@@ -99,20 +99,27 @@ const evenBuild: Check = (state) => {
     return [];
   }
   return state.board.groups.flatMap((group) => {
-    const levels = group.tileIndexes.map((index) => buildLevel(state, index));
+    const levels = houseLadder(state, group.tileIndexes);
+    if (levels.length === 0) {
+      return [];
+    }
     const spread = Math.max(...levels) - Math.min(...levels);
     return spread <= 1
       ? []
-      : [violation("evenBuild", `group ${group.id} spans build levels ${Math.min(...levels)}–${Math.max(...levels)}`)];
+      : [violation("evenBuild", `group ${group.id} spans house levels ${Math.min(...levels)}–${Math.max(...levels)}`)];
   });
 };
 
-function buildLevel(state: MatchState, index: TileIndex): number {
-  const tile = state.tiles[index];
-  if (!tile) {
-    return 0;
-  }
-  return tile.hotel ? 5 : tile.houses;
+/**
+ * The houses to compare for even build: tiles in the group that do **not** hold a hotel. The rule
+ * is "max difference of 1 house within a group" (rulebook §4, §8), and a hotel completes its tile
+ * and leaves the house ladder — §8: selling a hotel "does not automatically re-place 4 houses".
+ * Reading a hotel as a sixth level instead makes a legal BUILD/SELL hotel break this invariant and
+ * leaves a full-hotel group unsellable; see OQ-15 item 3. The ladder spans every tile in the
+ * group, including ones the holder does not own — OQ-21 item 4.
+ */
+export function houseLadder(state: MatchState, tileIndexes: readonly TileIndex[]): number[] {
+  return tileIndexes.filter((index) => !state.tiles[index]?.hotel).map((index) => state.tiles[index]?.houses ?? 0);
 }
 
 /** A tile's owner is a solvent player in the match, and only ownable tiles are owned. */

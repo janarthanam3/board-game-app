@@ -159,3 +159,6 @@ packages/game-engine/src/
   property tests.
 - Fixtures in `packages/game-engine/test/fixtures`: `classic-40.json`, `chennai-16.json`,
   `midgame-4p.json`, `debt-pending.json`, `auction-live.json`. No trademarked names in any fixture.
+  They are generated from `test/fixtures/make-fixtures.ts` with `pnpm --filter game-engine fixtures`;
+  `test/fixtures.test.ts` asserts each committed file still matches its generator, satisfies every
+  invariant and carries no trademarked name.

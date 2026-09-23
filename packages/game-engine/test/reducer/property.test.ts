@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Action } from "../../src/actions";
+import { checkInvariants } from "../../src/invariants";
 import { legalActions } from "../../src/reducer/index";
 import { raiseCashHeadroom, redeemCost } from "../../src/reducer/property";
 import type { MatchState } from "../../src/state";
@@ -160,6 +161,51 @@ describe("BUILD (rulebook §8)", () => {
     expect(refusal(state, house(1))).toBe("OK"); // preRoll
     state = rollAs(state, NAVEEN, [2, 3]); // → 5, unowned → decision
     expect(refusal(state, house(1))).toBe("E_ACTION_ILLEGAL");
+  });
+});
+
+describe("even build and hotels (rulebook §4, §8; a legal action never breaks evenBuild)", () => {
+  /** Naveen holds all five purple tiles with `houses` on each, and the bank's stock matches. */
+  function purpleAt(houses: number[]): MatchState {
+    let state = grant(newMatch(), NAVEEN, PURPLE);
+    PURPLE.forEach((tileIndex, position) => {
+      state.tiles[tileIndex]!.houses = houses[position] ?? 0;
+      state.bank.houses -= houses[position] ?? 0;
+    });
+    return rollAs(state, NAVEEN, [1, 2]);
+  }
+
+  it("a hotel may be built once the group is level: the tile leaves the house ladder", () => {
+    const state = step(purpleAt([4, 4, 4, 4, 4]), { kind: "BUILD", by: NAVEEN, tileIndex: 1, what: "hotel", atMs: 0 });
+    expect(state.tiles[1]).toMatchObject({ hotel: true, houses: 0 });
+    expect(checkInvariants(state)).toEqual([]);
+  });
+
+  it("a hotel built over a 4/3/3/3/3 group leaves the ladder level, not broken", () => {
+    // The audit's repro: with a hotel read as a sixth level this left evenBuild reporting
+    // "spans 3–5". The four houses go back to the bank, so the ladder becomes 3/3/3/3.
+    const state = step(purpleAt([4, 3, 3, 3, 3]), { kind: "BUILD", by: NAVEEN, tileIndex: 1, what: "hotel", atMs: 0 });
+    expect(checkInvariants(state)).toEqual([]);
+    expect(PURPLE.slice(1).map((index) => state.tiles[index]!.houses)).toEqual([3, 3, 3, 3]);
+  });
+
+  it("selling a hotel back into a group that still holds houses is refused", () => {
+    // hotel / 4 / 4 / 4 / 4: the hotel tile would rejoin the ladder at 0 houses (§8).
+    let state = step(purpleAt([4, 4, 4, 4, 4]), { kind: "BUILD", by: NAVEEN, tileIndex: 1, what: "hotel", atMs: 0 });
+    expect(refusal(state, { kind: "SELL", by: NAVEEN, tileIndex: 1, what: "hotel", atMs: 0 })).toBe("E_BUILD_UNEVEN");
+  });
+
+  it("a group of hotels can always be sold down — no deadlock in raise cash", () => {
+    let state = purpleAt([4, 4, 4, 4, 4]);
+    for (const tileIndex of PURPLE) {
+      state = step(state, { kind: "BUILD", by: NAVEEN, tileIndex, what: "hotel", atMs: 0 });
+    }
+    for (const tileIndex of PURPLE) {
+      state = step(state, { kind: "SELL", by: NAVEEN, tileIndex, what: "hotel", atMs: 0 });
+      expect(checkInvariants(state)).toEqual([]);
+    }
+    expect(state.tiles[1]).toMatchObject({ hotel: false, houses: 0 });
+    expect(state.bank.hotels).toBe(12);
   });
 });
 

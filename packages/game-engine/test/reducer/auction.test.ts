@@ -31,7 +31,7 @@ describe("opening (rulebook §10)", () => {
 
   it("excludes a player who holds an unresolved debt", () => {
     let state = threePlayers();
-    state.debts.push({ id: "d-x", debtorId: ARUN, creditorId: "bank", amount: 50, createdRound: 1 });
+    state.debts.push({ id: "d-x", debtorId: ARUN, creditorId: "bank", amount: 50, createdRound: 1, payTo: "creditor" });
     state = rollAs(state, NAVEEN, [1, 1]);
     state = step(state, { kind: "PASS_BUY", by: NAVEEN, tileIndex: 2, atMs: 0 });
     expect(lastEvent(state, "auctionOpened")).toMatchObject({ bidders: [NAVEEN, PRIYA] });

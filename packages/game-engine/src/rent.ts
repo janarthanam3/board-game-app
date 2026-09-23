@@ -13,6 +13,11 @@ import { resolvePrice } from "./pricing";
 import { holdsSet } from "./sets";
 import type { MatchState, PlayerId, PropertyTile, TileIndex, UtilityTile } from "./state";
 
+/** True while the tile sits in either side of a pending trade offer (rulebook §7). */
+function isMidTrade(state: MatchState, tileIndex: TileIndex): boolean {
+  return state.offers.some((offer) => offer.give.tileIndexes.includes(tileIndex) || offer.get.tileIndexes.includes(tileIndex));
+}
+
 /** The rent due on a tile right now; 0 when nothing is owed. Never throws. */
 export function rentFor(state: MatchState, tileIndex: TileIndex, diceTotal?: number): number {
   const tile = state.tiles[tileIndex];
@@ -20,7 +25,8 @@ export function rentFor(state: MatchState, tileIndex: TileIndex, diceTotal?: num
   if (!tile || !boardTile || tile.ownerId === null) {
     return 0;
   }
-  if (tile.mortgaged || tile.underAuction) {
+  // Rulebook §7: "Rent is not collected while the tile is under auction or mid-trade."
+  if (tile.mortgaged || tile.underAuction || isMidTrade(state, tileIndex)) {
     return 0;
   }
   if (ownerHeldWithoutRent(state, tile.ownerId)) {

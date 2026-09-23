@@ -2,6 +2,7 @@
 
 import type { Action } from "../actions";
 import { OK, refuse, type ValidationResult } from "../errors";
+import { houseLadder } from "../invariants";
 import { resolvePrice } from "../pricing";
 import { holdsSet, thresholdFor } from "../sets";
 import { isOwnable, type MatchState, type PropertyTile, type TileIndex } from "../state";
@@ -125,8 +126,7 @@ export function validateBuild(state: MatchState, action: Build): ValidationResul
       return refuse("E_SUPPLY_EXHAUSTED", "the bank has no houses left");
     }
     if (state.rules.sets.buildEvenly) {
-      const group = state.board.groups.find((g) => g.id === boardTile.groupId);
-      const lowest = Math.min(...(group?.tileIndexes ?? []).map((index) => levelOf(state, index)));
+      const lowest = Math.min(...ladderFor(state, boardTile.groupId));
       if (tile.houses + 1 - lowest > 1) {
         return refuse("E_BUILD_UNEVEN", "Build evenly is on");
       }
@@ -135,7 +135,9 @@ export function validateBuild(state: MatchState, action: Build): ValidationResul
     return player.cash >= cost ? OK : refuse("E_INSUFFICIENT_CASH", `house costs ${cost}`);
   }
 
-  // Hotel: four houses stand, one hotel in the bank, cost paid; the four houses return.
+  // Hotel: four houses stand, one hotel in the bank, cost paid; the four houses return. No
+  // even-build check: the tile leaves the house ladder (invariants.ts houseLadder), and dropping a
+  // tile out of the comparison can only narrow the group's spread.
   if (tile.houses !== 4) {
     return refuse("E_BUILD_HOUSE_LIMIT", "four houses before a hotel");
   }
@@ -146,9 +148,10 @@ export function validateBuild(state: MatchState, action: Build): ValidationResul
   return player.cash >= cost ? OK : refuse("E_INSUFFICIENT_CASH", `hotel costs ${cost}`);
 }
 
-function levelOf(state: MatchState, index: TileIndex): number {
-  const tile = state.tiles[index];
-  return tile ? (tile.hotel ? 5 : tile.houses) : 0;
+/** The group's house ladder, exactly as the evenBuild invariant measures it. */
+function ladderFor(state: MatchState, groupId: string): number[] {
+  const group = state.board.groups.find((candidate) => candidate.id === groupId);
+  return houseLadder(state, group?.tileIndexes ?? []);
 }
 
 export function applyBuild(ctx: Ctx, action: Build): void {
@@ -203,15 +206,25 @@ export function validateSell(state: MatchState, action: Sell): ValidationResult 
     return refuse("E_ACTION_ILLEGAL", "utilities have no buildings");
   }
   if (action.what === "hotel") {
-    return tile.hotel ? OK : refuse("E_ACTION_ILLEGAL", "no hotel on this tile");
+    if (!tile.hotel) {
+      return refuse("E_ACTION_ILLEGAL", "no hotel on this tile");
+    }
+    if (state.rules.sets.buildEvenly) {
+      // The tile rejoins the ladder at 0 houses (§8: no houses are re-placed), so every other
+      // tile still in the ladder must be within 1 of 0. This tile is not in the ladder yet — it
+      // still holds its hotel.
+      if (Math.max(...ladderFor(state, boardTile.groupId), 0) > 1) {
+        return refuse("E_BUILD_UNEVEN", "Build evenly is on");
+      }
+    }
+    return OK;
   }
   if (tile.houses === 0) {
     return refuse("E_ACTION_ILLEGAL", "no houses on this tile");
   }
   if (state.rules.sets.buildEvenly) {
     // Selling mirrors building: no tile may fall more than 1 below another (rulebook §4).
-    const group = state.board.groups.find((g) => g.id === boardTile.groupId);
-    const highest = Math.max(...(group?.tileIndexes ?? []).map((index) => levelOf(state, index)));
+    const highest = Math.max(...ladderFor(state, boardTile.groupId));
     if (highest - (tile.houses - 1) > 1) {
       return refuse("E_BUILD_UNEVEN", "Build evenly is on");
     }

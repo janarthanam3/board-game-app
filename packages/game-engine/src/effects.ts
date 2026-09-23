@@ -94,16 +94,15 @@ function buildingsOwned(state: MatchState, playerId: PlayerId): number {
 
 /**
  * Where a MOVE block sends a token from `from`, or null for no move (a zero count, or "To tile"
- * with no target). The pass-Go toggle alone decides the bonus: a backward move never pays
- * (edge case #12) and a teleport pays only when the toggle is on (edge case #14).
+ * with no target). Rulebook §1: a forward move pays the bonus whenever it crosses index 0,
+ * including landing on it; a backward move never pays (edge case #12); a **teleport** pays only
+ * when the rule's `collectPassBonus` flag is set (edge case #14).
  */
 export function moveDestination(from: TileIndex, move: MoveBlock, ringSize: number): Move | null {
   switch (move.direction) {
-    case "forward": {
+    case "forward":
       if (move.count <= 0) return null;
-      const result = moveForward(from, move.count, ringSize);
-      return { to: result.to, passedStart: result.passedStart && move.collectPassBonus };
-    }
+      return moveForward(from, move.count, ringSize);
     case "backward":
       if (move.count <= 0) return null;
       return moveBackward(from, move.count, ringSize);

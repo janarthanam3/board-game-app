@@ -286,3 +286,36 @@ Shipped names are Chennai / Royal Navy only (CLAUDE.md, rulebook §20) and are b
 time, so the samples should be regenerated with board names (Marina Drive, Mount Road…) before the
 `1n` screen task copies them into fixtures. C5's tests use board names only. Raised 21 September
 2026 during C5.
+
+## Rulebook §21 row 17 contradicts §4's "+1" even-build rule
+
+**Implemented:** §4 — a group may span one house level, so with 1 house on each of three tiles a
+second house is allowed (`packages/game-engine/src/reducer/property.ts`).
+
+**Concern:** §21 row 17 says "Even-build on, player tries to put a 2nd house on one tile of a
+3-tile group with 1 each → Rejected with the reason 'Build evenly is on'." Under §4's "max
+difference of 1 house within a group" that build is legal — 2 and 1 differ by 1. The two
+statements cannot both hold. The engine follows §4 and the tests labelled #17 exercise a 2-vs-0
+spread, which both readings reject, so the row's own input is not covered either way. Raised
+23 September 2026 by the phase-C rules audit.
+
+## §8's build eligibility is stricter than §4 and §9 on mortgaged tiles
+
+**Implemented:** §4/§9 — a mortgaged tile stops counting toward the threshold, and building is
+allowed while the holder still meets it (`packages/game-engine/src/reducer/property.ts`).
+
+**Concern:** §8's Build eligibility row reads "holder holds the colour set, **no tile in the group
+mortgaged** if 'Mortgage breaks the set' is on", which forbids building anywhere in a group that
+holds one mortgaged tile — even when the holder still meets the threshold on the others. §9 and §4
+describe only the threshold effect. Raised 23 September 2026 by the phase-C rules audit.
+
+## `docs/06` allows side actions only before the roll; §15 allows them after it too
+
+**Implemented:** rulebook §15 — build, sell, mortgage, redeem and trade are legal at `preRoll` and
+`postRoll` (`packages/game-engine/src/reducer/property.ts`, `trade.ts`).
+
+**Concern:** the turn diagram in `docs/06-state-machines.md` draws side actions only as
+`preRoll → preRoll`, with no matching arrow on `postRoll`, while §15's turn structure lists
+"Optional actions" as step 5, after landing resolution, and `1v` is reachable from the post-roll
+HUD. The C5a turn machine follows the diagram, so the machine and the reducer disagree about
+whether a post-roll build is legal. Raised 23 September 2026 by the phase-C rules audit.

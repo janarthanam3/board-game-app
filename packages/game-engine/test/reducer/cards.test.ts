@@ -156,12 +156,13 @@ describe("MOVE", () => {
     expect(eventsOf(state, "startBonus")).toHaveLength(0);
   });
 
-  it("Forward across Start pays the bonus when the toggle is on, and not when it is off", () => {
-    const on = land([{ ...blank, move: { direction: "forward", count: 13, targetTileIndex: null, collectPassBonus: true } }]);
-    expect(on.players[NAVEEN]!.position).toBe(1);
-    expect(lastEvent(on, "startBonus")).toMatchObject({ amount: 2000 });
-    const off = land([{ ...blank, move: { direction: "forward", count: 13, targetTileIndex: null, collectPassBonus: false } }]);
-    expect(eventsOf(off, "startBonus")).toHaveLength(0);
+  it("Forward across Start pays the bonus whether or not the rule collects it (rulebook §1)", () => {
+    // §1: the flag governs teleports only — "a forward move pays whenever it crosses index 0".
+    for (const collectPassBonus of [true, false]) {
+      const state = land([{ ...blank, move: { direction: "forward", count: 13, targetTileIndex: null, collectPassBonus } }]);
+      expect(state.players[NAVEEN]!.position).toBe(1);
+      expect(lastEvent(state, "startBonus")).toMatchObject({ amount: 2000 });
+    }
   });
 
   it("edge case #14: To tile onto Start pays the bonus only when the toggle is on", () => {

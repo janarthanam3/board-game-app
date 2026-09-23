@@ -121,6 +121,35 @@ describe("rentFor (rulebook §7)", () => {
   });
 });
 
+describe("a tile in a pending trade (rulebook §7)", () => {
+  it("collects no rent while it sits in either side of an open offer", () => {
+    const state = baseState();
+    state.tiles[MARINA]!.ownerId = "p-naveen";
+    expect(rentFor(state, MARINA)).toBeGreaterThan(0);
+
+    state.offers.push({ id: "offer-1", from: "p-naveen", to: "p-priya", give: { cash: 0, tileIndexes: [MARINA], holdCardIds: [] }, get: { cash: 500, tileIndexes: [], holdCardIds: [] }, createdAtMs: 0, expiresAtMs: 60_000 });
+    expect(rentFor(state, MARINA)).toBe(0);
+
+    state.offers = [];
+    expect(rentFor(state, MARINA)).toBeGreaterThan(0);
+  });
+
+  it("a tile the offer only asks for is also mid-trade", () => {
+    const state = baseState();
+    state.tiles[MARINA]!.ownerId = "p-naveen";
+    state.offers.push({ id: "offer-2", from: "p-priya", to: "p-naveen", give: { cash: 500, tileIndexes: [], holdCardIds: [] }, get: { cash: 0, tileIndexes: [MARINA], holdCardIds: [] }, createdAtMs: 0, expiresAtMs: 60_000 });
+    expect(rentFor(state, MARINA)).toBe(0);
+  });
+
+  it("another tile in the same group still collects", () => {
+    const state = baseState();
+    state.tiles[MARINA]!.ownerId = "p-naveen";
+    state.tiles[2]!.ownerId = "p-naveen";
+    state.offers.push({ id: "offer-3", from: "p-naveen", to: "p-priya", give: { cash: 0, tileIndexes: [MARINA], holdCardIds: [] }, get: { cash: 500, tileIndexes: [], holdCardIds: [] }, createdAtMs: 0, expiresAtMs: 60_000 });
+    expect(rentFor(state, 2)).toBeGreaterThan(0);
+  });
+});
+
 describe("applyRentEffects — card effects modify the result last", () => {
   it("rentWaiver: the payment is skipped", () => {
     expect(applyRentEffects(140, { waiver: true, multiplier: 1 })).toBe(0);

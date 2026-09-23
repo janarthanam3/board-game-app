@@ -55,5 +55,7 @@ export type { DrawResult, DrawSource } from "./decks";
 export { conditionsHold, moneyPlan, moveDestination, ruleCategory } from "./effects";
 export type { MoneyTransfer, RuleCategory } from "./effects";
 export { MAX_CARD_CHAIN } from "./reducer/cards";
+// SPEC.md "Testing hooks".
+export { __debug, hash, stableStringify } from "./debug";
 // C5a — the five state machines (docs/06).
 export * from "./machines/index";

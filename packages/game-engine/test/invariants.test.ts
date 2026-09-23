@@ -244,32 +244,32 @@ describe("auctionExclusive", () => {
 describe("debtBlocking", () => {
   it("flags a debt owed by a player who is not solvent or not in the match", () => {
     const state = cloneState(baseState());
-    state.debts = [{ id: "d-1", debtorId: "p-ghost", creditorId: "bank", amount: 500, createdRound: 1 }];
+    state.debts = [{ id: "d-1", debtorId: "p-ghost", creditorId: "bank", amount: 500, createdRound: 1, payTo: "creditor" }];
     expect(names(state)).toContain("debtBlocking");
   });
 
   it("flags a debt of zero or negative amount", () => {
     const state = cloneState(baseState());
-    state.debts = [{ id: "d-1", debtorId: "p-priya", creditorId: "bank", amount: 0, createdRound: 1 }];
+    state.debts = [{ id: "d-1", debtorId: "p-priya", creditorId: "bank", amount: 0, createdRound: 1, payTo: "creditor" }];
     expect(names(state)).toContain("debtBlocking");
   });
 
   it("flags a debt whose creditor is not a player or the bank", () => {
     const state = cloneState(baseState());
-    state.debts = [{ id: "d-1", debtorId: "p-priya", creditorId: "p-ghost", amount: 500, createdRound: 1 }];
+    state.debts = [{ id: "d-1", debtorId: "p-priya", creditorId: "p-ghost", amount: 500, createdRound: 1, payTo: "creditor" }];
     expect(names(state)).toContain("debtBlocking");
   });
 
   it("flags an actor with an open debt outside the raise-cash stage", () => {
     const state = cloneState(baseState());
-    state.debts = [{ id: "d-1", debtorId: "p-naveen", creditorId: "bank", amount: 500, createdRound: 1 }];
+    state.debts = [{ id: "d-1", debtorId: "p-naveen", creditorId: "bank", amount: 500, createdRound: 1, payTo: "creditor" }];
     state.turn.stage = "preRoll";
     expect(names(state)).toContain("debtBlocking");
   });
 
   it("accepts an actor with an open debt in the raise-cash stage", () => {
     const state = cloneState(baseState());
-    state.debts = [{ id: "d-1", debtorId: "p-naveen", creditorId: "bank", amount: 500, createdRound: 1 }];
+    state.debts = [{ id: "d-1", debtorId: "p-naveen", creditorId: "bank", amount: 500, createdRound: 1, payTo: "creditor" }];
     state.turn.stage = "raiseCash";
     expect(names(state)).not.toContain("debtBlocking");
   });

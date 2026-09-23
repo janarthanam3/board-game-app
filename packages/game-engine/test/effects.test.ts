@@ -130,8 +130,16 @@ describe("MOVE destination", () => {
   it("Forward n: clockwise, passing Start pays the bonus", () => {
     expect(moveDestination(14, { direction: "forward", count: 3, targetTileIndex: null, collectPassBonus: true }, size)).toEqual({ to: 1, passedStart: true });
   });
-  it("Forward with the pass-Go toggle off never pays, even across Start", () => {
-    expect(moveDestination(14, { direction: "forward", count: 3, targetTileIndex: null, collectPassBonus: false }, size)).toEqual({ to: 1, passedStart: false });
+  it("Forward across Start pays the bonus whatever the toggle says — the flag is for teleports (§1)", () => {
+    expect(moveDestination(14, { direction: "forward", count: 3, targetTileIndex: null, collectPassBonus: false }, size)).toEqual({ to: 1, passedStart: true });
+  });
+
+  it("Forward that lands exactly on Start pays the bonus", () => {
+    expect(moveDestination(14, { direction: "forward", count: 2, targetTileIndex: null, collectPassBonus: false }, size)).toEqual({ to: 0, passedStart: true });
+  });
+
+  it("Forward that does not reach Start pays nothing", () => {
+    expect(moveDestination(1, { direction: "forward", count: 3, targetTileIndex: null, collectPassBonus: true }, size)).toEqual({ to: 4, passedStart: false });
   });
   it("Backward n: anticlockwise, no pass bonus (edge case #12)", () => {
     expect(moveDestination(1, { direction: "backward", count: 3, targetTileIndex: null, collectPassBonus: true }, size)).toEqual({ to: 14, passedStart: false });

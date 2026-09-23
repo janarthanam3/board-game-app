@@ -303,6 +303,12 @@ export interface Debt {
   creditorId: PlayerId | "bank";
   amount: number;
   createdRound: number;
+  /**
+   * "fine" for a tax, fine or jail charge, which the board may send to the free-parking pot
+   * (rulebook §6). Carried on the debt so a charge that could not be paid at once still reaches
+   * the pot when it is finally settled.
+   */
+  payTo: "creditor" | "fine";
 }
 
 export type MatchMode = "online" | "passAndPlay" | "solo";

@@ -71,6 +71,37 @@ describe("debts and raise cash (rulebook §16, docs/flows/raise-cash.md)", () =>
   });
 });
 
+describe("a fine that became a debt (rulebook §6)", () => {
+  /** A board that sends fines and taxes to the free-parking pot, as Chennai Edition does. */
+  function potBoard(): MatchState {
+    const base = newMatch();
+    return { ...base, rules: { ...base.rules, money: { ...base.rules.money, finesTo: "pot" } } };
+  }
+
+  it("settles into the pot, not the bank, when it is finally paid", () => {
+    // Tile 4 is the Chance space; give it a flat tax so landing there charges one.
+    let state = potBoard();
+    state.board.tiles[4] = { kind: "card", name: "Tax office", cardType: "tax", deckId: null, tax: { mode: "flat", flatAmount: 500, percent: 0, percentOf: "cash" } };
+    state = grant(state, NAVEEN, [1]);
+    state = setCash(state, NAVEEN, 100);
+    state = rollAs(state, NAVEEN, [1, 3]);
+    expect(state.debts[0]).toMatchObject({ amount: 500, payTo: "fine" });
+
+    state = step(state, { kind: "MORTGAGE", by: NAVEEN, tileIndexes: [1], atMs: 0 });
+    const absorbedBefore = state.bank.ledger.absorbed;
+    state = step(state, { kind: "PAY_DEBT", by: NAVEEN, debtId: state.debts[0]!.id, atMs: 0 });
+    expect(state.bank.finePot).toBe(500);
+    expect(state.bank.ledger.absorbed).toBe(absorbedBefore);
+  });
+
+  it("a debt owed to a player is still a creditor debt", () => {
+    let state = grant(newMatch(), PRIYA, [5]);
+    state = setCash(state, NAVEEN, 10);
+    state = rollAs(state, NAVEEN, [2, 3]);
+    expect(state.debts[0]).toMatchObject({ creditorId: PRIYA, payTo: "creditor" });
+  });
+});
+
 describe("bankruptcy resolution order (docs/flows/bankruptcy.md, normative)", () => {
   it("to a player creditor: buildings sold, cash and deeds (mortgages intact) and tradeable cards transfer, then elimination", () => {
     let state = inDebt();

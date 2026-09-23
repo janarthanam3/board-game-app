@@ -334,8 +334,13 @@ things it relies on are not in it:
    rent and the board map all need it. C1 added `position: TileIndex`.
 3. **Even build with hotels.** `evenBuild` compares `houses` only. A hotel tile has `houses === 0`,
    so a hotel beside a four-house tile in the same group would violate the invariant, although
-   that is exactly what building a hotel produces (rulebook §8: 4 houses → hotel). C1 treats a
-   hotel as build level 5 for the comparison.
+   that is exactly what building a hotel produces (rulebook §8: 4 houses → hotel). C1 treated a
+   hotel as build level 5 for the comparison. **Changed 23 September 2026 (phase-C audit):** that
+   reading made two *legal* actions break the invariant — BUILD hotel over a 4/3/3/3/3 group, and
+   SELL hotel at all — and left a group of hotels unsellable, so raise cash could strand a player
+   with a full estate. The comparison is now over houses on tiles that do **not** hold a hotel
+   ("max difference of 1 house", §4/§8), which is the only reading where every legal action keeps
+   the invariant. Option 3 below is therefore superseded.
 
 Raised 20 September 2026 during C1. Does not block a task. C5 (21 September) added two more of
 the same kind: `bank.pendingAuctions` (lots a bank-bankruptcy queues for the next round, §14) and
@@ -561,3 +566,85 @@ Raised 21 September 2026 at the C7 gate.
 3. Leave all as implemented and only regenerate the docs.
 
 **Recommendation:** (2) for items 1–5, plus the C8 task from (1) for item 6.
+
+---
+
+## OQ-21 · Six values the full phase-C audit found unstated
+
+**Affects:** `packages/game-engine/src/reducer/{turn,auction,property}.ts`, `src/invariants.ts`
+(phase **C**); later `1x` (tile editor), `1y`/`1z` (decks and rules), `1s` (auction setup) and
+`3m` (the Chennai rules sheet).
+
+**Why it matters:** each is a behaviour the engine had to choose because no document states it.
+Every one is implemented as described and marked `OQ-21` at the line. None blocks a task.
+
+### 1. A Tax office tile never draws from its deck
+
+§2.3 says a card space draws 1 on landing **and** that Tax office "adds a TAX MODE block"; the
+design ships a Tax office deck with 6 rules. The engine charges the tax and does not draw
+(`src/reducer/turn.ts`), so those 6 rules can never fire.
+
+**Options:** (1) charge the tax, then draw and apply the rule; (2) draw only when the tile has no
+tax block; (3) the tax block replaces the deck, and `1y` should stop offering a deck on a tax tile.
+**Recommendation:** (1) — it is the only reading under which the design's own Tax office deck is
+reachable. The order matters: tax first, then the draw, so a card move lands the token elsewhere
+after the charge.
+
+### 2. Which card is the "Free Rest house Card", and is it consumed?
+
+§13 exempts a lander holding a "Free Rest house Card"; §5.1's `CardEffect` union has no such
+effect. The engine accepts any held `skipTurn` card ("Stay put and pass the dice on.") and does
+**not** consume it, so one card exempts its holder forever.
+
+**Options:** (1) add `{kind:'freeRestHouse'}` to the union and consume one use per exemption;
+(2) keep `skipTurn` as the marker but consume a use; (3) leave it permanent.
+**Recommendation:** (1). `skipTurn` is documented as an effect that *causes* a skip, so reusing it
+as the exemption is a contradiction in the grammar.
+
+### 3. Does a double that releases from jail grant another roll?
+
+§12 says "rolling a double releases without paying"; §15 says a double grants another roll, with no
+jail exception. The engine releases, moves, and ends the turn — no extra roll.
+
+**Options:** (1) no extra roll (the double is spent on the release); (2) the roll behaves like any
+other, so a double taken on release rolls again; (3) release, move, and count it toward the
+three-doubles jail rule without re-rolling.
+**Recommendation:** (1), matching the common reading of "the double buys your way out".
+
+### 4. Is even build measured over the holder's tiles or the whole group?
+
+§4/§8: "no tile in a group may hold more houses than another +1". The engine compares every tile in
+the group. Under Majority (hold 3 of 5) the two tiles the holder does not own sit at 0 for ever, so
+the holder can never place a second house anywhere in the group.
+
+**Options:** (1) compare only the tiles the holder owns; (2) compare the whole group as today and
+accept that Majority boards cap building at one house per tile; (3) compare the whole group only
+when the holder owns every tile.
+**Recommendation:** (1). Under (2) the "Own 3 to double rent and build" explainer on a Majority
+board promises building that cannot happen.
+
+### 5. Where do bail, the rest-house fee and a GET IN charge go?
+
+§6 names "fines and taxes" as the pot's sources. The engine routes all three as fines, so on a
+`finesTo: 'pot'` board they land in the pot. Separately, `2.4`'s GET IN "Pay to" offers `bank` /
+`pot` per tile, and the engine lets the board's `finesTo` override the tile's choice.
+
+**Options:** (1) all three are fines and follow the board setting, with the tile-level `Pay to`
+removed from `1x`; (2) the tile-level `Pay to` wins for that tile and the board setting covers the
+rest; (3) only taxes and card fines reach the pot; bail and the rest-house fee always go to the
+bank.
+**Recommendation:** (2) — a per-tile control that the board silently overrides is a design defect,
+and the design does show it per tile.
+
+### 6. Which auction lots open at the board's starting price?
+
+§10 lists "Starting price ₹100 from board rules" alongside "minimum bid = the tile's cost" for a
+declined purchase. The engine opens declined lots at the tile's cost and bank-bankruptcy lots at
+`rules.auction.startingPrice`.
+
+**Options:** (1) as implemented; (2) every lot opens at the starting price; (3) every lot opens at
+the tile's cost and the starting price applies only to a player-initiated lot (`1s`).
+**Recommendation:** (1). A bank lot has no seller to protect, and the design's `1s` "Start price"
+sits in the auction panel rather than on the tile.
+
+Raised 23 September 2026 by the full phase-C `rules-auditor` pass.

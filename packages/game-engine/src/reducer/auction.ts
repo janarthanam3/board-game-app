@@ -24,6 +24,8 @@ export function openAuction(ctx: Ctx, tileIndex: TileIndex, reason: "declined" |
   });
   // Min bid: the tile's cost when the auction starts from a decline (1s "Min bid ₹1,150"); a
   // bank-bankruptcy lot starts at the board's auction starting price.
+  // OQ-21 item 6: a declined lot opens at the tile's cost, a bank-bankruptcy lot at the board's
+  // starting price. §10 does not say which lots the starting price governs.
   const minBid = reason === "declined" ? boardTile.cost : state.rules.auction.startingPrice;
   tile.underAuction = true;
   // A lot opened before the roll (bank-bankruptcy lots at turn start) hands back to preRoll.

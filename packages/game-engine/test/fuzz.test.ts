@@ -81,10 +81,20 @@ function candidates(state: MatchState, by: PlayerId, atMs: number): Action[] {
         break;
       }
       case "CHOOSE_DICE":
+        // A chooseDice card names the total on the next roll (rulebook §21 #11).
+        for (let total = 2; total <= 12; total++) {
+          out.push({ kind, by, total, atMs });
+        }
+        break;
       case "USE_CARD":
+        for (const card of player.holdCards) {
+          if (card.uses > 0) out.push({ kind, by, cardId: card.id, atMs });
+        }
+        break;
       case "TIMER_EXPIRED":
       case "PLAYER_DISCONNECTED":
       case "PLAYER_RECONNECTED":
+        // Not player-addressed: the pool below adds these directly.
         break;
     }
   }
@@ -110,24 +120,57 @@ const fuzzDeck: FrozenDeck = {
     { active: true, diceTotals: [], rule: { id: "birthday", name: "Birthday", conditions: null, money: { direction: "collectFromAllPlayers", amount: 300, basis: "flat" }, move: null, holdCard: null } },
     { active: true, diceTotals: [], rule: { id: "advance", name: "Advance to Start", conditions: null, money: null, move: { direction: "toTile", count: 0, targetTileIndex: 0, collectPassBonus: true }, holdCard: null } },
     { active: true, diceTotals: [], rule: { id: "again", name: "Draw again", conditions: null, money: null, move: { direction: "toTile", count: 0, targetTileIndex: 12, collectPassBonus: false }, holdCard: null } },
-    { active: true, diceTotals: [], rule: { id: "pass", name: "Free bail", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "jailPass" }, uses: 1, expires: "round", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "pass", name: "Free bail", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "jailPass" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "club", name: "Club privilege", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "chooseDice" }, uses: 2, expires: "never", tradeable: true } } },
     { active: true, diceTotals: [], rule: { id: "rich", name: "Landlord bonus", conditions: { holdsColourSet: true, ownsEveryTileInSet: false, cashAbove: null, hasHouseOrHotel: false }, money: { direction: "bankPaysYou", amount: 2000, basis: "perTileOwned" }, move: null, holdCard: null } },
   ],
 };
 
+/** How long and how rich a fuzz match is. The default is short so 1,000 of them stay quick. */
+interface FuzzProfile {
+  rounds: number;
+  startingCash: number;
+  /**
+   * Prefer BUILD and USE_CARD when they are legal. Random play almost never climbs a whole
+   * colour group to four houses, so without this no match ever reaches a hotel — which is how a
+   * hotel-build invariant break survived the C7 gate. Only legal actions are ever chosen.
+   */
+  preferBuilding?: boolean;
+  /**
+   * Deal each colour group to a player before the first roll. Owning a set is an ordinary
+   * reachable state, and starting there is what lets a match climb the house ladder to a hotel
+   * inside its step budget.
+   */
+  dealSets?: boolean;
+}
+
+const SHORT: FuzzProfile = { rounds: 4, startingCash: 10_000 };
+
 /** A short match (round cap 4) so random play reaches the endgame within the step budget. */
-function fuzzSetup(seed: number) {
+function fuzzSetup(seed: number, profile: FuzzProfile = SHORT) {
   const base = setup({ seed, players: THREE });
   return {
     ...base,
     board: { ...base.board, decks: [fuzzDeck] },
-    rules: { ...base.rules, rounds: { cap: 4, turnTimerSeconds: 30 } },
+    rules: {
+      ...base.rules,
+      money: { ...base.rules.money, startingCash: profile.startingCash },
+      rounds: { cap: profile.rounds, turnTimerSeconds: 30 },
+    },
   };
 }
 
 /** Plays one seeded match to the end (or a step cap) with random legal actions; returns the actions. */
-function playRandom(seed: number, maxSteps: number): { actions: Action[]; final: MatchState } {
-  let state = createMatch(fuzzSetup(seed));
+function playRandom(seed: number, maxSteps: number, profile: FuzzProfile = SHORT): { actions: Action[]; final: MatchState } {
+  let state = createMatch(fuzzSetup(seed, profile));
+  if (profile.dealSets) {
+    state.board.groups.forEach((group, position) => {
+      const ownerId = THREE[position % THREE.length]!.id;
+      for (const tileIndex of group.tileIndexes) {
+        state.tiles[tileIndex]!.ownerId = ownerId;
+      }
+    });
+  }
   let rng: Rng = { seed: seed * 7919 + 1, cursor: 0 };
   const actions: Action[] = [];
   let atMs = 0;
@@ -150,12 +193,24 @@ function playRandom(seed: number, maxSteps: number): { actions: Action[]; final:
     if (state.offers.length > 0 && draw.value % 5 === 0) {
       pool.push({ kind: "TIMER_EXPIRED", scope: "offer", atMs: atMs + 61_000 });
     }
+    // Sockets drop and return; neither may corrupt the match (docs/flows/reconnect.md).
+    if (draw.value % 7 === 0) {
+      for (const id of state.seatOrder) {
+        const player = state.players[id];
+        if (!player || !isSolvent(player)) continue;
+        pool.push({ kind: player.connected ? "PLAYER_DISCONNECTED" : "PLAYER_RECONNECTED", playerId: id, atMs });
+      }
+    }
     if (pool.length === 0) {
       throw new Error(`no legal action at step ${stepIndex}: ${JSON.stringify(state.turn)}`);
     }
     const pickDraw = nextUint32(rng);
     rng = pickDraw.rng;
-    const action = pool[pickDraw.value % pool.length]!;
+    const preferred = profile.preferBuilding
+      ? pool.filter((candidate) => candidate.kind === "BUILD" || candidate.kind === "USE_CARD")
+      : [];
+    const choices = preferred.length > 0 && pickDraw.value % 3 !== 0 ? preferred : pool;
+    const action = choices[pickDraw.value % choices.length]!;
     const before = state;
     const result = apply(state, action);
     const violations = [...checkInvariants(result.state), ...checkTransitionInvariants(before, result.state)];
@@ -191,6 +246,30 @@ describe(`random legal play over ${MATCHES} seeded three-player matches`, () => 
       if (final.phase === "ended") ended++;
     }
     expect(ended).toBeGreaterThan(MATCHES / 2);
+  });
+
+  it("reaches hotels in longer matches without breaking an invariant", () => {
+    // The default 4-round fuzz match never accumulates a set plus four houses, which is how a
+    // hotel-build invariant break survived the C7 gate. These matches run long and rich enough.
+    let hotelsBuilt = 0;
+    let diceChosen = 0;
+    let cardsUsed = 0;
+    let disconnects = 0;
+    const longMatches = Math.max(8, Math.floor(MATCHES / 25));
+    for (let seed = 500; seed < 500 + longMatches; seed++) {
+      const { actions, final } = playRandom(seed, 2_000, { rounds: 25, startingCash: 40_000, preferBuilding: true, dealSets: true });
+      assertCashConserved(final);
+      cardsUsed += actions.filter((action) => action.kind === "USE_CARD").length;
+      for (const event of final.log) {
+        if (event.kind === "built" && event.what === "hotel") hotelsBuilt++;
+        if (event.kind === "diceRolled" && event.chosen) diceChosen++;
+        if (event.kind === "playerDisconnected") disconnects++;
+      }
+    }
+    expect(hotelsBuilt).toBeGreaterThan(0);
+    expect(diceChosen).toBeGreaterThan(0);
+    expect(cardsUsed).toBeGreaterThan(0);
+    expect(disconnects).toBeGreaterThan(0);
   });
 
   it("replays byte-identically from the seed and action list, and two replays of one seed agree", () => {

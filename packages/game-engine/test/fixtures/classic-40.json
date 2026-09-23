@@ -1,0 +1,2279 @@
+{
+  "version": 1,
+  "id": "m-classic-40",
+  "mode": "online",
+  "phase": "live",
+  "board": {
+    "boardVersionId": "bv-classic-40",
+    "name": "Chennai 40 (fixture)",
+    "rows": 11,
+    "cols": 11,
+    "tiles": [
+      {
+        "kind": "corner",
+        "name": "Start",
+        "cornerType": "none",
+        "drawMode": "fixed",
+        "getOut": null,
+        "stayHere": null,
+        "getIn": null,
+        "blockActionsWhileHeld": true,
+        "collectRentWhileHeld": true
+      },
+      {
+        "kind": "property",
+        "name": "Marina Drive",
+        "groupId": "g-purple",
+        "cost": 1200,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Bay Road",
+        "groupId": "g-purple",
+        "cost": 1300,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "card",
+        "name": "Chance",
+        "cardType": "chance",
+        "deckId": "d-chance"
+      },
+      {
+        "kind": "property",
+        "name": "Fort Street",
+        "groupId": "g-purple",
+        "cost": 1400,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Mount Road",
+        "groupId": "g-sky",
+        "cost": 1400,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Anna Salai",
+        "groupId": "g-sky",
+        "cost": 1500,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "utility",
+        "name": "City Club",
+        "cost": 900,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "rentBasis": "dice",
+        "multipliers": [
+          4,
+          10,
+          16,
+          20
+        ],
+        "fixedRent": null,
+        "sellToBank": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Harbour Lane",
+        "groupId": "g-sky",
+        "cost": 1600,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Beach Road",
+        "groupId": "g-rose",
+        "cost": 1600,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "corner",
+        "name": "Jail",
+        "cornerType": "jail",
+        "drawMode": "fixed",
+        "getOut": {
+          "amount": 5000,
+          "maxRoundsHeld": 3,
+          "doubleToGetOut": true,
+          "useJailPassCard": true
+        },
+        "stayHere": null,
+        "getIn": {
+          "amount": 100,
+          "payTo": "bank"
+        },
+        "blockActionsWhileHeld": true,
+        "collectRentWhileHeld": true
+      },
+      {
+        "kind": "property",
+        "name": "Mylapore",
+        "groupId": "g-rose",
+        "cost": 1700,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Adyar",
+        "groupId": "g-rose",
+        "cost": 1800,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "card",
+        "name": "Community fund",
+        "cardType": "chest",
+        "deckId": "d-chance"
+      },
+      {
+        "kind": "property",
+        "name": "Besant Nagar",
+        "groupId": "g-amber",
+        "cost": 1800,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Triplicane",
+        "groupId": "g-amber",
+        "cost": 1900,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Egmore",
+        "groupId": "g-amber",
+        "cost": 2000,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "utility",
+        "name": "Harbour Ferry",
+        "cost": 900,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "rentBasis": "dice",
+        "multipliers": [
+          4,
+          10,
+          16,
+          20
+        ],
+        "fixedRent": null,
+        "sellToBank": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Nungambakkam",
+        "groupId": "g-green",
+        "cost": 2000,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Kodambakkam",
+        "groupId": "g-green",
+        "cost": 2100,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "corner",
+        "name": "Rest house",
+        "cornerType": "restHouse",
+        "drawMode": "fixed",
+        "getOut": null,
+        "stayHere": {
+          "perSkipTurnAmount": 1000,
+          "useFreeRestHouseCard": true
+        },
+        "getIn": null,
+        "blockActionsWhileHeld": true,
+        "collectRentWhileHeld": true
+      },
+      {
+        "kind": "property",
+        "name": "Saidapet",
+        "groupId": "g-green",
+        "cost": 2200,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Velachery",
+        "groupId": "g-teal",
+        "cost": 2200,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "card",
+        "name": "Chance",
+        "cardType": "chance",
+        "deckId": "d-chance"
+      },
+      {
+        "kind": "property",
+        "name": "Guindy",
+        "groupId": "g-teal",
+        "cost": 2300,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Perungudi",
+        "groupId": "g-teal",
+        "cost": 2400,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Thiruvanmiyur",
+        "groupId": "g-coral",
+        "cost": 2400,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "utility",
+        "name": "Metro Line",
+        "cost": 900,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "rentBasis": "dice",
+        "multipliers": [
+          4,
+          10,
+          16,
+          20
+        ],
+        "fixedRent": null,
+        "sellToBank": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Kottivakkam",
+        "groupId": "g-coral",
+        "cost": 2500,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "Neelankarai",
+        "groupId": "g-coral",
+        "cost": 2600,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "corner",
+        "name": "Checkpoint",
+        "cornerType": "none",
+        "drawMode": "fixed",
+        "getOut": null,
+        "stayHere": null,
+        "getIn": null,
+        "blockActionsWhileHeld": true,
+        "collectRentWhileHeld": true
+      },
+      {
+        "kind": "property",
+        "name": "purple 4",
+        "groupId": "g-purple",
+        "cost": 2900,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "purple 5",
+        "groupId": "g-purple",
+        "cost": 3000,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "card",
+        "name": "Community fund",
+        "cardType": "chest",
+        "deckId": "d-chance"
+      },
+      {
+        "kind": "property",
+        "name": "purple 6",
+        "groupId": "g-purple",
+        "cost": 3100,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "purple 7",
+        "groupId": "g-purple",
+        "cost": 3200,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "purple 8",
+        "groupId": "g-purple",
+        "cost": 3300,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "utility",
+        "name": "Power House",
+        "cost": 900,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "rentBasis": "dice",
+        "multipliers": [
+          4,
+          10,
+          16,
+          20
+        ],
+        "fixedRent": null,
+        "sellToBank": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "purple 9",
+        "groupId": "g-purple",
+        "cost": 3400,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      },
+      {
+        "kind": "property",
+        "name": "purple 10",
+        "groupId": "g-purple",
+        "cost": 3500,
+        "mortgage": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "baseRent": {
+          "mode": "percent",
+          "percent": 2.5
+        },
+        "houseCost": {
+          "mode": "percent",
+          "percent": 20
+        },
+        "hotelCost": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "houseRent": [
+          {
+            "mode": "percent",
+            "percent": 5
+          },
+          {
+            "mode": "percent",
+            "percent": 10
+          },
+          {
+            "mode": "percent",
+            "percent": 20
+          },
+          {
+            "mode": "percent",
+            "percent": 30
+          }
+        ],
+        "hotelRent": {
+          "mode": "percent",
+          "percent": 54
+        },
+        "sellHouse": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellHotel": {
+          "mode": "percent",
+          "percent": 50
+        },
+        "sellProperty": {
+          "mode": "percent",
+          "percent": 70
+        }
+      }
+    ],
+    "groups": [
+      {
+        "id": "g-purple",
+        "colour": "purple",
+        "tileIndexes": [
+          1,
+          2,
+          4,
+          31,
+          32,
+          34,
+          35,
+          36,
+          38,
+          39
+        ],
+        "thresholdOverride": null
+      },
+      {
+        "id": "g-sky",
+        "colour": "sky",
+        "tileIndexes": [
+          5,
+          6,
+          8
+        ],
+        "thresholdOverride": null
+      },
+      {
+        "id": "g-rose",
+        "colour": "rose",
+        "tileIndexes": [
+          9,
+          11,
+          12
+        ],
+        "thresholdOverride": null
+      },
+      {
+        "id": "g-amber",
+        "colour": "amber",
+        "tileIndexes": [
+          14,
+          15,
+          16
+        ],
+        "thresholdOverride": null
+      },
+      {
+        "id": "g-green",
+        "colour": "green",
+        "tileIndexes": [
+          18,
+          19,
+          21
+        ],
+        "thresholdOverride": null
+      },
+      {
+        "id": "g-teal",
+        "colour": "teal",
+        "tileIndexes": [
+          22,
+          24,
+          25
+        ],
+        "thresholdOverride": null
+      },
+      {
+        "id": "g-coral",
+        "colour": "coral",
+        "tileIndexes": [
+          26,
+          28,
+          29
+        ],
+        "thresholdOverride": null
+      }
+    ],
+    "decks": [
+      {
+        "id": "d-chance",
+        "name": "Chance",
+        "drawMode": "shuffle",
+        "fallback": "nothing",
+        "rules": []
+      }
+    ],
+    "houseSupply": 32,
+    "hotelSupply": 12
+  },
+  "rules": {
+    "money": {
+      "startingCash": 10000,
+      "passBonus": 2000,
+      "finesTo": "bank"
+    },
+    "rounds": {
+      "cap": 20,
+      "turnTimerSeconds": 30
+    },
+    "sets": {
+      "mode": "majority",
+      "customValue": null,
+      "mortgageBreaksSet": true,
+      "buildEvenly": true
+    },
+    "building": {
+      "hotelReturnsHouses": true
+    },
+    "mortgage": {
+      "interestPercent": 10
+    },
+    "auction": {
+      "enabled": true,
+      "startingPrice": 100,
+      "bidTimerSeconds": 20
+    },
+    "trade": {
+      "expirySeconds": 60
+    }
+  },
+  "rng": {
+    "seed": 20260923,
+    "cursor": 0
+  },
+  "round": 1,
+  "seatOrder": [
+    "p-naveen",
+    "p-priya",
+    "p-arun",
+    "p-meera"
+  ],
+  "turn": {
+    "playerId": "p-naveen",
+    "stage": "preRoll",
+    "doublesThisTurn": 0,
+    "dice": null,
+    "deadlineMs": null
+  },
+  "players": {
+    "p-naveen": {
+      "id": "p-naveen",
+      "seat": 1,
+      "name": "Naveen",
+      "colour": "gold",
+      "cash": 10000,
+      "position": 0,
+      "jail": {
+        "in": false,
+        "roundsHeld": 0
+      },
+      "holdCards": [],
+      "skipTurns": 0,
+      "connected": true,
+      "bankrupt": null,
+      "ai": null
+    },
+    "p-priya": {
+      "id": "p-priya",
+      "seat": 2,
+      "name": "Priya",
+      "colour": "blue",
+      "cash": 10000,
+      "position": 0,
+      "jail": {
+        "in": false,
+        "roundsHeld": 0
+      },
+      "holdCards": [],
+      "skipTurns": 0,
+      "connected": true,
+      "bankrupt": null,
+      "ai": null
+    },
+    "p-arun": {
+      "id": "p-arun",
+      "seat": 3,
+      "name": "Arun",
+      "colour": "green",
+      "cash": 10000,
+      "position": 0,
+      "jail": {
+        "in": false,
+        "roundsHeld": 0
+      },
+      "holdCards": [],
+      "skipTurns": 0,
+      "connected": true,
+      "bankrupt": null,
+      "ai": null
+    },
+    "p-meera": {
+      "id": "p-meera",
+      "seat": 4,
+      "name": "Meera",
+      "colour": "red",
+      "cash": 10000,
+      "position": 0,
+      "jail": {
+        "in": false,
+        "roundsHeld": 0
+      },
+      "holdCards": [],
+      "skipTurns": 0,
+      "connected": true,
+      "bankrupt": null,
+      "ai": null
+    }
+  },
+  "tiles": [
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    },
+    {
+      "ownerId": null,
+      "houses": 0,
+      "hotel": false,
+      "mortgaged": false,
+      "underAuction": false
+    }
+  ],
+  "bank": {
+    "houses": 32,
+    "hotels": 12,
+    "finePot": 0,
+    "ledger": {
+      "issued": 40000,
+      "absorbed": 0
+    },
+    "pendingAuctions": []
+  },
+  "auction": null,
+  "offers": [],
+  "debts": [],
+  "deckCursors": {
+    "d-chance": 0
+  },
+  "log": [
+    {
+      "kind": "matchStarted",
+      "playerIds": [
+        "p-naveen",
+        "p-priya",
+        "p-arun",
+        "p-meera"
+      ],
+      "seed": 20260923,
+      "seq": 1,
+      "atMs": 0
+    },
+    {
+      "kind": "roundStarted",
+      "round": 1,
+      "seq": 2,
+      "atMs": 0
+    },
+    {
+      "kind": "turnStarted",
+      "playerId": "p-naveen",
+      "round": 1,
+      "seq": 3,
+      "atMs": 0
+    }
+  ]
+}
