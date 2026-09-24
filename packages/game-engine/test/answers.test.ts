@@ -154,6 +154,14 @@ describe("OQ-20 item 1 — the sell route stops counting a tile it refuses to se
     expect(headroom.mortgage).toBeGreaterThan(0);
     expect(headroom.sell).toBeGreaterThan(0);
   });
+
+  it("counts a utility's sell-back price, and drops it once mortgaged", () => {
+    // City Club (7) is the test board's utility: ₹900 at a 70% sell-back = ₹630.
+    let state = rollAs(grant(newMatch(), NAVEEN, [3, 7]), NAVEEN, [1, 2]);
+    expect(raiseCashHeadroom(state, NAVEEN).sell).toBe(630 + 840); // utility + Fort Street
+    state = step(state, { kind: "MORTGAGE", by: NAVEEN, tileIndexes: [7], atMs: 0 });
+    expect(raiseCashHeadroom(state, NAVEEN).sell).toBe(840);
+  });
 });
 
 describe("OQ-21 item 1 — a Tax office charges its tax, then draws from its deck", () => {
@@ -218,7 +226,7 @@ describe("OQ-21 item 2 — the Free Rest house Card is its own effect and spends
     const after = landOnRestHouse(state);
     expect(after.players[NAVEEN]!.skipTurns).toBe(0);
     expect(after.players[NAVEEN]!.holdCards).toEqual([]);
-    expect(lastEvent(after, "cardUsed")).toMatchObject({ effect: "freeRestHouse" });
+    expect(lastEvent(after, "cardUsed")).toMatchObject({ cardId: "card-rest", effect: "freeRestHouse" });
   });
 
   it("a skipTurn card no longer stands in for it", () => {
@@ -279,10 +287,11 @@ describe("OQ-22 item 1 — the pass-Go flag permits the bonus; the jump must sti
     expect(teleport(5, 0, false)).toEqual({ to: 0, passedStart: false });
   });
 
-  it("pays nothing for a jump that does not move, even from Start itself", () => {
-    // Otherwise a "To tile → Start" rule drawn while standing on Start pays the salary for
-    // nothing, every time it comes up.
-    expect(teleport(0, 0, true)).toEqual({ to: 0, passedStart: false });
+  it("pays on a jump that lands on Start without moving — OQ-26 asks whether it should", () => {
+    // §1, §21 #14 and OQ-22 item 1 all read "lands on the start tile", so this pays. Whether a
+    // no-movement jump should pay the salary is unstated; OQ-26 carries the question.
+    expect(teleport(0, 0, true)).toEqual({ to: 0, passedStart: true });
+    // A jump that neither moves nor reaches Start pays nothing.
     expect(teleport(7, 7, true)).toEqual({ to: 7, passedStart: false });
   });
 

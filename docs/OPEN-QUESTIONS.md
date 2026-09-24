@@ -902,3 +902,32 @@ mortgaged and name the redeem cost, or the price is misleading. (2) double-count
 since the bank already paid the mortgage out to the previous owner.
 
 Raised 24 September 2026 by the rules audit of the answered questions.
+
+---
+
+## OQ-26 · Does a teleport that does not move pay the pass bonus?
+
+**Affects:** `packages/game-engine/src/board.ts` (`teleport`); the MOVE block in `1z` §4.2; later
+the `moveAnywhere` hold card (task C8).
+
+**Why it matters:** OQ-22 item 1 (answered) made the `collectPassBonus` flag a permission — the
+jump must also land on the start tile or wrap forward past it. A jump whose target **is** the tile
+the token already stands on satisfies "lands on the start tile" when that tile is Start, so the
+engine pays the full salary for a move of zero tiles. §1, §21 #14 and the OQ-22 answer all read
+the same way, so the engine follows them; nothing states whether a no-movement jump was meant to
+count.
+
+The case is hard to reach today — a card draw needs a card space, and slot 01 is the start corner
+— but `moveAnywhere` (C8) lets a player pick any tile, including the one they are on.
+
+**Options**
+1. Pay, as the three sources read and as implemented.
+2. Do not pay, and amend §1 and §21 #14 to say the token must actually move.
+3. Refuse the move outright: a `To tile` whose target is the token's own tile is not a move, and
+   `1z` blocks it at authoring time the way it blocks a card-space target (OQ-19 item 6).
+
+**Recommendation:** (3). It removes the question rather than answering it, matches the
+publish-time check the design already accepted for card-space targets, and leaves §1 alone.
+
+Raised 24 September 2026 by the rules audit; an earlier fix pass implemented option (2) without
+asking, which was an invented rule and has been reverted.
