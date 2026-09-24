@@ -208,6 +208,9 @@ export const warn = {
 
 export const player = {
   ring: { width: 1.5, color: "rgba(255,255,255,.35)", style: "solid" } satisfies Stroke,
+  // 1c §3 #8: the board token carries `inset 0 -2px 0 rgba(5,15,40,.3)`. RN has no inset shadow, so
+  // the same edge is drawn as a 2 dp bottom border.
+  tokenEdge: { width: 2, color: "rgba(5,15,40,.3)", style: "solid" } satisfies Stroke,
   seats: [
     { seat: 1, name: "gold", fill: "#FFC84A" }, // player.gold — flat
     {
@@ -268,6 +271,7 @@ export const player = {
   ],
 } as const satisfies {
   ring: Stroke;
+  tokenEdge: Stroke;
   seats: readonly { seat: number; name: string; fill: string | Gradient }[];
 };
 
@@ -317,6 +321,7 @@ export const radius = {
   buttonSm: 15, // radius.button.sm — 44–46 dp button
   control: 14, // radius.control — segmented control, icon button, chip-button
   field: 12, // radius.field — input, small tile
+  tileFace: 8, // board-map tile (1c §3 #6, 2a §3.1 #5) — screen-derived, see design-concerns
   token: 21, // radius.token — 62 dp icon tile
   tokenLg: 34, // radius.token.lg — 120 dp handover token
   // From docs/03-design-system.md surfaces (not in the 02 radius table).
@@ -380,6 +385,16 @@ export const motion = {
   toast: { inMs: 220, holdMs: 3000, outMs: 180, easing: "ease-out" }, // motion.toast
   count: { durationMs: 600, easing: "ease-out" }, // motion.count — money counter roll
   pulse: { durationMs: 1200, easing: "ease-in-out", loop: true }, // motion.pulse — active-turn glow
+  // ── Board map, from the screen specs (2a §9, 1c §10); the 02 motion table does not list them.
+  mapZoomStep: { durationMs: 200, easing: "ease-out" }, // 2a §9 zoom step
+  // 2a §9 writes this curve as "cubic-bezier(0.2,0.8,0.2,1)"; docs/02 writes the identical curve
+  // as "cubic-bezier(.2,.8,.2,1)" for motion.base and motion.slow. The docs/02 spelling is used so
+  // the one mapper in the app resolves it — recorded in docs/design-concerns.md.
+  mapFit: { durationMs: 280, easing: "cubic-bezier(.2,.8,.2,1)" }, // 2a §9 Fit
+  tilePickUp: { durationMs: 120, easing: "ease-out" }, // 2a §9 tile pick-up
+  // 1c §10 gives 180 ms for a token's per-tile hop, where motion.token above says 260 ms for the
+  // same thing — recorded in docs/design-concerns.md. The screen spec governs the board map.
+  boardTokenHop: { durationMs: 180, easing: "ease-in-out" },
 } as const;
 
 // ─── Z-index ────────────────────────────────────────────────────────────────────

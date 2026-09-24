@@ -1,4 +1,5 @@
 import {
+  radius,
   accent,
   control,
   danger,
@@ -7,6 +8,7 @@ import {
   text,
   type,
 } from "@royal-navy/shared";
+import { withAlpha } from "@royal-navy/shared";
 import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
 
 import { textStyle } from "../typography";
@@ -26,6 +28,18 @@ export const styles = StyleSheet.create({
   contentHidden: { opacity: 0 },
   spinner: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   dialogSize: { minHeight: control.dialogButton.height, borderRadius: control.dialogButton.radius },
+  // Button.small — 36 dp tall, brought to the 44 dp tap minimum by hit slop in the component
+  // (1y §3 #1, 1z §3 #1, 2a §3.1 #1 and #7).
+  smallSize: {
+    minHeight: 36,
+    borderRadius: radius.control,
+    paddingHorizontal: 12,
+    backgroundColor: withAlpha(accent.blue, 0.18),
+    borderWidth: 1,
+    borderColor: withAlpha(accent.blue, 0.45),
+  },
+  // 2a §3.1 #1: the small chip button's label is 700 13px accent.blue, whatever the variant.
+  smallLabel: textStyle({ weight: 700, size: 13 }),
   disabled: { opacity: 0.45 },
 });
 

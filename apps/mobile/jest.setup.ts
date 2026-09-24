@@ -1,3 +1,7 @@
+// react-native-gesture-handler ships a jest setup that stubs its native module; the board map
+// uses GestureDetector for pinch and pan.
+import "react-native-gesture-handler/jestSetup";
+
 // Native modules have no implementation under Jest. The safe-area provider would otherwise wait
 // forever for insets from Android and render nothing below it, so use the mock the package ships.
 // The mock file exports its module object as `default`, hence the `.default`.

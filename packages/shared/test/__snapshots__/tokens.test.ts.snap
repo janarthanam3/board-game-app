@@ -301,6 +301,10 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
       "durationMs": 220,
       "easing": "cubic-bezier(.2,.8,.2,1)",
     },
+    "boardTokenHop": {
+      "durationMs": 180,
+      "easing": "ease-in-out",
+    },
     "count": {
       "durationMs": 600,
       "easing": "ease-out",
@@ -317,6 +321,14 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
       "durationMs": 90,
       "easing": "linear",
     },
+    "mapFit": {
+      "durationMs": 280,
+      "easing": "cubic-bezier(.2,.8,.2,1)",
+    },
+    "mapZoomStep": {
+      "durationMs": 200,
+      "easing": "ease-out",
+    },
     "pulse": {
       "durationMs": 1200,
       "easing": "ease-in-out",
@@ -325,6 +337,10 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
     "slow": {
       "durationMs": 320,
       "easing": "cubic-bezier(.2,.8,.2,1)",
+    },
+    "tilePickUp": {
+      "durationMs": 120,
+      "easing": "ease-out",
     },
     "toast": {
       "easing": "ease-out",
@@ -435,6 +451,11 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
         "seat": 6,
       },
     ],
+    "tokenEdge": {
+      "color": "rgba(5,15,40,.3)",
+      "style": "solid",
+      "width": 2,
+    },
   },
   "radius": {
     "button": 16,
@@ -450,6 +471,7 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
     "input": 17,
     "pill": 999,
     "sheet": 22,
+    "tileFace": 8,
     "toast": 15,
     "token": 21,
     "tokenLg": 34,

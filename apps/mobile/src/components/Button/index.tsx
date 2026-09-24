@@ -1,4 +1,4 @@
-import { accent, danger, gold, green, motion, surface, text } from "@royal-navy/shared";
+import { accent, control, danger, gold, green, motion, surface, text } from "@royal-navy/shared";
 import { useRef, useState } from "react";
 import { ActivityIndicator, Animated, Pressable, Text, View } from "react-native";
 
@@ -20,8 +20,12 @@ export interface ButtonProps {
   loading?: boolean;
   /** Full width. Default true. */
   block?: boolean;
-  /** "dialog" = the 46 dp / radius 15 dialog button size, whatever the variant. */
-  size?: "default" | "dialog";
+  /**
+   * "dialog" = the 46 dp / radius 15 dialog button size, whatever the variant.
+   * "small" = Button.small: min-height 36 with hit slop to the 44 dp minimum — the chip button the
+   * screens use for Save, "+ New rule", Fit and Reorder (1y §3 #1, 1z §3 #1, 2a §3.1 #1 and #7).
+   */
+  size?: "default" | "dialog" | "small";
   testID?: string;
 }
 
@@ -32,6 +36,10 @@ const pressedGradient = {
 } as const;
 
 const PRESSED_SCALE = 0.98;
+
+// Button.small is 36 dp tall; the slop brings the touch area to the 44 dp minimum (docs/02
+// control.minTapTarget; CLAUDE.md "every tap target ≥ 44dp").
+const SMALL_HIT_SLOP = (control.minTapTarget - 36) / 2;
 
 /**
  * The six button variants from docs/03-design-system.md "Actions". Never two primaries in one
@@ -74,6 +82,7 @@ export function Button({
         accessibilityLabel={label}
         accessibilityState={{ disabled: inert, busy: loading }}
         onPress={onPress}
+        hitSlop={size === "small" ? SMALL_HIT_SLOP : undefined}
         onPressIn={() => !inert && animatePress(true)}
         onPressOut={() => animatePress(false)}
         disabled={inert}
@@ -81,15 +90,21 @@ export function Button({
           styles.base,
           v.frame,
           size === "dialog" && styles.dialogSize,
+          // inlinePadding comes before smallSize so the small chip's own 12 dp padding wins.
           !block && styles.inlinePadding,
+          size === "small" && styles.smallSize,
           disabled && styles.disabled,
         ]}
       >
-        {fillFor(variant, pressed && !inert)}
+        {/* Button.small paints its own blue chip fill, so the variant's fill is suppressed. */}
+        {size === "small" ? null : fillFor(variant, pressed && !inert)}
         {/* The label stays in the tree while loading (invisible) so the button keeps its width. */}
         <View testID="button-content" style={[styles.content, loading && styles.contentHidden]}>
-          {icon ? <Icon name={icon} size={19} color={v.labelColor} /> : null}
-          <Text style={[v.label, { color: v.labelColor }]} numberOfLines={1}>
+          {icon ? <Icon name={icon} size={19} color={size === "small" ? accent.blue : v.labelColor} /> : null}
+          <Text
+            style={size === "small" ? [styles.smallLabel, { color: accent.blue }] : [v.label, { color: v.labelColor }]}
+            numberOfLines={1}
+          >
             {label}
           </Text>
         </View>

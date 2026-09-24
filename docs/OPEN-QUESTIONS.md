@@ -691,3 +691,73 @@ direction picker.
 (3) adds a control the design does not have.
 
 Raised 23 September 2026 by the phase-C re-audit.
+
+---
+
+## OQ-23 · The board map's zoom step, and its range per mode
+
+**Affects:** `apps/mobile/src/ui/board/*` (task **E2**); `1c` play HUD, `2a` board builder.
+
+**Why it blocks:** the `−` / `+` zoom buttons must move the scale by some amount, and no document
+states one. E2 shipped `ZOOM_STEP = 0.2` as a placeholder — an invented value under Rule 2. The
+design does show three discrete percentages in use (100%, 180%, 240%).
+
+Separately, the two screens clamp the same component differently: `1c` §6 and §11 AC5 say
+100%–400%; `2a` §5 and §11 AC3 say 50%–400%. That contradiction is recorded in
+`docs/design-concerns.md`; this question is what the engine-side constant should be.
+
+**Options**
+1. A continuous step of 20 percentage points (as shipped), clamped per mode: 100–400 in play,
+   50–400 in build.
+2. Discrete stops the design actually shows — 50 (build only), 100, 180, 240, 400 — with `−` / `+`
+   walking the list, which makes the percentages in the mock-ups reproducible.
+3. A multiplicative step (×1.25 per press), which keeps the same visual increment at every scale.
+
+**Recommendation:** (2). It is the only option that reproduces the design's own readouts, and it
+makes `Fit` a real stop rather than a special case.
+
+Raised 23 September 2026 during E2.
+
+**ANSWERED 23 September 2026 — option (2).** The zoom stops are **50 / 100 / 180 / 240 / 400**;
+`−` and `+` walk that list. 50% is reachable in build mode only, so the play-mode list starts at
+100% (the per-mode clamp is recorded in `docs/design-concerns.md`). Implemented in
+`apps/mobile/src/ui/board/layout.ts`.
+
+---
+
+## OQ-24 · Five board-map values the design does not state
+
+**Affects:** `apps/mobile/src/ui/board/*` (task **E2**); `1c` play HUD, `2a` board builder.
+
+**Why it matters:** each is a number or a sentence E2 needed and no document gives. Every one is
+implemented as described below and marked in code; none blocks the task.
+
+1. **The price's drop-out width.** `1c` §8 and `2a` §7 both give 44 dp as the point where "board
+   tile labels drop out", and docs/03 says the name and the price go "in that order" — but never
+   gives the second threshold. E2 drops the name at 44 dp (per the screens) and the price at 30 dp,
+   which is invented. *Options:* (a) both drop at 44 dp, so the two-stage drop docs/03 describes
+   never happens; (b) name at 44, price at a stated second width; (c) price drops when its
+   rendered text would clip, with no fixed number. *Recommendation:* (b) with 30 dp confirmed —
+   it preserves the documented two-stage behaviour.
+
+2. **The display-only sentence for a ring that is not 40 slots.** `2a` §4 makes the map
+   display-only at Fit on 40 slots and gives the toast copy; `2a` §8 requires display-only
+   behaviour on *any* map whose slots fall under 44 dp. The shipped sentence quotes "about 27dp",
+   which is false on a 16-slot board, so E2 raises no toast there at all — the tap is simply
+   ignored. *Options:* (a) a second, size-neutral sentence for the general case; (b) the same
+   sentence with the figure removed; (c) no toast except on 40 slots, as shipped.
+   *Recommendation:* (a).
+
+3. **The name's weight/size switch point.** `1c` §3 #6 gives "name `700 7px`–`600 9px` by zoom"
+   without saying where it changes. E2 switches at 56 dp of rendered tile width.
+   *Recommendation:* confirm 56 dp, or give the zoom level the design intends.
+
+4. **Board-map insets and pip anchors.** The zoom bar is "bottom-left" and the pan hint
+   "bottom-right" with no inset; the owner, house and hotel pips have sizes but no anchors or
+   gaps. E2 uses an 8 dp inset for both bars, a 2 dp pip inset and a 1 dp gap between house pips.
+   *Recommendation:* confirm, or add them to docs/02 with the other board values.
+
+5. **The centre art's radius.** `2a` §3.1 #6 gives its border and captions but no radius; E2
+   reuses `radius.tileFace` (8). *Recommendation:* confirm, or state it.
+
+Raised 23 September 2026 during E2's second design-check pass.

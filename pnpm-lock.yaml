@@ -20,6 +20,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@royal-navy/game-engine':
+        specifier: workspace:^
+        version: link:../../packages/game-engine
       '@royal-navy/shared':
         specifier: workspace:^
         version: link:../../packages/shared

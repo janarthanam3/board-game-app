@@ -13,8 +13,11 @@ export interface ImageSlotProps {
   radius: number;
   /** Caption lines, exactly as the screen doc quotes them, e.g. ["board / hero art", "placeholder"]. */
   caption: string[];
-  /** Caption size in dp — the screen docs use 10–16. */
-  captionSize?: number;
+  /**
+   * Caption size in dp — the screen docs use 10–16. An array gives one size per line, for a spec
+   * that sizes its caption lines differently (2a §3.1 #6: 12 dp head, 10 dp hints).
+   */
+  captionSize?: number | number[];
   /** Caption colour: `faint` (.75 — 1n, 1o, 2a, 3n) or `muted` (.8 — the 1a hero). */
   captionTone?: "faint" | "muted";
   /** Dashed border: `strong` (.45 — most slots) or `regular` (.4 — the 1a hero). */
@@ -59,17 +62,17 @@ export function ImageSlot({
   const content = (
     <>
       {glyph ? <Icon name={glyph} size={glyphSize} color={accent.blue} /> : null}
-      {caption.map((line) => (
-        <Text
-          key={line}
-          style={[
-            styles.caption,
-            { fontSize: captionSize, lineHeight: Math.round(captionSize * 1.25), color: captionColor },
-          ]}
-        >
-          {line}
-        </Text>
-      ))}
+      {caption.map((line, lineIndex) => {
+        const size = Array.isArray(captionSize) ? (captionSize[lineIndex] ?? captionSize[0] ?? 11) : captionSize;
+        return (
+          <Text
+            key={line}
+            style={[styles.caption, { fontSize: size, lineHeight: Math.round(size * 1.25), color: captionColor }]}
+          >
+            {line}
+          </Text>
+        );
+      })}
     </>
   );
 

@@ -319,3 +319,81 @@ describe only the threshold effect. Raised 23 September 2026 by the phase-C rule
 "Optional actions" as step 5, after landing resolution, and `1v` is reachable from the post-roll
 HUD. The C5a turn machine follows the diagram, so the machine and the reducer disagree about
 whether a post-roll build is legal. Raised 23 September 2026 by the phase-C rules audit.
+
+## Board map: seven contradictions raised by the E2 design check
+
+Raised 23 September 2026 by `design-guardian` over the `BoardMap` implementation. Recorded
+verbatim; none is resolved in code.
+
+CONCERN: `docs/12` line 43 and `1c` §9 give two different tile-label formats for the same element —
+docs/12 `"Slot 4, Bay Road, property, ₹1,400, owned by Priya, 2 houses"` vs 1c §9 `"Slot 12, Marina
+Beach, owned by Priya, 2 houses, rent 360 rupees"` (kind and cost vs rent; symbol vs words). The
+code follows docs/12. One of the two must be regenerated from the design.
+
+CONCERN: `docs/12` "Money is announced as words: 'one thousand two hundred rupees', not '₹1,200'"
+contradicts the ₹ symbol in its own tile-label example three lines above.
+
+CONCERN: `1c` §6 clamps zoom to 100%–400% and `2a` §5 clamps it to 50%–400% for the same
+`BoardMap`. Only one range can be right for one component, or the component needs a documented
+per-mode range.
+
+**Implemented as a per-mode split** (answered 23 September 2026): play mode clamps 100%–400% per
+`1c` §6 and §11 AC5, build mode clamps 50%–400% per `2a` §5 and §11 AC3. This is the only reading
+that obeys both screen specs without overriding either — it is **not** a chosen winner between
+them, and the underlying contradiction stands until the design settles whether one `BoardMap` has
+one range. If the answer is a single range, the per-mode constant collapses to it.
+
+CONCERN: `docs/03` says the percentage readout is `type.body.sm` (600/12) while `2a` §3.1 #7 says
+`700 12px`. Neither matches what shipped, but the two docs also disagree with each other.
+
+CONCERN: `docs/03` says the viewport sits "inside a `SunkenPanel`" while `1c` §3 #5 and `2a` §3.1 #4
+give the viewport radius 17 / `surface.inset` / `divider` border — which is not what `SunkenPanel`
+renders (radius 19 / `surface.sunken` / `sunkenBorder`). I have reported against the screen specs.
+
+CONCERN: `1c` §10 gives the per-tile token move as 180 ms `ease-in-out`, but `motion.token` in
+`packages/shared/src/tokens.ts` is 260 ms `ease-in-out` and its comment claims the same source. A
+pre-existing divergence that will decide the wrong value once the animation is actually written.
+
+CONCERN: the `FIT_WARNING` sentence hard-codes "about 27dp", which is only true for an 11×11 ring at
+the 1c viewport. If the warning is ever shown on another ring size the copy is factually wrong; the
+spec's own restriction to 40 slots is the only thing keeping it honest.
+
+## Board map: four more contradictions from the E2 re-check
+
+Raised 23 September 2026 by `design-guardian` on the second pass. Recorded verbatim; none is
+resolved in code.
+
+CONCERN: `formatRupees(-1200)` returns `"₹-1,200"` (sign inside the symbol) and
+`packages/shared/test/money.test.ts` freezes that as expected. No doc states negative-money
+rendering; `-₹1,200` is the conventional form. This should be settled by the design or logged as an
+OQ before any screen renders a negative amount.
+
+CONCERN: `docs/12` contradicts itself on font scaling — the "Font scale behaviour" table says board
+tile type "does not scale (decorative)", while the note immediately below says `allowFontScaling`
+stays **true** everywhere. The code follows the specific rule and turns scaling off on tile type
+only; the general sentence needs regenerating or qualifying.
+
+CONCERN: `docs/03` `TileFace` gives "~40 dp" as the drop threshold where `1c` §8 and `2a` §7 both
+give 44 dp, and gives no second threshold for the price at all despite specifying a two-stage drop.
+Both numbers cannot be right for the same element. The code follows the screens (44 dp); the price
+threshold is OQ-24 item 1.
+
+CONCERN: the `FIT_WARNING` sentence is only true for a 40-slot ring, yet `2a` §8 requires
+display-only behaviour on **any** under-44 dp map. The design owes a second sentence for the
+non-40-slot case; see OQ-24 item 2.
+
+## Board map: two more from the E2 third pass
+
+Raised 24 September 2026 by `design-guardian`. Recorded verbatim; neither is resolved in code.
+
+CONCERN: `docs/03` "Game components → BoardMap" says "centre holds the board art" with no mode
+qualifier, while `1c` §3 lists no centre element at all. The code renders the centre art in `build`
+only and leaves the play HUD's centre empty. One of the two docs needs regenerating so it is clear
+whether the play board has centre art.
+
+CONCERN: `motion.mapFit` was written with a different CSS spelling of the same curve than docs/02
+uses for `motion.base` / `motion.slow` — `cubic-bezier(0.2,0.8,0.2,1)` in `2a` §9 versus
+`cubic-bezier(.2,.8,.2,1)` in docs/02. The design should print one canonical spelling, otherwise
+any new easing token can silently miss the app's single mapper. It did exactly that here: the
+mis-spelled token threw at runtime on every transition to Fit, and the token now carries the
+docs/02 spelling with a comment recording the divergence.
