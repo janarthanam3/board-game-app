@@ -131,6 +131,19 @@ object, and the database needs one.
 **Recommendation:** (2). It matches the publish gate (slots filled → board errors → rule errors →
 publish) that Session 8 made explicit, so the label is always computable and never goes stale.
 
+**ANSWERED 24 September 2026 — option (2).** The stored state is `draft` / `published`. Pending and
+completed are **derived** from slot fill and error state, reusing the publish gate's logic so the
+label can never drift from the board's real contents.
+
+**Constraint on D1:** the `2a2` boards list filters on Pending / Completed, so the derived label
+must be **queryable and indexable** — not computed in application code per row. D1 implements it as
+a Postgres generated column or a maintained counter on `boards`, and documents which, and why, in
+`docs/08-database.md`.
+
+Note for whoever runs D1: `docs/08-database.md` is a derived doc (Rule 0) and is edit-denied in
+`.claude/settings.json`, so the choice is recorded in the migration's comments and this entry, and
+the doc is regenerated from the design rather than hand-patched.
+
 ---
 
 ## OQ-7 · Who may re-publish, and what happens to a board whose author deletes their account?
