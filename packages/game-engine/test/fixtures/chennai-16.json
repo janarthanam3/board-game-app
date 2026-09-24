@@ -701,9 +701,6 @@
       "mortgageBreaksSet": true,
       "buildEvenly": true
     },
-    "building": {
-      "hotelReturnsHouses": true
-    },
     "mortgage": {
       "interestPercent": 10
     },

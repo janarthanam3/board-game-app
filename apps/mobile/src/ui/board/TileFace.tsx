@@ -4,7 +4,7 @@
 // label never changes with zoom (docs/12), so everything dropped visually stays in the
 // accessibility label BoardMap builds.
 
-import { accent, control, gold, green, motion, radius, shadow, surface, text, type } from "@royal-navy/shared";
+import { accent, board as boardTokens, control, gold, green, motion, radius, shadow, surface, text, type } from "@royal-navy/shared";
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text as RNText, View } from "react-native";
 
@@ -160,13 +160,13 @@ const styles = StyleSheet.create({
   },
   // 6 dp colour bar in the set colour (1c §3 #6).
   band: { height: 6, width: "100%" },
-  body: { flex: 1, paddingHorizontal: 2, justifyContent: "center" },
+  body: { flex: 1, paddingHorizontal: boardTokens.tileBodyPadding, justifyContent: "center" },
   name: { color: text.primary },
   price: { color: gold.flat },
   corner: { color: text.muted, textAlign: "center" },
-  // 1c §3 #6 gives the pip sizes but no anchors or gaps; these insets are provisional (OQ-24 #4).
-  ownerPip: { position: "absolute", top: 2, right: 2, width: 8, height: 8, borderRadius: 4 },
-  buildings: { position: "absolute", bottom: 2, left: 2, flexDirection: "row", gap: 1 },
+  // 1c §3 #6 gives the pip sizes but no anchors or gaps; those live in tokens.board (OQ-24 #4).
+  ownerPip: { position: "absolute", top: boardTokens.pipInset, right: boardTokens.pipInset, width: 8, height: 8, borderRadius: 4 },
+  buildings: { position: "absolute", bottom: boardTokens.pipInset, left: boardTokens.pipInset, flexDirection: "row", gap: boardTokens.pipGap },
   housePip: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: green.flat },
   hotelPip: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: gold.flat },
 });

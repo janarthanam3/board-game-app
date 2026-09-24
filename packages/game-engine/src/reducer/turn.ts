@@ -247,16 +247,17 @@ export function resolveLanding(ctx: Ctx, playerId: PlayerId, tileIndex: TileInde
       return;
     }
     case "card": {
-      // OQ-21 item 1: a Tax office tile charges its tax and never draws, so a deck attached to it
-      // can never fire.
+      // OQ-21 item 1: a Tax office charges its tax first, then draws from its deck — the tax block
+      // "adds" to the card space (rulebook §2.3), it does not replace the draw.
       if (boardTile.cardType === "tax" && boardTile.tax) {
         const amount = taxAmount(state, playerId, boardTile.tax);
         const result = charge(ctx, playerId, "bank", amount, "tax", "fine");
         emit(ctx, { kind: "taxCharged", playerId, tileIndex, amount, debtId: result.debtId });
-        if (result.paid) {
-          state.turn.stage = "postRoll";
+        if (!result.paid) {
+          // The debt has put the turn in raiseCash; the draw waits for the next landing.
+          return;
         }
-        return;
+        state.turn.stage = "postRoll";
       }
       resolveCardSpace(ctx, playerId, tileIndex, boardTile, moveTokenTo);
       return;
@@ -307,9 +308,8 @@ function resolveCorner(ctx: Ctx, playerId: PlayerId, corner: CornerTile): void {
     case "getIn": {
       // Landing on a GET IN corner: pay the entry charge and go to jail.
       const amount = corner.getIn?.amount ?? 0;
-      // OQ-21 item 5: routed as a fine, so the board's finesTo decides and the tile's own
-      // "Pay to" is overridden on a pot board.
-      const result = charge(ctx, playerId, "bank", amount, "jail entry", corner.getIn?.payTo === "pot" ? "fine" : "creditor");
+      // OQ-21 item 5: the corner's own "Pay to" decides, whatever the board's fines setting says.
+      const result = charge(ctx, playerId, "bank", amount, "jail entry", corner.getIn?.payTo ?? "bank");
       sendToJail(ctx, playerId, "landed", amount);
       if (result.paid) {
         state.turn.stage = "postRoll";
@@ -318,9 +318,14 @@ function resolveCorner(ctx: Ctx, playerId: PlayerId, corner: CornerTile): void {
     }
     case "stayHere": {
       const player = playerOf(ctx, playerId);
-      // OQ-21 item 2: any held skipTurn card counts as the "Free Rest house Card" and no use is
-      // consumed, so one card exempts its holder for the rest of the match.
-      const hasFreeCard = corner.stayHere?.useFreeRestHouseCard && player.holdCards.some((card) => card.effect.kind === "skipTurn" && card.uses > 0);
+      // OQ-21 item 2: the Free Rest house Card is its own effect, and using it spends a use.
+      const hasFreeCard =
+        corner.stayHere?.useFreeRestHouseCard === true &&
+        player.holdCards.some((card) => card.effect.kind === "freeRestHouse" && card.uses > 0);
+      if (hasFreeCard) {
+        consumeCard(ctx, playerId, "freeRestHouse");
+        emit(ctx, { kind: "cardUsed", playerId, cardId: "", effect: "freeRestHouse" });
+      }
       if (!hasFreeCard) {
         player.skipTurns += 1;
       }

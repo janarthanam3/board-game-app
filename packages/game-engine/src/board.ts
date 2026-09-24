@@ -61,14 +61,13 @@ export function moveBackward(from: TileIndex, steps: number, size: number): Move
 }
 
 /**
- * "Move anywhere" / "To tile": the bonus is paid only if the rule's collectPassBonus flag is set,
- * whatever the direction (rulebook §1; edge cases #13, #14).
+ * "Move anywhere" / "To tile" (rulebook §1; edge cases #13, #14). The rule's `collectPassBonus`
+ * flag **permits** the bonus; the jump must also reach the start tile or cross it going forward
+ * — OQ-22 item 1, answered. A jump that lands short of index 0 pays nothing even with the flag on.
  */
-export function teleport(_from: TileIndex, to: TileIndex, collectPassBonus: boolean): Move {
-  // OQ-22 item 1: the flag alone pays. §1 says a teleport pays "only if" the flag is set, which is
-  // a necessary condition; whether it is also sufficient — a jump that crosses nothing still
-  // paying — is unstated.
-  return { to, passedStart: collectPassBonus };
+export function teleport(from: TileIndex, to: TileIndex, collectPassBonus: boolean): Move {
+  const reachesStart = to === 0 || to < from;
+  return { to, passedStart: collectPassBonus && reachesStart };
 }
 
 // ─── Layout on the grid (for the board map) ─────────────────────────────────────

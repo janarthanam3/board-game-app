@@ -10,7 +10,7 @@
 //   build — 2a §4: at Fit on 40 slots "map slots are display-only — taps are ignored, and the
 //           first tap surfaces the warning as a toast".
 
-import { formatRupees, gold, motion, player, radius, surface, text, type } from "@royal-navy/shared";
+import { board, formatRupees, gold, motion, player, radius, surface, text, type } from "@royal-navy/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type AccessibilityActionEvent,
@@ -473,8 +473,9 @@ const styles = StyleSheet.create({
   },
   // 1c §5: "a 2dp #FFC84A ring on your token".
   tokenActive: { borderWidth: 2, borderColor: gold.flat },
-  // The specs place these bars "bottom-left" and "bottom-right" but give no inset — OQ-24 item 4.
-  zoomBar: { position: "absolute", left: 8, bottom: 8, flexDirection: "row", alignItems: "center", gap: 7 },
+  // The specs place these bars "bottom-left" and "bottom-right"; the inset is tokens.board
+  // (OQ-24 item 4, confirmed).
+  zoomBar: { position: "absolute", left: board.barInset, bottom: board.barInset, flexDirection: "row", alignItems: "center", gap: 7 },
   zoomButton: {
     width: 32,
     height: 32,
@@ -485,6 +486,6 @@ const styles = StyleSheet.create({
     borderColor: surface.cardBorder.color,
   },
   percent: { color: text.primary },
-  panHint: { position: "absolute", right: 8, bottom: 8, color: text.faint },
+  panHint: { position: "absolute", right: board.barInset, bottom: board.barInset, color: text.faint },
   warning: { marginTop: 8, color: gold.flat },
 });

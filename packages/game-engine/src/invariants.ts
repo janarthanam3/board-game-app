@@ -142,16 +142,20 @@ const ownershipUnique: Check = (state) =>
     return [];
   });
 
-/** tile.mortgaged ⇒ owned, no houses, no hotel */
+/**
+ * tile.mortgaged ⇒ no houses, no hotel.
+ *
+ * The deed does **not** have to be owned: OQ-20 item 2 (answered) keeps the mortgage on a deed
+ * that reaches the bank, so the bank can hold a mortgaged tile while it waits to be auctioned,
+ * after a lot goes unsold, and on a board with auctions switched off (edge case #43). Whoever
+ * takes it next inherits the redeem cost.
+ */
 const mortgageConsistency: Check = (state) =>
   state.tiles.flatMap((tile, index) => {
     if (!tile.mortgaged) {
       return [];
     }
     const found: InvariantViolation[] = [];
-    if (tile.ownerId === null) {
-      found.push(violation("mortgageConsistency", `tile ${index} is mortgaged but has no owner`));
-    }
     if (tile.houses !== 0 || tile.hotel) {
       found.push(violation("mortgageConsistency", `tile ${index} is mortgaged with buildings on it`));
     }

@@ -77,7 +77,6 @@ export function testRules(): Ruleset {
     money: { startingCash: 10000, passBonus: 2000, finesTo: "bank" },
     rounds: { cap: 20, turnTimerSeconds: 30 },
     sets: { mode: "majority", customValue: null, mortgageBreaksSet: true, buildEvenly: true },
-    building: { hotelReturnsHouses: true },
     mortgage: { interestPercent: 10 },
     auction: { enabled: true, startingPrice: 100, bidTimerSeconds: 20 },
     trade: { expirySeconds: 60 },

@@ -774,3 +774,99 @@ implemented as described below and marked in code; none blocks the task.
    reuses `radius.tileFace` (8). *Recommendation:* confirm, or state it.
 
 Raised 23 September 2026 during E2's second design-check pass.
+
+---
+
+# Answers — 24 September 2026
+
+OQ-15, OQ-17, OQ-19, OQ-20, OQ-21, OQ-22 and OQ-24 were all answered in one pass. Each entry
+above still states the question and its options; this section records what was decided and what
+it changed. Items that need a **derived doc regenerated** are listed at the end — those docs are
+edit-denied under Rule 0 and must come from the design, not from a hand patch.
+
+## OQ-15 — option 1, confirmed
+
+The cash ledger, the token position and the hotel reading all stand. Even build compares houses
+on tiles that do **not** hold a hotel, as implemented. `packages/game-engine/SPEC.md`'s
+`evenBuild` row has been rewritten to state that rule.
+
+## OQ-17
+
+1. **Jail entry charge** — landing only. Unchanged.
+2. **Free-parking pot payout** — `3m`'s Chennai copy names the landing tile; until it is
+   regenerated the pot accumulates and never pays out. Unchanged in code.
+3. **"Player's choice" tax** — resolves Flat. Unchanged.
+4. **"Hotel returns houses"** — the toggle is **dropped**. `Ruleset.building` is gone and a hotel
+   always returns its four houses to the bank (rulebook §8). No behaviour was invented for an
+   "off" setting.
+5. **Minimum raise** — `leading + 1`. Unchanged.
+
+## OQ-19
+
+1. **MONEY directions** — four, as implemented. `1z` §4.1's six need regenerating.
+2. **"Affects another player" cards** — deferred to a new task, **C9 · Target-choice action**.
+   Until it lands the block is skipped and logged, which a test now pins.
+3. **Basis under Share / Collect** — confirmed: the amount is per counterpart.
+4. **MOVE after a MONEY debt** — confirmed: the move is dropped, the hold card still applies.
+5. **Ranges and expiry** — the rulebook's values win; `1z` §4.2–4.3 needs regenerating.
+6. **Card chains** — a MOVE block may no longer target a card space. `checkMoveTargets()` in
+   `packages/game-engine/src/publish.ts` refuses such a board at publish time;
+   `MAX_CARD_CHAIN` stays as a backstop for versions published before the check existed.
+
+## OQ-20
+
+1. **Selling a mortgaged tile** — **refused** until it is redeemed (`E_TILE_MORTGAGED`). This
+   closes the leak where mortgage-then-sell paid out more than the tile cost.
+2. **A deed returning to the bank** — keeps its mortgage; the lot opens mortgaged and the winner
+   inherits the redeem cost. The `mortgageConsistency` invariant now allows an unowned mortgaged
+   tile **only** while it sits in `bank.pendingAuctions`.
+3. **The three roundings** — to be stated in the rulebook; the engine keeps round / round / floor.
+4. **Five or more utilities** — §7's wording to be clarified; the engine keeps the last entry.
+5. **Unpayable debt at the next turn** — `1d` reopens; no automatic bankruptcy. Unchanged.
+6. **Playing the "Me" hold cards** — a new task, **C8 · Hold-card play**.
+
+## OQ-21
+
+1. **Tax office** — charges its tax, **then draws** from its deck. If the tax opens a debt the
+   draw is held back until the debt clears.
+2. **Free Rest house Card** — a new `freeRestHouse` effect, and using it spends a use. A
+   `skipTurn` card no longer stands in for it.
+3. **A releasing double** — grants no extra roll. Unchanged.
+4. **Even build** — measured over the **whole colour group**, as implemented. See the note below.
+5. **"Pay to"** — a tile's own setting wins over the board's fines destination. `Debt.payTo` now
+   carries `pot` and `bank` alongside `fine` and `creditor`.
+6. **Auction starting price** — confirmed: declined lots open at the tile's cost, bank lots at the
+   board's starting price.
+
+> **Item 4 needs a second look.** The answer given was "the whole colour group, not the holder's
+> tiles", with the reason "the current reading breaks building on Majority boards". The whole-group
+> reading *is* the current one, and it is the reading that breaks Majority boards: a holder of 3 of
+> 5 can never place a second house, because the two tiles they do not own sit at 0 for ever. The
+> directive was followed — nothing changed — but the stated reason argues for the opposite choice,
+> so this is flagged rather than silently resolved.
+
+## OQ-22
+
+1. **Teleport pass bonus** — the flag is a **permission**: the jump must also land on the start
+   tile or wrap forward past it. A short forward jump now pays nothing.
+2. **A card's "You pay bank"** — treated as a **fine**, so a pot board collects it.
+
+## OQ-24 — all five confirmed
+
+The price drop-out width (30 dp), the absent display-only sentence off the 40-slot ring, the 56 dp
+name switch point, the bar insets and pip anchors, and the centre-art radius all stand as
+implemented. Item 4's numbers have been moved out of the component into
+`packages/shared/src/tokens.ts` (`board.*`) so they live with the other design tokens;
+`docs/02-design-tokens.md` needs regenerating to carry them.
+
+## Derived docs that need regenerating from the design
+
+These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/settings.json`):
+
+| Doc | What it must say |
+| --- | --- |
+| `docs/05-game-rules.md` | §2.3 Tax office draws as well as charging · §7 the five-utility wording · §8 the dropped "Hotel returns houses" toggle · §9 the three rounding rules · §13 the `freeRestHouse` card and its use · §1 the teleport bonus as a permission |
+| `docs/screens/1z-rule-control.md` | §4.1 four MONEY directions · §4.2–4.3 the rulebook's ranges and expiry values |
+| `docs/screens/3m-*.md` | which tile pays out the free-parking pot |
+| `docs/02-design-tokens.md` | the board-map insets and pip anchors now in `tokens.board` |
+| `docs/08-database.md` | the derived pending / completed column from OQ-6 |

@@ -360,6 +360,18 @@ export const control = {
 
 // ─── Shadow ─────────────────────────────────────────────────────────────────────
 
+// ─── Board map ──────────────────────────────────────────────────────────────────
+// Placements the screens give without numbers (1c §3 #6/#9, 2a §3.1 #7–#8); confirmed as
+// OQ-24 item 4 and held here rather than in the component. docs/02 needs regenerating to
+// carry them.
+
+export const board = {
+  barInset: 8, // zoom bar bottom-left, pan hint bottom-right
+  pipInset: 2, // owner / building pips from the tile edge
+  pipGap: 1, // between house pips
+  tileBodyPadding: 2, // horizontal padding inside a tile face
+} as const;
+
 export const shadow = {
   card: [
     { x: 0, y: 2, blur: 0, color: "rgba(6,20,54,.4)", inset: false },
@@ -422,6 +434,7 @@ export const responsive = {
 // ─── Everything, for consumers that want one import ────────────────────────────
 
 export const tokens = {
+  board,
   frame,
   screenBackground,
   stackGap,

@@ -37,6 +37,8 @@ export type CardEffect =
   | { kind: "rentMultiplier"; factor: number; side: "collect" | "pay" }
   | { kind: "moveAnywhere" }
   | { kind: "skipTurn" }
+  /** The "Free Rest house Card" of rulebook §13 — exempts one rest-house stay (OQ-21 item 2). */
+  | { kind: "freeRestHouse" }
   | { kind: "chooseDice" }
   | { kind: "clearDebt" }
   | { kind: "freeBuild" }
@@ -224,9 +226,11 @@ export interface Ruleset {
     mortgageBreaksSet: boolean;
     buildEvenly: boolean;
   };
-  building: {
-    hotelReturnsHouses: boolean;
-  };
+  /**
+   * Rulebook §8: hotels are built by returning four houses plus the hotel cost, always. The
+   * "Hotel returns houses" toggle was dropped (OQ-17 item 4) — the design gave it no
+   * off-behaviour, and the only one the engine could invent silently shrank the house supply.
+   */
   mortgage: {
     interestPercent: number;
   };
@@ -304,11 +308,11 @@ export interface Debt {
   amount: number;
   createdRound: number;
   /**
-   * "fine" for a tax, fine or jail charge, which the board may send to the free-parking pot
-   * (rulebook §6). Carried on the debt so a charge that could not be paid at once still reaches
-   * the pot when it is finally settled.
+   * Where the money goes once it is paid: "fine" follows the board's setting (rulebook §6), while
+   * "pot" and "bank" are a tile's own "Pay to" and win over it (OQ-21 item 5). Carried on the debt
+   * so a charge that could not be paid at once still reaches the right place.
    */
-  payTo: "creditor" | "fine";
+  payTo: "creditor" | "fine" | "pot" | "bank";
 }
 
 export type MatchMode = "online" | "passAndPlay" | "solo";

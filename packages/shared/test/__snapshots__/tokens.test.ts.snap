@@ -2,6 +2,12 @@
 
 exports[`design tokens > match the recorded snapshot of every value 1`] = `
 {
+  "board": {
+    "barInset": 8,
+    "pipGap": 1,
+    "pipInset": 2,
+    "tileBodyPadding": 2,
+  },
   "color": {
     "accent": {
       "blue": "#5FC0FF",

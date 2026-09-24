@@ -170,9 +170,8 @@ export function applyBuild(ctx: Ctx, action: Build): void {
   payBank(ctx, action.by, cost);
   state.bank.hotels -= 1;
   tile.hotel = true;
-  if (state.rules.building.hotelReturnsHouses) {
-    state.bank.houses += tile.houses;
-  }
+  // Rulebook §8: the four houses go back to the bank supply (OQ-17 item 4 dropped the toggle).
+  state.bank.houses += tile.houses;
   tile.houses = 0;
   emit(ctx, { kind: "built", playerId: action.by, tileIndex: action.tileIndex, what: "hotel", cost, houses: 0, hotel: true });
 }
@@ -200,7 +199,15 @@ export function validateSell(state: MatchState, action: Sell): ValidationResult 
     return refuse("E_ACTION_ILLEGAL", `${action.by} does not own tile ${action.tileIndex}`);
   }
   if (action.what === "property") {
-    return tile.houses === 0 && !tile.hotel ? OK : refuse("E_MORTGAGE_HAS_BUILDINGS", "sell the buildings first");
+    if (tile.houses > 0 || tile.hotel) {
+      return refuse("E_MORTGAGE_HAS_BUILDINGS", "sell the buildings first");
+    }
+    // OQ-20 item 1: selling a mortgaged tile at its full price paid out more than the tile cost,
+    // because the mortgage had already been drawn. Redeem first.
+    if (tile.mortgaged) {
+      return refuse("E_TILE_MORTGAGED", "redeem this tile before selling it");
+    }
+    return OK;
   }
   if (boardTile.kind !== "property") {
     return refuse("E_ACTION_ILLEGAL", "utilities have no buildings");
@@ -244,7 +251,6 @@ export function applySell(ctx: Ctx, action: Sell): void {
         ? resolvePrice(boardTile.sellToBank, boardTile.cost)
         : 0;
     tile.ownerId = null;
-    tile.mortgaged = false; // a mortgaged tile sells at full price today — OQ-20 item 1
   } else if (boardTile.kind === "property" && action.what === "hotel") {
     proceeds = resolvePrice(boardTile.sellHotel, resolvePrice(boardTile.hotelCost, boardTile.cost));
     tile.hotel = false;

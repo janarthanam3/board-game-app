@@ -178,10 +178,13 @@ describe("mortgageConsistency", () => {
     expect(names(state)).toContain("mortgageConsistency");
   });
 
-  it("flags a mortgaged tile with no owner", () => {
+  it("allows a mortgaged tile the bank holds (OQ-20 item 2, answered)", () => {
+    // A deed that reaches the bank keeps its mortgage — waiting for auction, after a no-sale, or
+    // on a board with auctions off (edge case #43). Whoever takes it next inherits the redeem cost.
     const state = cloneState(baseState());
     state.tiles[1]!.mortgaged = true;
-    expect(names(state)).toContain("mortgageConsistency");
+    expect(state.tiles[1]!.ownerId).toBeNull();
+    expect(names(state)).not.toContain("mortgageConsistency");
   });
 });
 

@@ -17,7 +17,7 @@ export function charge(
   creditorId: PlayerId | "bank",
   amount: number,
   cause: string,
-  payTo: "creditor" | "fine" = "creditor",
+  payTo: PayTo = "creditor",
 ): { paid: boolean; debtId: string | null } {
   if (amount <= 0) {
     return { paid: true, debtId: null };
@@ -36,15 +36,20 @@ export function charge(
   return { paid: false, debtId };
 }
 
-function settle(ctx: Ctx, debtorId: PlayerId, creditorId: PlayerId | "bank", amount: number, payTo: "creditor" | "fine"): void {
-  if (payTo === "fine" && creditorId === "bank") {
-    // Fines and taxes may go to the pot (rulebook §6).
+/**
+ * Where a settled charge lands. "fine" follows the board's money destination (rulebook §6);
+ * "pot" and "bank" are a tile's own "Pay to", which wins over the board setting — OQ-21 item 5.
+ */
+export type PayTo = "creditor" | "fine" | "pot" | "bank";
+
+function settle(ctx: Ctx, debtorId: PlayerId, creditorId: PlayerId | "bank", amount: number, payTo: PayTo): void {
+  const toPot =
+    payTo === "pot" || (payTo === "fine" && creditorId === "bank" && ctx.state.rules.money.finesTo === "pot");
+  if (toPot) {
     const player = playerOf(ctx, debtorId);
-    if (ctx.state.rules.money.finesTo === "pot") {
-      player.cash -= amount;
-      ctx.state.bank.finePot += amount;
-      return;
-    }
+    player.cash -= amount;
+    ctx.state.bank.finePot += amount;
+    return;
   }
   payCreditor(ctx, debtorId, creditorId, amount);
 }
@@ -173,7 +178,8 @@ export function resolveBankruptcy(ctx: Ctx, playerId: PlayerId): void {
     tiles.push(index);
     if (creditorId === "bank") {
       tile.ownerId = null;
-      tile.mortgaged = false; // the bank holds no mortgage on its own tile — OQ-20 item 2
+      // OQ-20 item 2: the mortgage is not cleared — the lot opens mortgaged and the winner
+      // inherits the redeem cost, exactly as a player creditor would.
       if (state.rules.auction.enabled) {
         state.bank.pendingAuctions.push({ tileIndex: index, fromRound: state.round + 1 });
       }
