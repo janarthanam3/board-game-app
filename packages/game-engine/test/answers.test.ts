@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { teleport } from "../src/board";
 import { checkInvariants } from "../src/invariants";
 import { legalActions } from "../src/reducer/index";
+import { raiseCashHeadroom, redeemCost } from "../src/reducer/property";
 import type { FrozenDeck, MatchState, RuleDefinition } from "../src/state";
 import { ARUN, at, eventsOf, grant, lastEvent, NAVEEN, newMatch, PRIYA, refusal, rollAs, setCash, step } from "./support/match";
 
@@ -96,6 +97,63 @@ describe("OQ-20 item 2 — a deed returning to the bank keeps its mortgage", () 
     expect(state.bank.pendingAuctions).toEqual([{ tileIndex: 5, fromRound: 2 }]);
     expect(checkInvariants(state)).toEqual([]);
   });
+
+  it("the auction winner inherits the mortgage, and the redeem cost with it", () => {
+    let state = newMatch({ players: [
+      { id: NAVEEN, name: "Naveen", colour: "gold" },
+      { id: PRIYA, name: "Priya", colour: "blue" },
+      { id: ARUN, name: "Arun", colour: "green" },
+    ] });
+    state.tiles[2]!.mortgaged = true; // Bay Road, held by the bank and still mortgaged
+    state = rollAs(state, NAVEEN, [1, 1]);
+    state = step(state, { kind: "PASS_BUY", by: NAVEEN, tileIndex: 2, atMs: 0 });
+    state = step(state, { kind: "BID", by: PRIYA, amount: 1_400, atMs: 0 });
+    state = step(state, { kind: "TIMER_EXPIRED", scope: "auction", atMs: 20_000 });
+
+    expect(state.tiles[2]).toMatchObject({ ownerId: PRIYA, mortgaged: true });
+    expect(redeemCost(state, 2)).toBeGreaterThan(0);
+    expect(checkInvariants(state)).toEqual([]);
+  });
+
+  it("a board with auctions off returns the deed to the bank still mortgaged (edge case #43)", () => {
+    const base = newMatch();
+    let state = {
+      ...base,
+      rules: { ...base.rules, auction: { ...base.rules.auction, enabled: false } },
+    } as MatchState;
+    state = grant(state, NAVEEN, [5]);
+    state.tiles[5]!.mortgaged = true;
+    state = setCash(state, NAVEEN, 10);
+    state.debts.push({ id: "debt-1", debtorId: NAVEEN, creditorId: "bank", amount: 500, createdRound: 1, payTo: "fine" });
+    state.turn = { ...state.turn, stage: "raiseCash" };
+    state = step(state, at("DECLARE_BANKRUPTCY", NAVEEN));
+
+    expect(state.tiles[5]).toMatchObject({ ownerId: null, mortgaged: true });
+    expect(state.bank.pendingAuctions).toEqual([]);
+    expect(checkInvariants(state)).toEqual([]);
+  });
+});
+
+describe("OQ-20 item 1 — the sell route stops counting a tile it refuses to sell", () => {
+  it("drops a mortgaged tile out of the raise-cash sell headroom", () => {
+    let state = rollAs(grant(newMatch(), NAVEEN, [3, 5]), NAVEEN, [1, 2]);
+    const before = raiseCashHeadroom(state, NAVEEN);
+    state = step(state, { kind: "MORTGAGE", by: NAVEEN, tileIndexes: [5], atMs: 0 });
+    const after = raiseCashHeadroom(state, NAVEEN);
+
+    // Mount Road can no longer be sold, so it raises nothing more on either route: its cash was
+    // already drawn when it was mortgaged. Overstating this is what a player reads before
+    // declaring bankruptcy (rulebook §16, edge case #6).
+    expect(after.sell).toBeLessThan(before.sell);
+    expect(refusal(state, { kind: "SELL", by: NAVEEN, tileIndex: 5, what: "property", atMs: 0 })).toBe("E_TILE_MORTGAGED");
+  });
+
+  it("still counts an unmortgaged tile on both routes", () => {
+    const state = rollAs(grant(newMatch(), NAVEEN, [3, 5]), NAVEEN, [1, 2]);
+    const headroom = raiseCashHeadroom(state, NAVEEN);
+    expect(headroom.mortgage).toBeGreaterThan(0);
+    expect(headroom.sell).toBeGreaterThan(0);
+  });
 });
 
 describe("OQ-21 item 1 — a Tax office charges its tax, then draws from its deck", () => {
@@ -119,10 +177,23 @@ describe("OQ-21 item 1 — a Tax office charges its tax, then draws from its dec
     expect(state.players[NAVEEN]!.cash).toBe(10_000 - 500 + 300);
   });
 
-  it("holds the draw back when the tax could not be paid", () => {
+  it("still draws when the tax could not be paid, and keeps the turn in raiseCash", () => {
+    // The audit found the draw was dropped for good when a tax opened a debt: nothing ever
+    // re-entered the card space. §2.3 draws 1 on landing, so the draw happens either way and the
+    // debt keeps the turn where it is.
     const state = rollAs(taxTile(setCash(newMatch(), NAVEEN, 100)), NAVEEN, [1, 3]);
     expect(state.turn.stage).toBe("raiseCash");
-    expect(eventsOf(state, "cardDrawn")).toHaveLength(0);
+    expect(eventsOf(state, "cardDrawn")).toHaveLength(1);
+    expect(state.debts).toHaveLength(1);
+  });
+
+  it("a card MONEY block that opens its own debt also leaves the turn in raiseCash", () => {
+    const state = withDeck(setCash(newMatch(), NAVEEN, 100), {
+      money: { direction: "youPayBank", amount: 900, basis: "flat" },
+    });
+    const after = rollAs(state, NAVEEN, [1, 3]);
+    expect(after.turn.stage).toBe("raiseCash");
+    expect(after.debts).toHaveLength(1);
   });
 });
 
@@ -206,6 +277,13 @@ describe("OQ-22 item 1 — the pass-Go flag permits the bonus; the jump must sti
 
   it("pays nothing without the flag, even landing on Start (edge case #14)", () => {
     expect(teleport(5, 0, false)).toEqual({ to: 0, passedStart: false });
+  });
+
+  it("pays nothing for a jump that does not move, even from Start itself", () => {
+    // Otherwise a "To tile → Start" rule drawn while standing on Start pays the salary for
+    // nothing, every time it comes up.
+    expect(teleport(0, 0, true)).toEqual({ to: 0, passedStart: false });
+    expect(teleport(7, 7, true)).toEqual({ to: 7, passedStart: false });
   });
 
   it("in play: a card that jumps forward a few tiles pays no start bonus", () => {

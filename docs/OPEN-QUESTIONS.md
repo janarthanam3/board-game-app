@@ -818,8 +818,11 @@ on tiles that do **not** hold a hotel, as implemented. `packages/game-engine/SPE
 1. **Selling a mortgaged tile** — **refused** until it is redeemed (`E_TILE_MORTGAGED`). This
    closes the leak where mortgage-then-sell paid out more than the tile cost.
 2. **A deed returning to the bank** — keeps its mortgage; the lot opens mortgaged and the winner
-   inherits the redeem cost. The `mortgageConsistency` invariant now allows an unowned mortgaged
-   tile **only** while it sits in `bank.pendingAuctions`.
+   inherits the redeem cost. `mortgageConsistency` therefore allows **any** bank-held mortgaged
+   deed and only forbids buildings on a mortgaged tile. A `pendingAuctions`-only exception was
+   tried first and the 1,000-match fuzz disproved it: a deed also reaches the bank with auctions
+   switched off (edge case #43) and when a lot goes unsold (#3). `createMatch` still starts every
+   tile unmortgaged, so no match can begin in that state.
 3. **The three roundings** — to be stated in the rulebook; the engine keeps round / round / floor.
 4. **Five or more utilities** — §7's wording to be clarified; the engine keeps the last entry.
 5. **Unpayable debt at the next turn** — `1d` reopens; no automatic bankruptcy. Unchanged.
@@ -827,8 +830,11 @@ on tiles that do **not** hold a hotel, as implemented. `packages/game-engine/SPE
 
 ## OQ-21
 
-1. **Tax office** — charges its tax, **then draws** from its deck. If the tax opens a debt the
-   draw is held back until the debt clears.
+1. **Tax office** — charges its tax, **then draws** from its deck, every time. An unpaid tax does
+   not cancel the draw: rulebook §2.3 draws 1 on landing, the debt simply keeps the turn in
+   raise cash, and the drawn rule's MOVE block is skipped while a debt is open (OQ-19 item 4).
+   An earlier cut held the draw back "until the debt clears" and in fact dropped it for good —
+   found by the rules audit and fixed.
 2. **Free Rest house Card** — a new `freeRestHouse` effect, and using it spends a use. A
    `skipTurn` card no longer stands in for it.
 3. **A releasing double** — grants no extra roll. Unchanged.
@@ -870,3 +876,29 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/screens/3m-*.md` | which tile pays out the free-parking pot |
 | `docs/02-design-tokens.md` | the board-map insets and pip anchors now in `tokens.board` |
 | `docs/08-database.md` | the derived pending / completed column from OQ-6 |
+
+---
+
+## OQ-25 · What does it cost to buy a mortgaged deed from the bank?
+
+**Affects:** `packages/game-engine/src/reducer/property.ts` (`validateBuy` / `applyBuy`); `1i` the
+buy decision and `1n` #3 `PROPERTY COST`.
+
+**Why it matters:** OQ-20 item 2 (answered) keeps the mortgage on a deed the bank takes back, so a
+player can now land on an unowned **mortgaged** tile — reachable when auctions are off (edge case
+#43) or after a lot goes unsold (#3). Nothing states what BUY costs there. The engine charges the
+full tile cost and hands over the deed still mortgaged, so the buyer pays full price for a tile
+that earns no rent until they also pay the redeem cost. The `PROPERTY COST` card shows the plain
+cost, with no hint that the deed is encumbered.
+
+**Options**
+1. Full cost, mortgage inherited — as implemented. Simple, and it matches the auction lot, where
+   the winner also inherits the mortgage.
+2. Cost **less** the mortgage value, deed arriving mortgaged — the buyer pays for what they get.
+3. Cost **plus** the redeem cost, deed arriving clear — one payment, no encumbrance.
+
+**Recommendation:** (1) for the money, with a card change: `PROPERTY COST` must say the deed is
+mortgaged and name the redeem cost, or the price is misleading. (2) double-counts the discount,
+since the bank already paid the mortgage out to the previous owner.
+
+Raised 24 September 2026 by the rules audit of the answered questions.

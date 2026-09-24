@@ -66,7 +66,8 @@ export function moveBackward(from: TileIndex, steps: number, size: number): Move
  * — OQ-22 item 1, answered. A jump that lands short of index 0 pays nothing even with the flag on.
  */
 export function teleport(from: TileIndex, to: TileIndex, collectPassBonus: boolean): Move {
-  const reachesStart = to === 0 || to < from;
+  // A jump that does not move cannot reach anything, so it pays nothing even from Start itself.
+  const reachesStart = to !== from && (to === 0 || to < from);
   return { to, passedStart: collectPassBonus && reachesStart };
 }
 

@@ -253,11 +253,9 @@ export function resolveLanding(ctx: Ctx, playerId: PlayerId, tileIndex: TileInde
         const amount = taxAmount(state, playerId, boardTile.tax);
         const result = charge(ctx, playerId, "bank", amount, "tax", "fine");
         emit(ctx, { kind: "taxCharged", playerId, tileIndex, amount, debtId: result.debtId });
-        if (!result.paid) {
-          // The debt has put the turn in raiseCash; the draw waits for the next landing.
-          return;
-        }
-        state.turn.stage = "postRoll";
+        // The draw happens either way: rulebook §2.3 draws 1 on landing, and an unpaid tax only
+        // leaves the turn in raiseCash — resolveCardSpace keeps that stage and cards.ts already
+        // skips a MOVE block while a debt is open (OQ-19 item 4).
       }
       resolveCardSpace(ctx, playerId, tileIndex, boardTile, moveTokenTo);
       return;
@@ -323,8 +321,9 @@ function resolveCorner(ctx: Ctx, playerId: PlayerId, corner: CornerTile): void {
         corner.stayHere?.useFreeRestHouseCard === true &&
         player.holdCards.some((card) => card.effect.kind === "freeRestHouse" && card.uses > 0);
       if (hasFreeCard) {
+        const spent = player.holdCards.find((card) => card.effect.kind === "freeRestHouse" && card.uses > 0);
         consumeCard(ctx, playerId, "freeRestHouse");
-        emit(ctx, { kind: "cardUsed", playerId, cardId: "", effect: "freeRestHouse" });
+        emit(ctx, { kind: "cardUsed", playerId, cardId: spent?.id ?? "", effect: "freeRestHouse" });
       }
       if (!hasFreeCard) {
         player.skipTurns += 1;

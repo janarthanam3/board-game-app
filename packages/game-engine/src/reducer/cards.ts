@@ -28,7 +28,7 @@ export function resolveCardSpace(ctx: Ctx, playerId: PlayerId, tileIndex: TileIn
 
   if (!deck || ctx.cardChain >= MAX_CARD_CHAIN) {
     emit(ctx, { kind: "cardSpaceLanded", playerId, tileIndex, cardType });
-    state.turn.stage = "postRoll";
+    resumeTurn(ctx, playerId);
     return;
   }
 
@@ -51,7 +51,7 @@ export function resolveCardSpace(ctx: Ctx, playerId: PlayerId, tileIndex: TileIn
     applied: applies,
     skipped: rule === null ? "noRule" : applies ? null : "conditions",
   });
-  state.turn.stage = "postRoll";
+  resumeTurn(ctx, playerId);
 
   if (rule && applies) {
     ctx.cardChain += 1;
@@ -109,6 +109,17 @@ function applyRule(ctx: Ctx, playerId: PlayerId, rule: RuleDefinition, moveToken
       emit(ctx, { kind: "holdCardGranted", playerId, ruleId: rule.id, cardId: card.id, effect: card.effect.kind });
     }
   }
+}
+
+/**
+ * Hands the turn back after a card space. A debt opened on the same landing (an unpaid tax, or
+ * the rule's own MONEY block) keeps the turn in raiseCash — the draw must not clear it.
+ */
+function resumeTurn(ctx: Ctx, playerId: PlayerId): void {
+  if (ctx.state.turn.playerId === playerId && hasOpenDebt(ctx.state, playerId)) {
+    return;
+  }
+  ctx.state.turn.stage = "postRoll";
 }
 
 function hasOpenDebt(state: MatchState, playerId: PlayerId): boolean {

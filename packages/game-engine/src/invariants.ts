@@ -91,8 +91,8 @@ const buildLimits: Check = (state) =>
 
 /**
  * When Build evenly is on, within a group max(houses) − min(houses) ≤ 1 over the tiles that do not
- * hold a hotel (see houseLadder below). SPEC.md still states the comparison over every tile, which
- * is the reading that let a legal BUILD/SELL hotel break this invariant — see OQ-15 item 3.
+ * hold a hotel (see houseLadder below). Reading a hotel as a sixth level instead let a legal
+ * BUILD or SELL hotel break this invariant; SPEC.md states the ladder rule (OQ-15 item 3, answered).
  */
 const evenBuild: Check = (state) => {
   if (!state.rules.sets.buildEvenly) {

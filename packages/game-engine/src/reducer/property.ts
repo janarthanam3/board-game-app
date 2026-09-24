@@ -374,10 +374,15 @@ export function raiseCashHeadroom(state: MatchState, playerId: string): { mortga
     if (boardTile.kind === "property") {
       sell += tile.houses * resolvePrice(boardTile.sellHouse, resolvePrice(boardTile.houseCost, boardTile.cost));
       sell += tile.hotel ? resolvePrice(boardTile.sellHotel, resolvePrice(boardTile.hotelCost, boardTile.cost)) : 0;
-      sell += resolvePrice(boardTile.sellProperty, boardTile.cost);
-    } else {
-      sell += resolvePrice(boardTile.sellToBank, boardTile.cost);
     }
+    // A mortgaged deed cannot be sold until it is redeemed (OQ-20 item 1), so it raises nothing
+    // more on this route — its cash was already drawn when it was mortgaged.
+    if (tile.mortgaged) {
+      return;
+    }
+    sell += boardTile.kind === "property"
+      ? resolvePrice(boardTile.sellProperty, boardTile.cost)
+      : resolvePrice(boardTile.sellToBank, boardTile.cost);
   });
   return { mortgage, sell };
 }
