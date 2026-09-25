@@ -52,4 +52,15 @@ describe("checkMoveTargets", () => {
   it("passes a board whose decks carry no move rules", () => {
     expect(checkMoveTargets(testBoard())).toEqual([]);
   });
+
+  it("refuses a rule that jumps to the space that draws it — OQ-26's zero-length jump", () => {
+    // A MOVE block only ever runs from a card space, so "the tile the token stands on" is always a
+    // card space. Refusing every card-space target is therefore the whole of OQ-26 at publish time.
+    const board = testBoard();
+    const cardSpaces = board.tiles.flatMap((tile, index) => (tile.kind === "card" ? [index] : []));
+    expect(cardSpaces.length).toBeGreaterThan(0);
+    for (const tileIndex of cardSpaces) {
+      expect(checkMoveTargets(boardWithMove(tileIndex))).toHaveLength(1);
+    }
+  });
 });

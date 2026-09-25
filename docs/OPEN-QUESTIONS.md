@@ -890,6 +890,7 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | --- | --- |
 | `docs/05-game-rules.md` | §4 and §8 even build measured among the holder's tiles · §2.3 Tax office draws as well as charging · §7 the five-utility wording · §8 the dropped "Hotel returns houses" toggle · §9 the three rounding rules · §13 the `freeRestHouse` card and its use · §1 the teleport bonus as a permission |
 | `docs/screens/1z-rule-control.md` | §4.1 four MONEY directions · §4.2–4.3 the rulebook's ranges and expiry values |
+| `docs/screens/1n-notification-cards.md` | #3 `PROPERTY COST` must say when the deed is mortgaged and name the redeem cost (OQ-25) |
 | `docs/screens/3m-*.md` | which tile pays out the free-parking pot |
 | `docs/02-design-tokens.md` | the board-map insets and pip anchors now in `tokens.board` |
 | `docs/08-database.md` | the derived pending / completed column from OQ-6 |
@@ -920,6 +921,11 @@ since the bank already paid the mortgage out to the previous owner.
 
 Raised 24 September 2026 by the rules audit of the answered questions.
 
+**ANSWERED 25 September 2026 — option (1).** Full cost, mortgage inherited. No engine change: this
+is what `validateBuy` / `applyBuy` already do, and it matches the auction lot, where the winner
+also inherits the mortgage. `1n` #3 `PROPERTY COST` must state that the deed is mortgaged and name
+the redeem cost — added to the regeneration table below.
+
 ---
 
 ## OQ-26 · Does a teleport that does not move pay the pass bonus?
@@ -948,3 +954,18 @@ publish-time check the design already accepted for card-space targets, and leave
 
 Raised 24 September 2026 by the rules audit; an earlier fix pass implemented option (2) without
 asking, which was an invented rule and has been reverted.
+
+**ANSWERED 25 September 2026 — option (3).** A `To tile` whose target is the token's own tile is
+not a move and is refused at publish time; `teleport` in `board.ts` is unchanged and keeps the
+rulebook's predicate, and §1 is left alone.
+
+*Where the check lives:* `checkMoveTargets()` in `src/publish.ts` already implements it. A MOVE
+block is only ever applied by a card draw — `reducer/turn.ts` resolves a `card` tile through
+`resolveCardSpace`, the only caller — so the token is always standing on a **card space** when one
+runs. The existing OQ-19 item 6 ban on card-space targets therefore already refuses every
+zero-length jump a board can author, and a second check would be unreachable code. That reasoning
+is recorded in `publish.ts` and pinned by a test that walks every card space on the test board.
+
+*The play-time half:* `moveAnywhere` (task **C8**) lets a player pick the target during the turn,
+which no board check can see. C8's acceptance now requires it to refuse a target equal to the
+player's own position.
