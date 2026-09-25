@@ -2,7 +2,7 @@
 // contract says checkInvariants(apply(s, a).state) must be [] after every legal action; the
 // property suite and the server both call it.
 
-import { isOwnable, isSolvent, type MatchState, type TileIndex } from "./state";
+import { isOwnable, isSolvent, type MatchState, type PlayerId, type TileIndex } from "./state";
 
 export type InvariantName =
   | "cashNonNegative"
@@ -10,7 +10,6 @@ export type InvariantName =
   | "houseSupply"
   | "hotelSupply"
   | "buildLimits"
-  | "evenBuild"
   | "ownershipUnique"
   | "mortgageConsistency"
   | "seatIntegrity"
@@ -94,32 +93,28 @@ const buildLimits: Check = (state) =>
  * hold a hotel (see houseLadder below). Reading a hotel as a sixth level instead let a legal
  * BUILD or SELL hotel break this invariant; SPEC.md states the ladder rule (OQ-15 item 3, answered).
  */
-const evenBuild: Check = (state) => {
-  if (!state.rules.sets.buildEvenly) {
-    return [];
-  }
-  return state.board.groups.flatMap((group) => {
-    const levels = houseLadder(state, group.tileIndexes);
-    if (levels.length === 0) {
-      return [];
-    }
-    const spread = Math.max(...levels) - Math.min(...levels);
-    return spread <= 1
-      ? []
-      : [violation("evenBuild", `group ${group.id} spans house levels ${Math.min(...levels)}–${Math.max(...levels)}`)];
-  });
-};
-
+// Even build is **not** a state invariant. Under the holder's-tiles reading (OQ-21 item 4,
+// answered) a player may legally hold 3 · 3 · 3 in a group and then buy, win or be given a fourth
+// tile, which joins their ladder at 0 houses — a spread of 3 that no action did anything wrong to
+// produce. Building that newcomer up to 1 is legal too (it is the lowest tile), giving 3 · 3 · 3 · 1.
+// So the rule constrains BUILD and SELL, and lives in reducer/property.ts with the other
+// validation; `houseLadder` below is the measure both it and any future checker share.
 /**
- * The houses to compare for even build: tiles in the group that do **not** hold a hotel. The rule
- * is "max difference of 1 house within a group" (rulebook §4, §8), and a hotel completes its tile
- * and leaves the house ladder — §8: selling a hotel "does not automatically re-place 4 houses".
- * Reading a hotel as a sixth level instead makes a legal BUILD/SELL hotel break this invariant and
- * leaves a full-hotel group unsellable; see OQ-15 item 3. The ladder spans every tile in the
- * group, including ones the holder does not own — OQ-21 item 4.
+ * The houses to compare for even build: the tiles in the group that **`ownerId` holds** and that do
+ * not hold a hotel.
+ *
+ * Two readings sit behind this (both answered):
+ * - A hotel completes its tile and leaves the house ladder — §8: selling a hotel "does not
+ *   automatically re-place 4 houses". Reading it as a sixth level makes a legal BUILD or SELL
+ *   hotel break this invariant (OQ-15 item 3).
+ * - The ladder covers only the holder's own tiles (OQ-21 item 4). Measuring across the whole
+ *   group caps a Majority holder at one house per tile for ever, because the tiles they do not own
+ *   sit at 0 and nobody can raise them — which switches building off in that mode entirely.
  */
-export function houseLadder(state: MatchState, tileIndexes: readonly TileIndex[]): number[] {
-  return tileIndexes.filter((index) => !state.tiles[index]?.hotel).map((index) => state.tiles[index]?.houses ?? 0);
+export function houseLadder(state: MatchState, tileIndexes: readonly TileIndex[], ownerId: PlayerId): number[] {
+  return tileIndexes
+    .filter((index) => state.tiles[index]?.ownerId === ownerId && !state.tiles[index]?.hotel)
+    .map((index) => state.tiles[index]?.houses ?? 0);
 }
 
 /** A tile's owner is a solvent player in the match, and only ownable tiles are owned. */
@@ -231,7 +226,6 @@ const stateChecks: readonly Check[] = [
   houseSupply,
   hotelSupply,
   buildLimits,
-  evenBuild,
   ownershipUnique,
   mortgageConsistency,
   seatIntegrity,
@@ -292,7 +286,6 @@ export const invariants: Readonly<Record<Exclude<InvariantName, "roundMonotonic"
   houseSupply,
   hotelSupply,
   buildLimits,
-  evenBuild,
   ownershipUnique,
   mortgageConsistency,
   seatIntegrity,

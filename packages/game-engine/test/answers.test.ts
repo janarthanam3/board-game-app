@@ -329,6 +329,106 @@ describe("OQ-22 item 2 — a card's 'You pay bank' is a fine", () => {
   });
 });
 
+describe("OQ-21 item 4 — even build is measured among the tiles the builder holds", () => {
+  /**
+   * The purple group is five tiles. Naveen holds 1, 2, 3; Priya holds 13, 14 — two of five, below
+   * the Majority threshold of three, so she can never build on them and they stay at 0 for ever.
+   */
+  function majorityBoard(): MatchState {
+    let state = grant(newMatch(), NAVEEN, [1, 2, 3]);
+    state = grant(state, PRIYA, [13, 14]);
+    return rollAs(state, NAVEEN, [1, 2]); // → tile 3, his own → postRoll
+  }
+
+  /** Every tile in the group, so the two readings coincide. */
+  function allTilesBoard(): MatchState {
+    const base = grant(newMatch(), NAVEEN, PURPLE);
+    const state = { ...base, rules: { ...base.rules, sets: { ...base.rules.sets, mode: "allTiles" } } } as MatchState;
+    return rollAs(state, NAVEEN, [1, 2]);
+  }
+
+  function buildHouse(state: MatchState, tileIndex: number): MatchState {
+    return step(state, { kind: "BUILD", by: NAVEEN, tileIndex, what: "house", atMs: 0 });
+  }
+
+  it("Majority: the holder can climb the whole ladder on the three tiles he owns", () => {
+    let state = majorityBoard();
+    // One house on each of his three, then a second, third and fourth round.
+    for (let round = 0; round < 4; round++) {
+      for (const tileIndex of [1, 2, 3]) {
+        expect(refusal(state, { kind: "BUILD", by: NAVEEN, tileIndex, what: "house", atMs: 0 })).toBe("OK");
+        state = buildHouse(state, tileIndex);
+      }
+    }
+    expect([1, 2, 3].map((index) => state.tiles[index]!.houses)).toEqual([4, 4, 4]);
+    // And on to hotels, which the whole-group reading could never reach.
+    state = step(state, { kind: "BUILD", by: NAVEEN, tileIndex: 1, what: "hotel", atMs: 0 });
+    expect(state.tiles[1]!.hotel).toBe(true);
+    expect(checkInvariants(state)).toEqual([]);
+  });
+
+  it("Majority: the tiles another player holds do not hold the builder back", () => {
+    let state = majorityBoard();
+    for (const tileIndex of [1, 2, 3]) state = buildHouse(state, tileIndex);
+    // Priya's two tiles are still at 0; under the whole-group reading this second house was
+    // refused as E_BUILD_UNEVEN, which capped Majority boards at one house per tile.
+    expect(state.tiles[13]!.houses).toBe(0);
+    expect(state.tiles[14]!.houses).toBe(0);
+    expect(refusal(state, { kind: "BUILD", by: NAVEEN, tileIndex: 1, what: "house", atMs: 0 })).toBe("OK");
+  });
+
+  it("Majority: it still has to be even across his own three", () => {
+    let state = majorityBoard();
+    state = buildHouse(state, 1);
+    // 1 · 0 · 0 — a second house on the same tile would be two clear of the others.
+    expect(refusal(state, { kind: "BUILD", by: NAVEEN, tileIndex: 1, what: "house", atMs: 0 })).toBe("E_BUILD_UNEVEN");
+  });
+
+  it("All tiles: the reading is unchanged, because the holder owns the whole group", () => {
+    let state = allTilesBoard();
+    state = buildHouse(state, 1);
+    expect(refusal(state, { kind: "BUILD", by: NAVEEN, tileIndex: 1, what: "house", atMs: 0 })).toBe("E_BUILD_UNEVEN");
+    for (const tileIndex of [2, 3, 13, 14]) state = buildHouse(state, tileIndex);
+    expect(refusal(state, { kind: "BUILD", by: NAVEEN, tileIndex: 1, what: "house", atMs: 0 })).toBe("OK");
+  });
+
+  it("selling is the mirror: a tile may not fall more than one below the builder's others", () => {
+    let state = majorityBoard();
+    for (const tileIndex of [1, 2, 3]) state = buildHouse(state, tileIndex);
+    for (const tileIndex of [1, 2, 3]) state = buildHouse(state, tileIndex);
+    // 2 · 2 · 2 — selling one down to 1 is fine, selling the same tile again is not.
+    state = step(state, { kind: "SELL", by: NAVEEN, tileIndex: 1, what: "house", atMs: 0 });
+    expect(refusal(state, { kind: "SELL", by: NAVEEN, tileIndex: 1, what: "house", atMs: 0 })).toBe("E_BUILD_UNEVEN");
+  });
+
+  it("a freshly bought tile joins the ladder at 0 and must be levelled before the others grow", () => {
+    // The consequence the user accepted: acquiring a tile can widen a holder's own spread, which
+    // is why even build is a BUILD/SELL rule and not a state invariant any more.
+    let state = majorityBoard();
+    for (let round = 0; round < 3; round++) {
+      for (const tileIndex of [1, 2, 3]) state = buildHouse(state, tileIndex);
+    }
+    expect([1, 2, 3].map((index) => state.tiles[index]!.houses)).toEqual([3, 3, 3]);
+
+    state.tiles[13]!.ownerId = NAVEEN; // acquired, at 0 houses
+    expect(checkInvariants(state)).toEqual([]);
+    expect(refusal(state, { kind: "BUILD", by: NAVEEN, tileIndex: 1, what: "house", atMs: 0 })).toBe("E_BUILD_UNEVEN");
+    expect(refusal(state, { kind: "BUILD", by: NAVEEN, tileIndex: 13, what: "house", atMs: 0 })).toBe("OK");
+  });
+
+  it("two holders of one group keep separate ladders (the §4 departure)", () => {
+    let state = majorityBoard();
+    for (let round = 0; round < 4; round++) {
+      for (const tileIndex of [1, 2, 3]) state = buildHouse(state, tileIndex);
+    }
+    // 4 · 4 · 4 beside Priya's 0 · 0 — a spread §4's literal wording forbids, recorded in
+    // docs/design-concerns.md as a deliberate departure.
+    expect([1, 2, 3].map((index) => state.tiles[index]!.houses)).toEqual([4, 4, 4]);
+    expect([13, 14].map((index) => state.tiles[index]!.houses)).toEqual([0, 0]);
+    expect(checkInvariants(state)).toEqual([]);
+  });
+});
+
 describe("OQ-15 — the state-shape additions stand", () => {
   it("keeps the ledger, the token position and the non-hotel house ladder", () => {
     const state = newMatch();

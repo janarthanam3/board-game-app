@@ -122,7 +122,7 @@ type Action =
 | `houseSupply` | `bank.houses + Σ tile.houses = board.houseSupply` (32 on the design board) |
 | `hotelSupply` | `bank.hotels + Σ tile.hotel = board.hotelSupply` (12) |
 | `buildLimits` | `0 ≤ tile.houses ≤ 4`; `tile.hotel ⇒ tile.houses === 0` |
-| `evenBuild` | when the rule is on, within a group `max(houses) − min(houses) ≤ 1` over the tiles that do **not** hold a hotel; a hotel completes its tile and leaves the house ladder (OQ-15 item 3, answered 24 September 2026) |
+| ~~`evenBuild`~~ | **Not an invariant.** Even build is a rule on the BUILD and SELL actions, checked in `reducer/property.ts`: within a colour group, the houses on the tiles **the acting player holds** may span at most 1, counting only tiles without a hotel. It cannot be a property of state, because acquiring a tile legally joins it to the holder's ladder at 0 houses (OQ-15 item 3 and OQ-21 item 4, both answered 24–25 September 2026) |
 | `ownershipUnique` | a tile has at most one owner; a bankrupt player owns nothing |
 | `mortgageConsistency` | `tile.mortgaged ⇒ tile.houses === 0 && !tile.hotel` |
 | `seatIntegrity` | `seatOrder` is a permutation of `Object.keys(players)` |

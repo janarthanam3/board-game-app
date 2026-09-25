@@ -838,18 +838,35 @@ on tiles that do **not** hold a hotel, as implemented. `packages/game-engine/SPE
 2. **Free Rest house Card** — a new `freeRestHouse` effect, and using it spends a use. A
    `skipTurn` card no longer stands in for it.
 3. **A releasing double** — grants no extra roll. Unchanged.
-4. **Even build** — measured over the **whole colour group**, as implemented. See the note below.
+4. **Even build** — measured among the tiles **the building player holds**, not the whole group.
 5. **"Pay to"** — a tile's own setting wins over the board's fines destination. `Debt.payTo` now
    carries `pot` and `bank` alongside `fine` and `creditor`.
 6. **Auction starting price** — confirmed: declined lots open at the tile's cost, bank lots at the
    board's starting price.
 
-> **Item 4 needs a second look.** The answer given was "the whole colour group, not the holder's
-> tiles", with the reason "the current reading breaks building on Majority boards". The whole-group
-> reading *is* the current one, and it is the reading that breaks Majority boards: a holder of 3 of
-> 5 can never place a second house, because the two tiles they do not own sit at 0 for ever. The
-> directive was followed — nothing changed — but the stated reason argues for the opposite choice,
-> so this is flagged rather than silently resolved.
+> **Item 4, settled 25 September 2026 — the holder's tiles.** The first answer said "whole colour
+> group" but gave the reason that argues against it, and the contradiction was flagged rather than
+> resolved. Shown the numbers, the user chose the holder's-tiles reading.
+>
+> *Why:* on a Majority board a holder of 3 of 5 owns three tiles and can never raise the other two,
+> so under the whole-group reading the minimum is pinned at 0 and every tile they own caps at **one
+> house** — three houses in the group, for ever, and no hotel, because a hotel needs four houses on
+> a tile. The 2-, 3- and 4-house and hotel rents printed on every deed in that mode are unreachable,
+> while the mode's own copy promises "Own 3 to double rent **and build**". Under the holder's-tiles
+> reading the ladder runs 1·1·1 → 2·2·2 → 3·3·3 → 4·4·4 → hotels, exactly as on a board where the
+> whole group is owned. The two readings are identical under the **All tiles** threshold, so nothing
+> changes on a standard board.
+>
+> *This is a deliberate departure from §4's literal wording.* §4 says "no tile **in a group** may
+> hold more houses than another +1"; the engine reads "in a group" as "among the holder's tiles".
+> The consequence is that two holders of one group may sit at 4 · 4 · 4 beside 0 · 0, which §4 as
+> written forbids. §4 should be regenerated to say so — recorded in `docs/design-concerns.md`.
+>
+> *A second consequence:* even build stopped being a **state invariant**. A holder at 3 · 3 · 3 who
+> buys, wins or is given a fourth tile in the group joins it to their ladder at 0 houses — a spread
+> of 3 that no action did anything wrong to produce, and building that newcomer to 1 is legal too.
+> So `evenBuild` was removed from `checkInvariants` and the rule now lives only on BUILD and SELL in
+> `reducer/property.ts`. `SPEC.md`'s invariant table records the removal and why.
 
 ## OQ-22
 
@@ -871,7 +888,7 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 
 | Doc | What it must say |
 | --- | --- |
-| `docs/05-game-rules.md` | §2.3 Tax office draws as well as charging · §7 the five-utility wording · §8 the dropped "Hotel returns houses" toggle · §9 the three rounding rules · §13 the `freeRestHouse` card and its use · §1 the teleport bonus as a permission |
+| `docs/05-game-rules.md` | §4 and §8 even build measured among the holder's tiles · §2.3 Tax office draws as well as charging · §7 the five-utility wording · §8 the dropped "Hotel returns houses" toggle · §9 the three rounding rules · §13 the `freeRestHouse` card and its use · §1 the teleport bonus as a permission |
 | `docs/screens/1z-rule-control.md` | §4.1 four MONEY directions · §4.2–4.3 the rulebook's ranges and expiry values |
 | `docs/screens/3m-*.md` | which tile pays out the free-parking pot |
 | `docs/02-design-tokens.md` | the board-map insets and pip anchors now in `tokens.board` |

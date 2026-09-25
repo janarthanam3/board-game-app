@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { checkInvariants, checkTransitionInvariants, type InvariantName } from "../src/invariants";
+import { checkInvariants, checkTransitionInvariants, type InvariantName, invariants } from "../src/invariants";
 import { baseState, cloneState } from "./support/state";
 
 function names(state = baseState()): InvariantName[] {
@@ -101,49 +101,22 @@ describe("buildLimits", () => {
   });
 });
 
-describe("evenBuild", () => {
-  it("flags a two-house gap within a group while Build evenly is on", () => {
+describe("evenBuild is no longer a state invariant (OQ-21 item 4, answered)", () => {
+  it("does not flag an uneven group — the rule constrains BUILD and SELL instead", () => {
+    // Under the holder's-tiles reading a player can legally reach 3 · 3 · 3 and then acquire a",
+    // fourth tile at 0 houses, so a spread wider than 1 is a reachable, blameless state. The
+    // even-build rule is enforced in reducer/property.ts — see test/reducer/property.test.ts.
     const state = cloneState(baseState());
-    for (const index of [1, 2, 3, 13, 14]) {
-      state.tiles[index]!.ownerId = "p-naveen";
-    }
-    state.tiles[1]!.houses = 2;
-    state.bank.houses = 30;
-    expect(names(state)).toContain("evenBuild");
-  });
-
-  it("allows a one-house gap", () => {
-    const state = cloneState(baseState());
-    for (const index of [1, 2, 3, 13, 14]) {
-      state.tiles[index]!.ownerId = "p-naveen";
-    }
-    state.tiles[1]!.houses = 1;
-    state.bank.houses = 31;
-    expect(names(state)).not.toContain("evenBuild");
-  });
-
-  it("treats a hotel as one level above four houses (OQ-15)", () => {
-    const state = cloneState(baseState());
-    for (const index of [1, 2, 3, 13, 14]) {
-      state.tiles[index]!.ownerId = "p-naveen";
-      state.tiles[index]!.houses = 4;
-    }
-    state.tiles[1]!.houses = 0;
-    state.tiles[1]!.hotel = true;
-    state.bank.houses = 32 - 16;
-    state.bank.hotels = 11;
-    expect(names(state)).not.toContain("evenBuild");
-  });
-
-  it("is not checked when Build evenly is off", () => {
-    const state = cloneState(baseState());
-    state.rules.sets.buildEvenly = false;
     for (const index of [1, 2, 3, 13, 14]) {
       state.tiles[index]!.ownerId = "p-naveen";
     }
     state.tiles[1]!.houses = 3;
     state.bank.houses = 29;
     expect(names(state)).not.toContain("evenBuild");
+  });
+
+  it("is not one of the named invariants any more", () => {
+    expect(Object.keys(invariants)).not.toContain("evenBuild");
   });
 });
 

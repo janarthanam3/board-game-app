@@ -397,3 +397,19 @@ uses for `motion.base` / `motion.slow` — `cubic-bezier(0.2,0.8,0.2,1)` in `2a`
 any new easing token can silently miss the app's single mapper. It did exactly that here: the
 mis-spelled token threw at runtime on every transition to Fit, and the token now carries the
 docs/02 spelling with a comment recording the divergence.
+
+## §4's "in a group" is read as "among the holder's tiles"
+
+**Implemented:** even build compares the houses on the tiles **the building player holds** in a
+colour group, not every tile in the group (`packages/game-engine/src/reducer/property.ts`,
+`src/invariants.ts` `houseLadder`). Answered as OQ-21 item 4 on 25 September 2026.
+
+**Concern:** §4 says "no tile **in a group** may hold more houses than another +1", and §8 repeats
+it as "max difference of 1 house within a group". Taken literally that spans every tile whoever
+owns it, which on a Majority board pins the minimum at 0 for ever — a holder of 3 of 5 can never
+place a second house, and hotels become unreachable, so the 2-, 3- and 4-house and hotel rents on
+those deeds are dead while `1s`'s own copy promises "Own 3 to double rent and build". The engine
+therefore reads "in a group" as "among the holder's tiles". The visible consequence is that two
+holders of one group may sit at 4 · 4 · 4 beside 0 · 0, which §4 as written forbids; §4 and §8
+should be regenerated to state the holder's-tiles rule and to say that a group with two holders
+carries two independent ladders. Raised 25 September 2026.

@@ -5,7 +5,7 @@ import { OK, refuse, type ValidationResult } from "../errors";
 import { houseLadder } from "../invariants";
 import { resolvePrice } from "../pricing";
 import { holdsSet, thresholdFor } from "../sets";
-import { isOwnable, type MatchState, type PropertyTile, type TileIndex } from "../state";
+import { isOwnable, type MatchState, type PlayerId, type PropertyTile, type TileIndex } from "../state";
 import { type Ctx, emit, bankPays, payBank } from "./context";
 import { actorInMatch, all, inStage, isActorsTurn, matchIsLive, noOpenDebt, notJailBlocked } from "./guards";
 import { declinePurchase } from "./turn";
@@ -126,7 +126,7 @@ export function validateBuild(state: MatchState, action: Build): ValidationResul
       return refuse("E_SUPPLY_EXHAUSTED", "the bank has no houses left");
     }
     if (state.rules.sets.buildEvenly) {
-      const lowest = Math.min(...ladderFor(state, boardTile.groupId));
+      const lowest = Math.min(...ladderFor(state, boardTile.groupId, action.by));
       if (tile.houses + 1 - lowest > 1) {
         return refuse("E_BUILD_UNEVEN", "Build evenly is on");
       }
@@ -148,10 +148,10 @@ export function validateBuild(state: MatchState, action: Build): ValidationResul
   return player.cash >= cost ? OK : refuse("E_INSUFFICIENT_CASH", `hotel costs ${cost}`);
 }
 
-/** The group's house ladder, exactly as the evenBuild invariant measures it. */
-function ladderFor(state: MatchState, groupId: string): number[] {
+/** The builder's house ladder in this group, exactly as the evenBuild invariant measures it. */
+function ladderFor(state: MatchState, groupId: string, ownerId: PlayerId): number[] {
   const group = state.board.groups.find((candidate) => candidate.id === groupId);
-  return houseLadder(state, group?.tileIndexes ?? []);
+  return houseLadder(state, group?.tileIndexes ?? [], ownerId);
 }
 
 export function applyBuild(ctx: Ctx, action: Build): void {
@@ -220,7 +220,7 @@ export function validateSell(state: MatchState, action: Sell): ValidationResult 
       // The tile rejoins the ladder at 0 houses (§8: no houses are re-placed), so every other
       // tile still in the ladder must be within 1 of 0. This tile is not in the ladder yet — it
       // still holds its hotel.
-      if (Math.max(...ladderFor(state, boardTile.groupId), 0) > 1) {
+      if (Math.max(...ladderFor(state, boardTile.groupId, action.by), 0) > 1) {
         return refuse("E_BUILD_UNEVEN", "Build evenly is on");
       }
     }
@@ -231,7 +231,7 @@ export function validateSell(state: MatchState, action: Sell): ValidationResult 
   }
   if (state.rules.sets.buildEvenly) {
     // Selling mirrors building: no tile may fall more than 1 below another (rulebook §4).
-    const highest = Math.max(...ladderFor(state, boardTile.groupId));
+    const highest = Math.max(...ladderFor(state, boardTile.groupId, action.by));
     if (highest - (tile.houses - 1) > 1) {
       return refuse("E_BUILD_UNEVEN", "Build evenly is on");
     }

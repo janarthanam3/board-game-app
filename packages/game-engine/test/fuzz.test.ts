@@ -142,6 +142,12 @@ interface FuzzProfile {
    * inside its step budget.
    */
   dealSets?: boolean;
+  /**
+   * Give everyone a jail-pass card. USE_CARD is only playable for `jailPass`, and only while its
+   * holder is in jail, so leaving that to chance made the card-use assertion flaky — it held by a
+   * single play before the even-build change shifted how matches run.
+   */
+  dealJailPass?: boolean;
 }
 
 const SHORT: FuzzProfile = { rounds: 4, startingCash: 10_000 };
@@ -163,6 +169,18 @@ function fuzzSetup(seed: number, profile: FuzzProfile = SHORT) {
 /** Plays one seeded match to the end (or a step cap) with random legal actions; returns the actions. */
 function playRandom(seed: number, maxSteps: number, profile: FuzzProfile = SHORT): { actions: Action[]; final: MatchState } {
   let state = createMatch(fuzzSetup(seed, profile));
+  if (profile.dealJailPass) {
+    for (const seat of THREE) {
+      state.players[seat.id]!.holdCards.push({
+        id: `card-jailpass-${seat.id}`,
+        effect: { kind: "jailPass" },
+        uses: 1,
+        expires: "never",
+        tradeable: true,
+        grantedRound: 1,
+      });
+    }
+  }
   if (profile.dealSets) {
     state.board.groups.forEach((group, position) => {
       const ownerId = THREE[position % THREE.length]!.id;
@@ -257,7 +275,7 @@ describe(`random legal play over ${MATCHES} seeded three-player matches`, () => 
     let disconnects = 0;
     const longMatches = Math.max(8, Math.floor(MATCHES / 25));
     for (let seed = 500; seed < 500 + longMatches; seed++) {
-      const { actions, final } = playRandom(seed, 2_000, { rounds: 25, startingCash: 40_000, preferBuilding: true, dealSets: true });
+      const { actions, final } = playRandom(seed, 2_000, { rounds: 25, startingCash: 40_000, preferBuilding: true, dealSets: true, dealJailPass: true });
       assertCashConserved(final);
       cardsUsed += actions.filter((action) => action.kind === "USE_CARD").length;
       for (const event of final.log) {
