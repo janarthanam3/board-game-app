@@ -413,3 +413,43 @@ therefore reads "in a group" as "among the holder's tiles". The visible conseque
 holders of one group may sit at 4 · 4 · 4 beside 0 · 0, which §4 as written forbids; §4 and §8
 should be regenerated to state the holder's-tiles rule and to say that a group with two holders
 carries two independent ladders. Raised 25 September 2026.
+
+## D1: three conflicts between `docs/08-database.md`, the task and the migrations skill
+
+**Implemented:** D1's acceptance criteria and the `db-migrations` skill, because they are the task
+definition. Raised 25 September 2026 while writing the D1 migrations.
+
+1. **Up/down versus forward-only.** `docs/08-database.md` §Migration conventions says migrations
+   are "forward-only. **No down migrations**; a mistake is fixed by a new migration." D1's
+   acceptance says "migrations run forward and back cleanly" with an up/down integration test, and
+   the `db-migrations` skill says every migration has a `-- down` that actually reverses it and CI
+   runs up, down, up. The migrations carry real `-- down` sections.
+2. **Where migrations live.** The doc says `apps/server/src/db/migrations`; D1 says
+   `apps/server/migrations/*`. The task's path is used.
+3. **Index naming.** The doc names eight indexes `<table>_<purpose>_idx` and those names are part
+   of the schema it specifies; the skill says `idx_<table>_<columns>`. The doc's names are used,
+   including for the one index the doc leaves unnamed (`refresh_tokens_user_idx`) — naming it is
+   what makes the down section reversible.
+
+`docs/08-database.md` needs regenerating on two counts: to say migrations are up/down rather than
+forward-only, and to carry the OQ-6 board status model (`status`, the three counters, the generated
+`state` column and `boards_author_state_idx`), none of which the doc's `boards` table has today.
+
+## D1: the board counters are client-reported, and publish must not trust them
+
+**Decided 25 September 2026**, recorded here because both halves are behaviour `docs/08-database.md`
+and `2a`/`2a2` will need to state once they are regenerated.
+
+A board's draft content lives on the device, so `slots_total`, `slots_filled` and `has_errors` on
+the `boards` row are whatever the client last sent. The generated `state` column is tamper-proof
+against being set directly, but it derives faithfully from inputs the server cannot check — so a
+modified client could report a full, error-free board and have an empty one read `completed`.
+
+- **Before publish**, the counters are an **untrusted display hint**. `PATCH /boards/:id` accepts
+  them, nothing gates on them, and they drive the `2a2` filter chips and nothing else.
+- **At publish**, D3 derives all three from the submitted FrozenBoard document — which the server
+  does hold, as `board_versions.document` — and **rejects** a publish request carrying
+  client-supplied counters rather than ignoring them. Recorded in D3's acceptance criteria.
+- **At unpublish**, D3 re-derives from the live version rather than restoring the last draft
+  values. The draft may have drifted since publish, and a stale restore would put the board in a
+  state its own contents deny — the failure this closes.
