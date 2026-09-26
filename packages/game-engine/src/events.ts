@@ -89,6 +89,10 @@ export type MatchEvent = Base &
     /** 1n #17 BANKRUPT (compact) / 1o */
     | { kind: "bankrupt"; playerId: PlayerId; creditorId: PlayerId | "bank"; tiles: TileIndex[]; cashTransferred: number; round: number }
     | { kind: "cardUsed"; playerId: PlayerId; cardId: string; effect: string }
+    /** A rentWaiver was spent: the payment is skipped and the owner collects nothing (§7) */
+    | { kind: "rentWaived"; payerId: PlayerId; ownerId: PlayerId; tileIndex: TileIndex }
+    /** A clearDebt card wiped a debt; no money moved and the creditor was not paid */
+    | { kind: "debtCleared"; debtId: string; debtorId: PlayerId; creditorId: PlayerId | "bank"; amount: number }
     | { kind: "timerExpired"; scope: "turn" | "auction" | "offer"; applied: string[] }
     | { kind: "turnEnded"; playerId: PlayerId }
     | { kind: "playerDisconnected"; playerId: PlayerId }

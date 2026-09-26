@@ -6,7 +6,7 @@ import { houseLadder } from "../invariants";
 import { resolvePrice } from "../pricing";
 import { holdsSet, thresholdFor } from "../sets";
 import { isOwnable, type MatchState, type PlayerId, type PropertyTile, type TileIndex } from "../state";
-import { type Ctx, emit, bankPays, payBank } from "./context";
+import { type Ctx, emit, bankPays, payBank, playerOf } from "./context";
 import { actorInMatch, all, inStage, isActorsTurn, matchIsLive, noOpenDebt, notJailBlocked } from "./guards";
 import { declinePurchase } from "./turn";
 
@@ -131,7 +131,7 @@ export function validateBuild(state: MatchState, action: Build): ValidationResul
         return refuse("E_BUILD_UNEVEN", "Build evenly is on");
       }
     }
-    const cost = resolvePrice(boardTile.houseCost, boardTile.cost);
+    const cost = player.freeBuilds > 0 ? 0 : resolvePrice(boardTile.houseCost, boardTile.cost);
     return player.cash >= cost ? OK : refuse("E_INSUFFICIENT_CASH", `house costs ${cost}`);
   }
 
@@ -144,8 +144,22 @@ export function validateBuild(state: MatchState, action: Build): ValidationResul
   if (state.bank.hotels < 1) {
     return refuse("E_SUPPLY_EXHAUSTED", "the bank has no hotels left");
   }
-  const cost = resolvePrice(boardTile.hotelCost, boardTile.cost);
+  const cost = player.freeBuilds > 0 ? 0 : resolvePrice(boardTile.hotelCost, boardTile.cost);
   return player.cash >= cost ? OK : refuse("E_INSUFFICIENT_CASH", `hotel costs ${cost}`);
+}
+
+/**
+ * Spends an armed `freeBuild` if the player has one (rulebook §5.1 "Place one build at no cost").
+ * The cost becomes 0; everything else about the build — even build, the bank's supply, holding the
+ * set — still applies.
+ */
+function spendFreeBuild(ctx: Ctx, playerId: PlayerId): boolean {
+  const player = playerOf(ctx, playerId);
+  if (player.freeBuilds <= 0) {
+    return false;
+  }
+  player.freeBuilds -= 1;
+  return true;
 }
 
 /** The builder's house ladder in this group, exactly as the evenBuild invariant measures it. */
@@ -159,14 +173,14 @@ export function applyBuild(ctx: Ctx, action: Build): void {
   const boardTile = state.board.tiles[action.tileIndex] as PropertyTile;
   const tile = state.tiles[action.tileIndex]!;
   if (action.what === "house") {
-    const cost = resolvePrice(boardTile.houseCost, boardTile.cost);
+    const cost = spendFreeBuild(ctx, action.by) ? 0 : resolvePrice(boardTile.houseCost, boardTile.cost);
     payBank(ctx, action.by, cost);
     state.bank.houses -= 1;
     tile.houses += 1;
     emit(ctx, { kind: "built", playerId: action.by, tileIndex: action.tileIndex, what: "house", cost, houses: tile.houses, hotel: false });
     return;
   }
-  const cost = resolvePrice(boardTile.hotelCost, boardTile.cost);
+  const cost = spendFreeBuild(ctx, action.by) ? 0 : resolvePrice(boardTile.hotelCost, boardTile.cost);
   payBank(ctx, action.by, cost);
   state.bank.hotels -= 1;
   tile.hotel = true;

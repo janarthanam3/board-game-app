@@ -969,3 +969,39 @@ is recorded in `publish.ts` and pinned by a test that walks every card space on 
 *The play-time half:* `moveAnywhere` (task **C8**) lets a player pick the target during the turn,
 which no board check can see. C8's acceptance now requires it to refuse a target equal to the
 player's own position.
+
+---
+
+## OQ-27 · Which hold cards are played by naming them, and which by their own situation?
+
+**Affects:** `packages/game-engine/src/reducer/turn.ts` (`validateUseCard`); `1v` the actions row
+and `1k` the cards list.
+
+**Why it matters:** C8 made the eight "Affects: Me" effects playable, and three of them turn out
+not to fit `USE_CARD` at all:
+
+- **`chooseDice`** needs the total named. `USE_CARD` carries `cardId`, `target` and `tileIndex` —
+  nowhere to put a number — so the card is played by the `CHOOSE_DICE` action, which already
+  required holding it. `USE_CARD` on it refuses and says so.
+- **`freeRestHouse`** is spent automatically when a rest-house stay would otherwise bite (§13, and
+  OQ-21 item 2). Naming it does nothing.
+- **`jailPass`** is offered by the jail decision itself, so it is only playable from `jailChoice`.
+
+The other five are played by naming them: `rentWaiver`, `rentMultiplier` and `freeBuild` **arm** an
+effect a later event spends, while `moveAnywhere` and `skipTurn` act at once.
+
+Nothing in the design says which cards are a button on `1v` and which fire by themselves, and the
+distinction is visible to a player: an armed card leaves the hand with nothing apparently happening.
+
+**Options**
+1. As implemented, with `1v` showing only the five nameable cards and the other three explained
+   where they fire.
+2. Give `USE_CARD` a `total` field so `chooseDice` is nameable too, folding `CHOOSE_DICE` into it.
+3. Make every card nameable and reactive — a rent waiver would be offered on the RENT DUE card
+   rather than armed in advance, which is a different feel and needs its own copy.
+
+**Recommendation:** (1) for now, and (3) is worth considering for `rentWaiver` specifically: armed
+in advance, it is spent by whatever rent happens to come next, which may not be the one the player
+was saving it for.
+
+Raised 26 September 2026 during C8.

@@ -457,9 +457,9 @@ describe("OQ-19 item 2 — 'Affects another player' still waits for a target act
   });
 });
 
-describe("OQ-20 item 6 / OQ-19 item 2 — the effects that are still unplayable are refused, not ignored", () => {
-  it("USE_CARD accepts only jailPass until C8 lands", () => {
-    const state = newMatch();
+describe("OQ-20 item 6 / OQ-19 item 2 — what USE_CARD now plays, and what still waits", () => {
+  it("plays an \"Affects: Me\" effect, now that C8 has landed", () => {
+    const state = rollAs(grant(newMatch(), NAVEEN, [3]), NAVEEN, [1, 2]);
     state.players[NAVEEN]!.holdCards.push({
       id: "card-waiver",
       effect: { kind: "rentWaiver" },
@@ -468,8 +468,20 @@ describe("OQ-20 item 6 / OQ-19 item 2 — the effects that are still unplayable 
       tradeable: true,
       grantedRound: 1,
     });
-    const rolled = rollAs(state, NAVEEN, [1, 2]);
-    expect(refusal(rolled, { kind: "USE_CARD", by: NAVEEN, cardId: "card-waiver", atMs: 0 })).not.toBe("OK");
-    expect(legalActions(rolled, NAVEEN)).not.toContain("USE_CARD");
+    expect(refusal(state, { kind: "USE_CARD", by: NAVEEN, cardId: "card-waiver", atMs: 0 })).toBe("OK");
+    expect(legalActions(state, NAVEEN)).toContain("USE_CARD");
+  });
+
+  it("still refuses an \"Affects: Another player\" effect, which needs the C9 target action", () => {
+    const state = rollAs(grant(newMatch(), NAVEEN, [3]), NAVEEN, [1, 2]);
+    state.players[NAVEEN]!.holdCards.push({
+      id: "card-jailer",
+      effect: { kind: "sendToJail", target: "choose" },
+      uses: 1,
+      expires: "never",
+      tradeable: true,
+      grantedRound: 1,
+    });
+    expect(refusal(state, { kind: "USE_CARD", by: NAVEEN, cardId: "card-jailer", atMs: 0 })).toBe("E_ACTION_ILLEGAL");
   });
 });

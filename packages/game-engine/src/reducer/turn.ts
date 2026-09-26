@@ -9,7 +9,7 @@ import { solventPlayers, standings } from "../endgame";
 import { OK, refuse, type ValidationResult } from "../errors";
 import { moveForward } from "../board";
 import { netWorth } from "../endgame";
-import { rentFor } from "../rent";
+import { applyRentEffects, rentFor } from "../rent";
 import { pick, rollDice } from "../rng";
 import { type CornerTile, isSolvent, type MatchState, type PlayerId, type TileIndex } from "../state";
 import { openAuction } from "./auction";
@@ -232,7 +232,20 @@ export function resolveLanding(ctx: Ctx, playerId: PlayerId, tileIndex: TileInde
         return;
       }
       const diceTotal = state.turn.dice ? state.turn.dice[0] + state.turn.dice[1] : undefined;
-      const rent = rentFor(state, tileIndex, diceTotal);
+      const payer = playerOf(ctx, playerId);
+      const owner = playerOf(ctx, tile.ownerId);
+      // §7: the board's rent first, then the card effects, last.
+      const rent = applyRentEffects(rentFor(state, tileIndex, diceTotal), {
+        waiver: payer.rentWaivers > 0,
+        multiplier: owner.rentCollectMultiplier,
+      });
+      if (payer.rentWaivers > 0) {
+        payer.rentWaivers -= 1;
+        emit(ctx, { kind: "rentWaived", payerId: playerId, ownerId: tile.ownerId, tileIndex });
+      }
+      if (owner.rentCollectMultiplier !== 1) {
+        owner.rentCollectMultiplier = 1;
+      }
       if (rent === 0) {
         state.turn.stage = "postRoll";
         return;
@@ -374,6 +387,18 @@ export function applyPayBail(ctx: Ctx, action: Extract<Action, { kind: "PAY_BAIL
   ctx.state.turn.stage = "preRoll";
 }
 
+/**
+ * Playing a hold card (rulebook §5.1, the eight "Affects: Me" effects; task C8).
+ *
+ * Three of the eight are played by their own situation rather than by naming them here:
+ * - `jailPass` is used from the jail decision, which is where the board offers it;
+ * - `chooseDice` is played by the CHOOSE_DICE action, because the total has to be named and
+ *   USE_CARD carries no field for it;
+ * - `freeRestHouse` is spent automatically when a rest-house stay would otherwise bite (§13).
+ *
+ * The rest are played here. Two of them arm an effect that a later event spends — a waived rent, a
+ * doubled collection — and the counters live on PlayerState.
+ */
 export function validateUseCard(state: MatchState, action: Extract<Action, { kind: "USE_CARD" }>): ValidationResult {
   const base = all(matchIsLive(state), actorInMatch(state, action), isActorsTurn(state, action.by));
   if (!base.ok) {
@@ -381,30 +406,133 @@ export function validateUseCard(state: MatchState, action: Extract<Action, { kin
   }
   const player = state.players[action.by];
   const card = player?.holdCards.find((candidate) => candidate.id === action.cardId && candidate.uses > 0);
-  if (!card) {
+  if (!player || !card) {
     return refuse("E_CARD_NOT_HELD", `no usable card ${action.cardId}`);
   }
-  if (card.effect.kind === "jailPass") {
-    if (state.turn.stage !== "jailChoice") {
-      return refuse("E_ACTION_ILLEGAL", "a jail pass is used from jail");
+
+  switch (card.effect.kind) {
+    case "jailPass": {
+      if (state.turn.stage !== "jailChoice") {
+        return refuse("E_ACTION_ILLEGAL", "a jail pass is used from jail");
+      }
+      return jailTile(state)?.getOut?.useJailPassCard ? OK : refuse("E_ACTION_ILLEGAL", "this jail does not accept passes");
     }
-    return jailTile(state)?.getOut?.useJailPassCard ? OK : refuse("E_ACTION_ILLEGAL", "this jail does not accept passes");
+
+    case "chooseDice":
+      // CHOOSE_DICE names the total; USE_CARD has nowhere to put it.
+      return refuse("E_ACTION_ILLEGAL", "name the total with CHOOSE_DICE to play this card");
+
+    case "freeRestHouse":
+      return refuse("E_ACTION_ILLEGAL", "a free rest-house card is spent by landing on the rest house");
+
+    case "skipTurn":
+      // "Stay put and pass the dice on" — only before the dice are cast.
+      return inStage(state, "preRoll");
+
+    case "clearDebt":
+      return state.debts.some((debt) => debt.debtorId === action.by)
+        ? OK
+        : refuse("E_ACTION_ILLEGAL", "nothing is owed");
+
+    case "moveAnywhere": {
+      const blocked = all(noOpenDebt(state, action.by), inStage(state, "preRoll", "postRoll"));
+      if (!blocked.ok) {
+        return blocked;
+      }
+      if (action.tileIndex === undefined) {
+        return refuse("E_ACTION_ILLEGAL", "name the tile to move to");
+      }
+      if (action.tileIndex < 0 || action.tileIndex >= state.board.tiles.length) {
+        return refuse("E_ACTION_ILLEGAL", `tile ${action.tileIndex} is not on this board`);
+      }
+      // OQ-26, answered: a jump to the tile the token already stands on is not a move.
+      if (action.tileIndex === player.position) {
+        return refuse("E_ACTION_ILLEGAL", "the token is already on that tile");
+      }
+      return OK;
+    }
+
+    case "rentWaiver":
+    case "rentMultiplier":
+    case "freeBuild":
+      // These arm an effect for a later event and move nothing, so no stage need forbid them:
+      // playable at any point in the holder's own turn. The debt guard keeps them out of raise
+      // cash, where only settling the debt is allowed.
+      return noOpenDebt(state, action.by);
+
+    default:
+      return refuse("E_ACTION_ILLEGAL", "this effect needs a target; CHOOSE_TARGET arrives with C9");
   }
-  // The remaining hold-card effects arrive with C6 (the effect grammar).
-  return refuse("E_ACTION_ILLEGAL", `effect ${card.effect.kind} is not playable yet (C6)`);
 }
 
 export function applyUseCard(ctx: Ctx, action: Extract<Action, { kind: "USE_CARD" }>): void {
   const player = playerOf(ctx, action.by);
   const card = player.holdCards.find((candidate) => candidate.id === action.cardId);
-  if (!card || card.effect.kind !== "jailPass") {
+  if (!card) {
     return;
   }
-  consumeCard(ctx, player.id, "jailPass", card.id);
-  player.jail = { in: false, roundsHeld: 0 };
-  emit(ctx, { kind: "cardUsed", playerId: player.id, cardId: card.id, effect: "jailPass" });
-  emit(ctx, { kind: "jailReleased", playerId: player.id, how: "jailPass" });
-  ctx.state.turn.stage = "preRoll";
+  const effect = card.effect;
+  consumeCard(ctx, player.id, effect.kind, card.id);
+  emit(ctx, { kind: "cardUsed", playerId: player.id, cardId: card.id, effect: effect.kind });
+
+  switch (effect.kind) {
+    case "jailPass":
+      player.jail = { in: false, roundsHeld: 0 };
+      emit(ctx, { kind: "jailReleased", playerId: player.id, how: "jailPass" });
+      ctx.state.turn.stage = "preRoll";
+      return;
+
+    case "rentWaiver":
+      player.rentWaivers += 1;
+      return;
+
+    case "rentMultiplier":
+      // Only the collect side is a "Me" effect; the paid side is a card aimed at someone else (C9).
+      if (effect.side === "collect") {
+        player.rentCollectMultiplier = effect.factor;
+      }
+      return;
+
+    case "freeBuild":
+      player.freeBuilds += 1;
+      return;
+
+    case "skipTurn":
+      // The dice pass on without a roll; the turn ends here.
+      emit(ctx, { kind: "turnEnded", playerId: player.id });
+      advanceTurn(ctx);
+      return;
+
+    case "clearDebt": {
+      const debt = ctx.state.debts.find((candidate) => candidate.debtorId === player.id);
+      if (!debt) {
+        return;
+      }
+      ctx.state.debts = ctx.state.debts.filter((candidate) => candidate.id !== debt.id);
+      emit(ctx, {
+        kind: "debtCleared",
+        debtId: debt.id,
+        debtorId: debt.debtorId,
+        creditorId: debt.creditorId,
+        amount: debt.amount,
+      });
+      if (ctx.state.turn.playerId === player.id && !ctx.state.debts.some((d) => d.debtorId === player.id)) {
+        ctx.state.turn.stage = "postRoll";
+      }
+      return;
+    }
+
+    case "moveAnywhere":
+      if (action.tileIndex !== undefined) {
+        // A card move pays no pass bonus: §1 gives the bonus to a rule that asks for it, and a
+        // hold card carries no collectPassBonus flag.
+        moveTokenTo(ctx, player.id, action.tileIndex, false);
+      }
+      return;
+
+    default:
+      return;
+  }
 }
 
 function consumeCard(ctx: Ctx, playerId: PlayerId, effectKind: string, cardId?: string): void {

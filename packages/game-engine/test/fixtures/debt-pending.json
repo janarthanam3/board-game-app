@@ -745,6 +745,9 @@
         "roundsHeld": 0
       },
       "holdCards": [],
+      "rentWaivers": 0,
+      "rentCollectMultiplier": 1,
+      "freeBuilds": 0,
       "skipTurns": 0,
       "connected": true,
       "bankrupt": null,
@@ -762,6 +765,9 @@
         "roundsHeld": 0
       },
       "holdCards": [],
+      "rentWaivers": 0,
+      "rentCollectMultiplier": 1,
+      "freeBuilds": 0,
       "skipTurns": 0,
       "connected": true,
       "bankrupt": null,

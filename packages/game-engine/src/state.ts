@@ -257,6 +257,15 @@ export interface PlayerState {
   jail: { in: boolean; roundsHeld: number };
   holdCards: HoldCard[];
   skipTurns: number;
+  /**
+   * Effects a played card has armed and the next matching event will spend (rulebook §5.1's
+   * "Affects: Me" cards; §7 "card effects modify the result last"). Counts rather than booleans
+   * so a card with several uses can arm more than one.
+   */
+  rentWaivers: number;
+  /** 1 when nothing is armed; a collect-side rentMultiplier raises it for one collection. */
+  rentCollectMultiplier: number;
+  freeBuilds: number;
   connected: boolean;
   bankrupt: { out: true; round: number; owedTo: PlayerId | "bank"; amount: number } | null;
   ai: { tier: "easy" | "normal" | "hard" } | null;

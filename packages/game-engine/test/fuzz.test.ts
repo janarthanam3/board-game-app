@@ -88,7 +88,15 @@ function candidates(state: MatchState, by: PlayerId, atMs: number): Action[] {
         break;
       case "USE_CARD":
         for (const card of player.holdCards) {
-          if (card.uses > 0) out.push({ kind, by, cardId: card.id, atMs });
+          if (card.uses <= 0) continue;
+          if (card.effect.kind === "moveAnywhere") {
+            // Offer a handful of destinations rather than all forty, and never the current tile.
+            for (const tileIndex of [0, 2, 5, 9, 12]) {
+              if (tileIndex !== player.position) out.push({ kind, by, cardId: card.id, tileIndex, atMs });
+            }
+            continue;
+          }
+          out.push({ kind, by, cardId: card.id, atMs });
         }
         break;
       case "TIMER_EXPIRED":
@@ -122,6 +130,12 @@ const fuzzDeck: FrozenDeck = {
     { active: true, diceTotals: [], rule: { id: "again", name: "Draw again", conditions: null, money: null, move: { direction: "toTile", count: 0, targetTileIndex: 12, collectPassBonus: false }, holdCard: null } },
     { active: true, diceTotals: [], rule: { id: "pass", name: "Free bail", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "jailPass" }, uses: 1, expires: "never", tradeable: true } } },
     { active: true, diceTotals: [], rule: { id: "club", name: "Club privilege", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "chooseDice" }, uses: 2, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "waiver", name: "Rent waiver", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "rentWaiver" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "double", name: "Double rent collected", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "rentMultiplier", factor: 2, side: "collect" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "anywhere", name: "Move anywhere", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "moveAnywhere" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "wipe", name: "Clear a debt", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "clearDebt" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "gift", name: "Free house or hotel", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "freeBuild" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "siesta", name: "Skip a turn", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "skipTurn" }, uses: 1, expires: "never", tradeable: true } } },
     { active: true, diceTotals: [], rule: { id: "rich", name: "Landlord bonus", conditions: { holdsColourSet: true, ownsEveryTileInSet: false, cashAbove: null, hasHouseOrHotel: false }, money: { direction: "bankPaysYou", amount: 2000, basis: "perTileOwned" }, move: null, holdCard: null } },
   ],
 };
