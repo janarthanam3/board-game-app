@@ -14,6 +14,11 @@ import { ARUN, at, grant, lastEvent, NAVEEN, newMatch, PRIYA, refusal, rollAs, s
 
 const PURPLE = [1, 2, 3, 13, 14];
 
+/** A board that sends fines and taxes to the free-parking pot, as Chennai Edition does. */
+function potBoard(base: MatchState): MatchState {
+  return { ...base, rules: { ...base.rules, money: { ...base.rules.money, finesTo: "pot" } } };
+}
+
 function three(): MatchState {
   return newMatch({
     players: [
@@ -72,7 +77,7 @@ describe("sendToJail — aimed at another player", () => {
 });
 
 describe("zeroCash — aimed at another player", () => {
-  it("takes the target's cash to zero, and the bank absorbs it", () => {
+  it("takes the target's cash to zero; on a bank board the bank absorbs it", () => {
     let state = ready();
     const cardId = give(state, NAVEEN, { kind: "zeroCash", target: "choose" });
     const absorbedBefore = state.bank.ledger.absorbed;
@@ -109,6 +114,37 @@ describe("zeroCash — aimed at another player", () => {
     state = step(state, { kind: "TIMER_EXPIRED", scope: "turn", atMs: 60_000 });
     expect(state.turn).toMatchObject({ playerId: PRIYA, stage: "raiseCash" });
     expect(checkInvariants(state)).toEqual([]);
+  });
+
+  it("routes as a fine, so a pot board collects it (OQ-29 option 2)", () => {
+    // OQ-29 answered: the money is a fine, matching OQ-22 item 2's reading of a card's
+    // "You pay bank". On a board whose finesTo is "pot" it therefore reaches the free-parking pot
+    // rather than leaving play.
+    let state = potBoard(ready());
+    const cardId = give(state, NAVEEN, { kind: "zeroCash", target: "choose" });
+    const absorbedBefore = state.bank.ledger.absorbed;
+    state = step(state, use(cardId, { target: PRIYA }));
+
+    expect(state.players[PRIYA]!.cash).toBe(0);
+    expect(state.bank.finePot).toBe(10_000);
+    expect(state.bank.ledger.absorbed).toBe(absorbedBefore);
+    expect(lastEvent(state, "cashZeroed")).toMatchObject({ playerId: PRIYA, amount: 10_000 });
+    expect(checkInvariants(state)).toEqual([]);
+  });
+
+  it("on a pot board the money can come back to the player it was taken from", () => {
+    // Accepted as a balance consequence of OQ-29 option 2, not an oversight: the pot pays out to
+    // whoever lands on the payout tile, which may be the emptied player. The engine has no payout
+    // path yet — which tile pays the pot out is still unanswered (OQ-21 item 2, waiting on `3m`) —
+    // so this pins the half that exists: the money is in the pot, claimable, not destroyed.
+    let state = potBoard(ready());
+    const cardId = give(state, NAVEEN, { kind: "zeroCash", target: "choose" });
+    state = step(state, use(cardId, { target: PRIYA }));
+
+    expect(state.bank.finePot).toBe(10_000);
+    // cashConservation counts the pot as money still in play, so nothing was absorbed.
+    const held = Object.values(state.players).reduce((sum, player) => sum + player!.cash, 0) + state.bank.finePot;
+    expect(held).toBe(state.bank.ledger.issued - state.bank.ledger.absorbed);
   });
 
   it("is refused on a target who already has nothing", () => {

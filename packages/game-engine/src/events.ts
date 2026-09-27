@@ -88,7 +88,7 @@ export type MatchEvent = Base &
     /** 1n #17 BANKRUPT (compact) / 1o */
     | { kind: "bankrupt"; playerId: PlayerId; creditorId: PlayerId | "bank"; tiles: TileIndex[]; cashTransferred: number; round: number }
     | { kind: "cardUsed"; playerId: PlayerId; cardId: string; effect: string; target?: PlayerId }
-    /** A zeroCash card emptied a player's cash; the money left play (§5.1) */
+    /** A zeroCash card emptied a player's cash; it routes as a fine, so a pot board keeps it in play (OQ-29) */
     | { kind: "cashZeroed"; playerId: PlayerId; amount: number }
     /** A removeBuilding card took a house or hotel off a tile and returned it to the bank */
     | { kind: "buildingRemoved"; playerId: PlayerId; tileIndex: TileIndex; what: "house" | "hotel" }

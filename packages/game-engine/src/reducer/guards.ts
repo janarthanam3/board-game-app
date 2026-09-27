@@ -37,6 +37,19 @@ export function noOpenDebt(state: MatchState, playerId: PlayerId): ValidationRes
     : OK;
 }
 
+/**
+ * §12 blocks selling and mortgaging while held; §16 gives both as routes out of a debt. The two
+ * rules overlap completely, so a held debtor had no route at all and only DECLARE_BANKRUPTCY was
+ * left — which put §12's own "Max rounds held 3 — release is automatic, paid or not" out of reach.
+ * OQ-36 (answered, option 3) exempts the two routes that only involve the bank. A trade needs a
+ * counterparty, which is what §12 protects against, so it stays blocked whether a debt is open or
+ * not.
+ */
+export function notJailBlockedUnlessOwing(state: MatchState, playerId: PlayerId): ValidationResult {
+  const owes = state.debts.some((debt) => debt.debtorId === playerId);
+  return owes ? OK : notJailBlocked(state, playerId);
+}
+
 /** Build, sell, mortgage and trade are blocked while held, if the jail corner says so (rulebook §12). */
 export function notJailBlocked(state: MatchState, playerId: PlayerId): ValidationResult {
   const player = state.players[playerId];

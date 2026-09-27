@@ -7,7 +7,7 @@ import { resolvePrice } from "../pricing";
 import { holdsSet, thresholdFor } from "../sets";
 import { isOwnable, type MatchState, type PlayerId, type PropertyTile, type TileIndex } from "../state";
 import { type Ctx, emit, bankPays, payBank, playerOf } from "./context";
-import { actorInMatch, all, inStage, isActorsTurn, matchIsLive, noOpenDebt, notJailBlocked } from "./guards";
+import { actorInMatch, all, inStage, isActorsTurn, matchIsLive, noOpenDebt, notJailBlocked, notJailBlockedUnlessOwing } from "./guards";
 import { declinePurchase } from "./turn";
 
 type Buy = Extract<Action, { kind: "BUY" }>;
@@ -197,7 +197,8 @@ export function validateSell(state: MatchState, action: Sell): ValidationResult 
     matchIsLive(state),
     actorInMatch(state, action),
     isActorsTurn(state, action.by),
-    notJailBlocked(state, action.by),
+    // Exempt from the jail block while a debt is open (OQ-36 option 3): the sale is with the bank.
+    notJailBlockedUnlessOwing(state, action.by),
     // Selling is also a raise-cash route (rulebook §16).
     inStage(state, "preRoll", "postRoll", "raiseCash"),
   );
@@ -297,7 +298,8 @@ export function validateMortgage(state: MatchState, action: Mortgage): Validatio
     matchIsLive(state),
     actorInMatch(state, action),
     isActorsTurn(state, action.by),
-    notJailBlocked(state, action.by),
+    // The other §16 route, exempt on the same ground (OQ-36 option 3).
+    notJailBlockedUnlessOwing(state, action.by),
     inStage(state, "preRoll", "postRoll", "raiseCash"),
   );
   if (!base.ok) {

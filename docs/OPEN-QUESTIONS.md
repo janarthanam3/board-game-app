@@ -1078,6 +1078,23 @@ and it keeps one rule for "card money with no named recipient" rather than two.
 
 Raised 27 September 2026 by the C9 rules audit.
 
+**ANSWERED 27 September 2026 — option (2).** `zeroCash` routes the money as a **fine**, so
+`payFine()` sends it to `bank.finePot` on a board whose `finesTo` is `pot` and only a bank board
+absorbs it. This is the same reading OQ-22 item 2 gives a card's "You pay bank": one rule for card
+money with no named recipient.
+
+**Recorded consequence, accepted deliberately — do not "fix" this back.** On a pot board the money
+is *not* out of play. Whoever lands on the pot's payout tile collects it, and that can be the player
+it was just taken from, so a `zeroCash` card can end up funding its own victim. This is a balance
+consequence of routing card money consistently, not an oversight: the alternative is two different
+destinations for two cards that both take money with no named recipient, which is the inconsistency
+this answer removes.
+
+The return leg is not yet reachable in code — **nothing pays the pot out**, because which tile does
+is still unanswered (OQ-21 item 2, waiting on `3m`'s regeneration). So today the money accumulates
+in the pot, which `cashConservation` counts as money still in play. Two tests pin the half that
+exists: the pot receives it, and the ledger does not absorb it.
+
 ---
 
 ## OQ-30 · Do a collect-side and a paid-side `rentMultiplier` compose?
@@ -1277,6 +1294,69 @@ while leaving §16's promise of a way out intact. (1) makes "Max rounds held 3 �
 cold comfort, since the player can be eliminated before the third round.
 
 **Note for regeneration:** §12 and §16 contradict each other as written; this is recorded in
-`docs/design-concerns.md` as well, per Rule 0. No winner is picked here.
+`docs/design-concerns.md` as well, per Rule 0.
 
 Raised 27 September 2026 by the C9 re-audit.
+
+**ANSWERED 27 September 2026 — option (3).** Mortgage and sell are transactions with the **bank** and
+are exempt from the §12 jail block while a debt is open. Trade stays blocked whether a debt is open
+or not, because it needs a counterparty — which is what §12 actually protects against.
+
+Implemented as `notJailBlockedUnlessOwing()` in `src/reducer/guards.ts`, used by `validateSell` and
+`validateMortgage`. `validateBuild` and `validateRedeem` keep the plain guard: neither is a §16
+route, and both already refuse while a debt is open.
+
+**Why this reading and not the literal one.** §12 promises "Max rounds held 3 — release is automatic
+after that, paid or not". Under the previous reading that promise was **unreachable** for a held
+debtor: every §16 route was blocked, so only `DECLARE_BANKRUPTCY` remained and the player could be
+eliminated in the round they were jailed, long before the third round arrived. Option 3 is the
+resolution that honours the guarantee §12 makes about itself.
+
+**Remaining gap, recorded not fixed.** A held debtor whose only assets are **mortgaged deeds with no
+buildings** still has no route. Selling a mortgaged tile is refused until it is redeemed (OQ-20
+item 1, answered — that refusal closed a money leak), and a mortgaged tile cannot be mortgaged
+again, so option 3 narrows the dead end rather than closing it. A test pins this so it stays a known
+state rather than a surprise.
+
+**What `1d` must show.** The raise-cash sheet reads `legalActions()` rather than deciding for itself,
+so a held debtor is offered Mortgage and Sell and never Trade. Two tests pin that surface, and the
+requirement is on the `1d` task's acceptance criteria in `TASKS.md`.
+
+**Not capped at the debt, by design of §16 rather than of this answer.** No raise-cash route is
+limited to the amount owed — `1d`'s Pay button only needs `cash + raised >= debt` — so a ₹1 debt lets
+a held player liquidate an entire estate to the bank. That follows from §16 as written and from this
+answer's wording ("while a debt is open"), so it is not a divergence; it is recorded here so a later
+reader does not file it as a bug. If it should be capped, that is a change to §16 for **every**
+player, not a jail rule.
+
+---
+
+## OQ-37 · Does §12's jail block cover REDEEM, which it does not name?
+
+**Affects:** `packages/game-engine/src/reducer/property.ts` (`validateRedeem`);
+`docs/05-game-rules.md` §12 and §2.4's COMMON row; `1r` the redeem screen.
+
+**Why it matters:** §12 and §2.4 both name exactly four blocked actions — "build, sell, mortgage and
+trade". **Redeem is not among them**, yet `validateRedeem` refuses it while held. The restriction was
+never traced to the rulebook; it came in with the other three side actions.
+
+OQ-36's answer makes the asymmetry visible: a held player may now **mortgage** a tile while a debt is
+open, but may never **un**-mortgage one, even with the cash in hand and no debt outstanding. Redeeming
+is a payment to the bank, which is the same shape as bail — and §12 explicitly allows bail.
+
+**Engine today:** refused with `E_JAIL_BLOCKED` while held; allowed as soon as the player is released.
+
+**Options**
+1. The block covers redeem, as implemented, and §12's list is regenerated to name it. Simple, and it
+   keeps "no property administration while held" as one rule.
+2. The block does not cover redeem: it is a payment to the bank like bail, and §12's list is
+   exhaustive as written. A held player may clear a mortgage and start earning rent again.
+3. It does not cover redeem while a debt is open — the mirror of OQ-36 — and does otherwise.
+
+**Recommendation:** (2). §12's list reads as exhaustive in both places it appears, and the three
+actions it names all *increase* a held player's position or involve another player, while redeeming
+only converts cash the player already has into an unencumbered deed. (3) has no rationale: a debt is
+a reason to raise cash, not to spend it.
+
+Raised 27 September 2026 by the audit of the OQ-29 and OQ-36 answers. Pre-existing behaviour — not
+introduced by either answer.

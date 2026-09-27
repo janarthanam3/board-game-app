@@ -464,10 +464,18 @@ overlap is complete: every §16 route is a §12-blocked action, so a player who 
 debt has no route out and only **Declare bankruptcy** remains. §12 also promises "Max rounds held
 3 — release is automatic after that, paid or not", which a player eliminated in round one never sees.
 
-Neither section acknowledges the other. The engine currently follows §12, which is the literal
-reading of the narrower rule, and the question of which should win is **OQ-36** — unanswered.
+Neither section acknowledges the other.
 
-Whichever way it is answered, §12 or §16 needs regenerating to say so.
+**Resolved by OQ-36 on 27 September 2026 — option 3**, and recorded here because the rulebook still
+contradicts itself in writing. Mortgage and sell are exempt from the §12 block while a debt is open,
+because both are transactions with the bank; trade stays blocked, because it needs a counterparty.
+The deciding argument was §12's own promise — "Max rounds held 3 — release is automatic after that,
+paid or not" — which the literal reading made unreachable, since a held debtor could be eliminated
+in the round they were jailed.
+
+**§4's and §16's regeneration must say this**, and must also carry the gap the answer leaves: a held
+debtor whose only assets are mortgaged deeds with no buildings still has no route, because selling a
+mortgaged tile is refused until it is redeemed (OQ-20 item 1).
 
 ---
 
@@ -485,6 +493,24 @@ Recorded here rather than fixed, and added to the regeneration table in `docs/OP
 
 ---
 
+## `zeroCash` money reaches the free-parking pot, and can return to the player it was taken from
+
+**Found:** 27 September 2026. **Accepted consequence of OQ-29 option 2 — not a defect.**
+
+`zeroCash` routes its money as a fine, so on a board whose `finesTo` is `pot` the cash lands in the
+free-parking pot rather than leaving play. Whoever lands on the pot's payout tile then collects it,
+and that can be the player it was just taken from.
+
+This is recorded so that it is not later "fixed" back to the bank: routing it to the bank is what
+made two cards that both take money with no named recipient behave differently, against OQ-22
+item 2's answered reading. The return leg is not reachable in code yet, because which tile pays the
+pot out is still unanswered (`3m`, OQ-21 item 2).
+
+If the balance turns out to be wrong in play, the fix belongs in the **card's own design** — a
+different effect, or a pot-board exception stated in §5.1 — not in the money routing.
+
+---
+
 ## A card can be labelled `affects: "me"` and still act on another player
 
 **Found:** 27 September 2026, during the C9 re-audit. See **OQ-35**.
@@ -496,3 +522,25 @@ field is read by nothing and the pairing is enforced nowhere. A board authored w
 
 The design presents `affects` as an author's choice in `1z` §4.3, so this is a gap in validation
 rather than something to fix by changing the authoring model. OQ-35 recommends a publish-time check.
+
+## The raise-cash machine still offers three routes to a player the reducer allows two
+
+**Found:** 27 September 2026, by the audit of the OQ-36 answer. **Doc-level gap, no code change.**
+
+`packages/game-engine/src/machines/bankruptcy.ts` transcribes `docs/06-state-machines.md` and
+`docs/flows/raise-cash.md`, and both are written without knowledge of jail. So the machine keeps
+`RaiseCashRoute = "mortgage" | "sell" | "trade"`, accepts `switchRoute: "trade"` unconditionally, and
+decides `open` versus `exhausted` from a caller-supplied `allRoutesMax`.
+
+After OQ-36 the reducer allows a held debtor only mortgage and sell. A client that sums the flow
+doc's three-route band for such a player will therefore believe there is headroom the reducer will
+refuse, and will never reach `exhausted`.
+
+Nothing in the engine is wrong: the machine is faithful to the two docs it transcribes, and the
+reducer is the authority on legality. The gap closes when `docs/06` and `flows/raise-cash.md` are
+regenerated to say which routes a held player has — and, on the client, by E5's new acceptance
+criterion that `1d` renders its live routes from `legalActions()` rather than from a band in a doc.
+
+Related, for whoever regenerates `1n`: `cashZeroed` carries only `playerId` and `amount`, so neither
+the match log nor the notification card can say whether the money went to the pot or out of play —
+which, after OQ-29, are two different outcomes for the same card.

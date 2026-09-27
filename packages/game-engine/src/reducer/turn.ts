@@ -14,7 +14,7 @@ import { pick, rollDice } from "../rng";
 import { type CornerTile, isSolvent, type MatchState, type PlayerId, type TileIndex } from "../state";
 import { openAuction } from "./auction";
 import { resolveCardSpace } from "./cards";
-import { type Ctx, emit, payBank, payFine, playerOf } from "./context";
+import { type Ctx, emit, payFine, playerOf } from "./context";
 import { charge, resolveBankruptcy } from "./debt";
 import { applyRespondTrade, validateRespondTrade } from "./trade";
 import { actorInMatch, all, inStage, isActorsTurn, matchIsLive, noOpenDebt } from "./guards";
@@ -590,8 +590,10 @@ export function applyUseCard(ctx: Ctx, action: Extract<Action, { kind: "USE_CARD
       }
       const victim = playerOf(ctx, action.target);
       const amount = victim.cash;
-      // The money leaves play, so the bank's ledger records it absorbed.
-      payBank(ctx, action.target, amount);
+      // OQ-29 (answered, option 2): the money is a fine, so a board whose finesTo is "pot" collects
+      // it and only a bank board absorbs it. This is the same reading as OQ-22 item 2 gives a card's
+      // "You pay bank" — one rule for card money with no named recipient.
+      payFine(ctx, action.target, amount);
       emit(ctx, { kind: "cashZeroed", playerId: action.target, amount });
       return;
     }
