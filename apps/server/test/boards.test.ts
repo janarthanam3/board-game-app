@@ -379,13 +379,14 @@ describe("POST /boards/:boardId/unpublish and GET /boards/:boardId/impact", () =
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({
+    expect(response.body).toEqual({
       playersInGame: 0,
       playsToday: 0,
       openMatches: 0,
-      stakesHeld: 0,
       liveVersion: 1,
     });
+    // OQ-41, answered: the field is gone, not zero.
+    expect(response.body).not.toHaveProperty("stakesHeld");
   });
 
   it("frees the slot and takes the board out of the catalogue", async () => {

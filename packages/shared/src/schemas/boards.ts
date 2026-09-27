@@ -119,11 +119,16 @@ export const reportBodySchema = z.object({
   note: z.string().max(500).optional(),
 });
 
+/**
+ * OQ-41, answered: `stakesHeld` is **gone**. Unpublishing cannot strand money — D5 says running
+ * matches finish on their version — so nothing is held in any sense a player can act on, and a field
+ * that always answered 0 was worse than no field. `docs/07`'s UnpublishImpact and `2a` §2.4's stakes
+ * line both need regenerating without it.
+ */
 export const unpublishImpactSchema = z.object({
   playersInGame: z.number().int().nonnegative(),
   playsToday: z.number().int().nonnegative(),
   openMatches: z.number().int().nonnegative(),
-  stakesHeld: z.number().int().nonnegative(),
   liveVersion: z.number().int().nonnegative(),
 });
 

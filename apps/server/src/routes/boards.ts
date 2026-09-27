@@ -289,9 +289,10 @@ async function ownedBoard(
 /**
  * UnpublishImpact (docs/07), the numbers 2a §2.4's sheet shows.
  *
- * `stakesHeld` is the one number Postgres cannot answer today: a running match's cash lives in the
- * engine's state, and `match_players.cash` is only written when the match ends. It therefore counts
- * what has been recorded and nothing more — OQ-41 asks what "stakes" should mean.
+ * There is no `stakesHeld`: OQ-41 is answered and the field is dropped. Unpublishing cannot strand
+ * money — a running match finishes on its own version (D5) — so nothing is held, and the number could
+ * only ever have been 0 here anyway, because a live match's cash is in the engine's state and
+ * `match_players.cash` is written when the match ends.
  */
 async function impactOf(
   app: Parameters<FastifyPluginAsync<BoardRoutesOptions>>[0],
@@ -300,14 +301,12 @@ async function impactOf(
   playersInGame: number;
   playsToday: number;
   openMatches: number;
-  stakesHeld: number;
   liveVersion: number;
 }> {
   const result = await app.pg.query<{
     players_in_game: string;
     plays_today: string;
     open_matches: string;
-    stakes_held: string;
     live_version: string;
   }>(
     `with versions as (
@@ -324,7 +323,6 @@ async function impactOf(
        (select count(*) from matches m join versions v on v.id = m.board_version_id
           where m.created_at >= now() - interval '1 day')::text as plays_today,
        (select count(*) from open_matches)::text as open_matches,
-       (select coalesce(sum(p.cash), 0) from match_players p join open_matches o on o.id = p.match_id)::text as stakes_held,
        (select coalesce(max(version), 0) from versions)::text as live_version`,
     [boardId],
   );
@@ -333,7 +331,6 @@ async function impactOf(
     playersInGame: Number(row?.players_in_game ?? "0"),
     playsToday: Number(row?.plays_today ?? "0"),
     openMatches: Number(row?.open_matches ?? "0"),
-    stakesHeld: Number(row?.stakes_held ?? "0"),
     liveVersion: Number(row?.live_version ?? "0"),
   };
 }

@@ -900,6 +900,7 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/13-error-catalog.md` | `E_JAIL_BLOCKED` needs copy for the case where the *other* side of a trade is the one held (BUG-001); the present "Not while you're in jail." is second-person about someone else |
 | `docs/screens/1a-auth.md` | the route names, the sign-up field and the error codes it uses — none of which match `docs/07` or `docs/13` (see design-concerns, OQ-38 and OQ-39) |
 | `docs/07-api-contract.md` | declare `TileSummary`, `RuleSummaryRow` and `PublishedBoard` · list `GET /boards/name-available` (only `2a` has it) · say whether the publish body carries `ruleset` (OQ-40) |
+| `docs/screens/2a-board-builder.md` | §2.4 without the stakes line, and `UnpublishImpact` without the field (OQ-41) |
 | `docs/13-error-catalog.md` (cont.) | the three validator outcomes with no code, and codes for D7's five warnings |
 
 ---
@@ -1519,4 +1520,13 @@ D5 says running matches finish on their version, so nothing is "held" in any sen
 on. If the intent is "the matches keep going", the copy should say that — which the line above it
 already does.
 
-Raised 27 September 2026 during D3. Does not block D3; the field is returned and answers 0.
+Raised 27 September 2026 during D3.
+
+**ANSWERED 27 September 2026 — option (3), drop it.** `stakesHeld` is removed from `UnpublishImpact`,
+from the shared schema and from the endpoint. Unpublishing cannot strand money: a running match
+finishes on its own version (D5), so nothing is held in any sense a player can act on, and a field
+that always answered 0 is worse than no field. A test asserts the key is **absent** rather than zero.
+
+Needs regenerating: `docs/07-api-contract.md`'s `UnpublishImpact` without the field, and `2a` §2.4's
+dialog without the line "₹84,200 in stakes stays held until those matches settle." The line above it
+("46 open matches keep running to the end on v3.") already says the true thing.
