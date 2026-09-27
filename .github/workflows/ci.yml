@@ -53,4 +53,8 @@ jobs:
 
       - run: pnpm lint
 
-      - run: pnpm test
+      # Runs every suite and then checks the inventory: a test file that exists but did not run, a
+      # file that loaded and produced no tests (a module-level throw silently empties it), a skipped
+      # or todo test, or a stale entry in the deliberate-exclusion allow-list all fail the build.
+      # This replaces `pnpm test` rather than running beside it — it runs the same suites.
+      - run: pnpm test:inventory
