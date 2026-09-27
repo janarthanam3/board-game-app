@@ -72,18 +72,35 @@ describe("round-trip: encode, decode, deep-equal", () => {
     expect(decoded).toEqual(payload);
   });
 
-  it("match:applied survives JSON, patch operations included", () => {
+  it("match:applied carries events and a state hash, never a patch", () => {
     const payload = {
       seq: 8,
       events: [{ kind: "diceRolled", dice: [3, 4], doubles: false }],
-      statePatch: [
-        { op: "replace" as const, path: "/turn/stage", value: "postRoll" },
-        { op: "remove" as const, path: "/offers/0" },
-      ],
+      stateHash: "1a2b3c4d",
     };
 
     const decoded = appliedPayloadSchema.parse(JSON.parse(JSON.stringify(payload)));
     expect(decoded).toEqual(payload);
+  });
+
+  it("refuses a match:applied that carries a state patch", () => {
+    // The client re-derives from the events through the same engine build, so a patch has no meaning
+    // here and must not be accepted quietly: CLAUDE.md's shared-engine mandate supersedes docs/07's
+    // statePatch, and a silently ignored field is how a wire format drifts back.
+    const verdict = appliedPayloadSchema.safeParse({
+      seq: 8,
+      events: [],
+      stateHash: "1a2b3c4d",
+      statePatch: [{ op: "replace", path: "/turn/stage", value: "postRoll" }],
+    });
+
+    expect(verdict.success).toBe(false);
+  });
+
+  it("refuses a hash that is not the engine's eight hex digits", () => {
+    for (const stateHash of ["", "xyz", "1A2B3C4D", "1a2b3c4", "1a2b3c4d5"]) {
+      expect(appliedPayloadSchema.safeParse({ seq: 1, events: [], stateHash }).success).toBe(false);
+    }
   });
 
   it("lobby:updated survives JSON", () => {

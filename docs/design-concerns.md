@@ -717,8 +717,37 @@ redaction is server-side, deadlines are server-supplied, money is integer rupees
 error-catalog codes. Only the "no delta event at all" rule is set aside, and only because the contract
 specifies one.
 
-**What needs deciding.** If patches are genuinely unwanted — they are the one part of this that can
-put a client into a state the server never held — then `docs/07` needs regenerating without
-`statePatch`, and `match:applied` becomes `{ seq, events }` with the client re-rendering from its own
-engine run. That is a product decision about bandwidth against safety, not something to settle in
-code, so it is recorded here rather than chosen.
+**DECIDED 27 September 2026 by the owner: re-derive, not patches.** `docs/07`'s `statePatch` is
+**superseded**. `match:applied` carries `{ seq, events, stateHash }` and the client runs the same
+engine build over the same events to compute the state itself.
+
+**The authority is CLAUDE.md**, not `docs/07`: the repository shape mandates that "both the server and
+the mobile app run the *same* engine build", and the engine is deterministic by construction — seeded
+RNG, integer money, no clock, no locale — with byte-identical replay proved across 1,000 seeded
+matches at the gate. A patch throws that guarantee away. It can put a client in a state the server
+never held, and nothing in the protocol would notice; re-deriving from events cannot produce a state
+the server did not also produce.
+
+**The divergence guard, also the owner's:** the server sends the engine's own `__debug.hash` with
+every `match:applied`, the client compares it after replaying the events, and a mismatch triggers
+`match:sync` instead of carrying on. So a divergence is detected at the first action it affects rather
+than being invisible. The hash is eight hex digits of FNV-1a over a stable serialisation, integer
+maths only, so the server and the device agree byte for byte. `appliedPayloadSchema` is `.strict()`,
+which makes a reintroduced `statePatch` a refusal rather than a silently stripped field.
+
+**A full snapshot stays available**, for `match:subscribe`, `match:sync` and every reconnect, carrying
+the same hash so a client can confirm a replacement before trusting it. That is what H1's reconnect
+work and the socket-contract skill's resync-equivalence test need.
+
+**Needs regenerating:** `docs/07-api-contract.md` §Socket.IO — `match:applied` as
+`{ seq, events, stateHash }`, and the "Payload size and frequency" paragraph without RFC 6902 and
+without the 8 KB fallback. Added to the regeneration table in `docs/OPEN-QUESTIONS.md`.
+
+**The three narrower mismatches stay as `docs/07` writes them**, by the owner's direction, and are
+logged here rather than reconciled: the sequence field is `seq` and not `eventId`; resync is
+`match:sync` and not `match:resync`; and idempotency keys off `seq` rather than a per-action
+`actionId`. The skill's names are the ones to change if these are ever unified, since `docs/07` is the
+contract the client is built against. One consequence worth noting: keying idempotency off `seq`
+means two different actions sent at the same `seq` are indistinguishable, where an `actionId` would
+tell them apart — so a client must not send a second action until the first is acked, which is what
+docs/07's own reconciliation rules already require.

@@ -900,6 +900,7 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/13-error-catalog.md` | `E_JAIL_BLOCKED` needs copy for the case where the *other* side of a trade is the one held (BUG-001); the present "Not while you're in jail." is second-person about someone else |
 | `docs/screens/1a-auth.md` | the route names, the sign-up field and the error codes it uses — none of which match `docs/07` or `docs/13` (see design-concerns, OQ-38 and OQ-39) |
 | `docs/07-api-contract.md` | declare `TileSummary`, `RuleSummaryRow` and `PublishedBoard` · list `GET /boards/name-available` (only `2a` has it) · say whether the publish body carries `ruleset` (OQ-40) |
+| `docs/07-api-contract.md` (cont.) | §Socket.IO: `match:applied` as `{ seq, events, stateHash }`, and the size paragraph without RFC 6902 or the 8 KB fallback — `statePatch` is superseded by CLAUDE.md's shared-engine mandate (see design-concerns) |
 | `docs/screens/2a-board-builder.md` | §2.4 without the stakes line, and `UnpublishImpact` without the field (OQ-41) |
 | `docs/13-error-catalog.md` (cont.) | the three validator outcomes with no code, and codes for D7's five warnings |
 

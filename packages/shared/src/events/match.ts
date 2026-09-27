@@ -6,8 +6,13 @@
 // does not match is refused at the edge with the event name and the failing path, never halfway
 // through a handler.
 //
-// The `seq` / `statePatch` shape is docs/07's. The skill forbids a delta event outright; that
-// contradiction is recorded in docs/design-concerns.md and resolved in favour of the contract.
+// `match:applied` carries **events, not a state patch**. docs/07 specifies an RFC 6902 `statePatch`;
+// that is superseded, because CLAUDE.md mandates one deterministic engine shared by the server and the
+// client, and the client can therefore re-derive state by running the same events through the same
+// build. A patch discards that guarantee and can put a client in a state the server never held, with
+// nothing to detect it. `stateHash` is the detector: the engine's own FNV-1a over the stable
+// serialisation, compared after the client applies, and a mismatch means resync rather than silent
+// divergence. Recorded in docs/design-concerns.md.
 
 import { z } from "zod";
 
@@ -17,6 +22,11 @@ const idSchema = z.string().min(1).max(64);
 /** Monotonic per match, starting at 0 for a match that has applied nothing. */
 const seqSchema = z.number().int().nonnegative();
 
+/**
+ * The engine's `__debug.hash`: eight lowercase hex digits of FNV-1a over the stable serialisation,
+ * integer maths only, so the server and the device agree byte for byte.
+ */
+export const stateHashSchema = z.string().regex(/^[0-9a-f]{8}$/);
 // ─── Client → server ─────────────────────────────────────────────────────────────────────────────
 
 export const subscribePayloadSchema = z.object({ matchId: idSchema }).strict();
@@ -63,7 +73,7 @@ export type ClientEventName = keyof typeof CLIENT_EVENTS;
 // ─── Acks ────────────────────────────────────────────────────────────────────────────────────────
 
 /** `match:subscribe` and `match:sync` both ack with the whole state (docs/07). */
-export const stateAckSchema = z.object({ state: z.unknown(), seq: seqSchema });
+export const stateAckSchema = z.object({ state: z.unknown(), seq: seqSchema, stateHash: stateHashSchema });
 
 export const actionAckSchema = z.union([
   z.object({ ok: z.literal(true), seq: seqSchema }),
@@ -77,21 +87,29 @@ export const okAckSchema = z.union([
 
 // ─── Server → client ─────────────────────────────────────────────────────────────────────────────
 
-/** One RFC 6902 operation. The server sends a full state instead once a patch would exceed 8 KB. */
-export const patchOperationSchema = z.object({
-  op: z.enum(["add", "remove", "replace", "move", "copy", "test"]),
-  path: z.string(),
-  value: z.unknown().optional(),
-  from: z.string().optional(),
-});
 
-export const appliedPayloadSchema = z.object({
-  seq: seqSchema,
-  events: z.array(z.object({ kind: z.string() }).passthrough()),
-  statePatch: z.array(patchOperationSchema),
-});
+/**
+ * What the server sends after applying an action: the seq it is now at, the events the reducer
+ * emitted, and the hash of the state those events produce. The client replays the events through its
+ * own engine build and compares the hash; equal means the two agree exactly, different means resync.
+ */
+export const appliedPayloadSchema = z
+  .object({
+    seq: seqSchema,
+    events: z.array(z.object({ kind: z.string() }).passthrough()),
+    stateHash: stateHashSchema,
+  })
+  // Strict, so a reintroduced `statePatch` is a refusal rather than a quietly stripped field. A wire
+  // format drifts back exactly that way.
+  .strict();
 
-export const statePayloadSchema = z.object({ seq: seqSchema, state: z.unknown() });
+/**
+ * The full snapshot, for `match:subscribe`, `match:sync` and every reconnect. It carries the hash
+ * too, so a client that has just replaced its state can confirm it matches before trusting it.
+ */
+export const statePayloadSchema = z
+  .object({ seq: seqSchema, state: z.unknown(), stateHash: stateHashSchema })
+  .strict();
 
 export const endedPayloadSchema = z.object({ result: z.object({}).passthrough() });
 
