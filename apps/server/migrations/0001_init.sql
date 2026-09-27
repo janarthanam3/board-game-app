@@ -7,14 +7,17 @@
 -- `idx_<table>_<columns>`; the doc names eight indexes explicitly and those names are part of the
 -- schema it specifies, so they win here. Recorded in docs/design-concerns.md.
 
--- citext backs the case-insensitive unique email in users.
-create extension if not exists citext;
+-- citext backs the case-insensitive unique email in users. Pinned to `public` and referenced as
+-- `public.citext` because an extension is database-wide, not per-schema: without this it lands in
+-- whichever schema happens to be first on the search_path, and a later run against a different
+-- schema then fails with "type citext does not exist" while `if not exists` quietly does nothing.
+create extension if not exists citext with schema public;
 
 create table users (
   id                text primary key,
   handle            text not null unique check (handle ~ '^[a-z0-9_]{3,20}$'),
   display_name      text not null,
-  email             citext not null unique,
+  email             public.citext not null unique,
   password_hash     text not null,
   created_at        timestamptz not null default now(),
   deleted_at        timestamptz,

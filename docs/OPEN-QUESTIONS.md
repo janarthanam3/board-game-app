@@ -898,6 +898,7 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/02-design-tokens.md` | the board-map insets and pip anchors now in `tokens.board` |
 | `docs/08-database.md` | the derived pending / completed column from OQ-6 |
 | `docs/13-error-catalog.md` | `E_JAIL_BLOCKED` needs copy for the case where the *other* side of a trade is the one held (BUG-001); the present "Not while you're in jail." is second-person about someone else |
+| `docs/screens/1a-auth.md` | the route names, the sign-up field and the error codes it uses — none of which match `docs/07` or `docs/13` (see design-concerns, OQ-38 and OQ-39) |
 
 ---
 
@@ -1376,3 +1377,68 @@ plain sight: they could encumber a deed but never clear one.
 the roll that does not release them, so redeem is available there — the same `preRoll`/`postRoll`
 window every side action uses (§15 step 6). That stage set is unchanged: this answer removes the jail
 block, not the stage gate.
+
+---
+
+## OQ-38 · Does sign-up collect a handle or a display name?
+
+**Affects:** `apps/server/src/routes/auth.ts` (`POST /auth/signup`); `packages/shared/src/schemas/auth.ts`;
+`docs/07-api-contract.md` §Auth; `docs/screens/1a-auth.md` §3 and §5.
+
+**Why it matters:** `users` has both `handle` (unique, `^[a-z0-9_]{3,20}$`) and `display_name`
+(**not null**). `docs/07`'s sign-up body is `{ handle, email, password }` — no display name. `1a`
+adds exactly one field above Email and calls it **Display name**, 3–16 characters, pattern
+`^[A-Za-z0-9 _-]+$` — spaces and capitals allowed, so it is not a handle. Neither doc mentions the
+other's field, and the database needs both.
+
+**Engine today:** the server takes `handle` per `docs/07` and sets `display_name` to the same string,
+because the column cannot be null and nothing supplies it. `PATCH /me { displayName? }` can change it
+afterwards.
+
+**Options**
+1. Sign-up takes the handle, display name starts equal to it, as implemented. `1a` is regenerated to
+   collect a handle, with the handle's stricter pattern and its own validation copy.
+2. Sign-up takes the display name and the server derives a handle from it (lower-case, spaces to
+   underscores, a numeric suffix on collision). Matches `1a` as drawn, but a derived handle appears in
+   URLs and mentions without the user ever choosing or seeing it.
+3. Sign-up takes both, as two fields. Contradicts `1a`'s "exactly one added field" (criterion 4) and
+   its focus order.
+
+**Recommendation:** (1). A handle is public, permanent-ish and unique, so it should be typed
+deliberately rather than derived from a display name — and (2) would generate handles like
+`priya_r_2`, which is exactly the kind of value a player then wants changed. If the design really
+wants one field at sign-up, (1) still holds: make that field the handle and let the display name be
+edited later in `3f`.
+
+Raised 27 September 2026 during D2. Blocks `1a`'s implementation, not D2.
+
+---
+
+## OQ-39 · How is a password-reset link delivered on a free tier?
+
+**Affects:** `apps/server/src/routes/auth.ts` (`POST /auth/forgot`); `docs/screens/1a-auth.md` §5;
+`docs/09-server-config.md` (no mail variables exist).
+
+**Why it matters:** `1a` promises the toast "Check your email for a reset link." Sending email needs a
+provider, and `docs/09` has no SMTP or API-key variable for one — there is no mail configuration in
+the project at all. CLAUDE.md Rule 3 forbids a paid service, and every free mail tier needs an account,
+a verified sender domain and a key, none of which exist here.
+
+**Engine today:** the endpoint accepts the request, logs it, and returns `202` with the same body for
+a known and an unknown address (`1a` criterion 7). **No email is sent and no reset token is minted**,
+so the promise in the toast is not yet true. Nothing else in the system depends on it.
+
+**Options**
+1. A free provider's free tier (Resend, Brevo, Mailgun's trial), with the key in `docs/09` as a new
+   required variable and a documented "email disabled" mode for local development. Real reset links;
+   an external dependency and an account to keep alive.
+2. No email at all: drop `Forgot password?` from `1a` and recover accounts some other designed way.
+   Honest, and it removes a promise the app cannot keep — but it strands anyone who forgets a password.
+3. Ship the endpoint as it is (a logged no-op) until a provider is chosen, and change `1a`'s toast to
+   something it can honour, so the app does not tell a lie in the meantime.
+
+**Recommendation:** (3) now and (1) before release. The endpoint's shape, its rate limit and its
+"same answer either way" behaviour are all settled and tested; only delivery is missing. What must not
+survive to release is the toast, which currently states something that does not happen.
+
+Raised 27 September 2026 during D2. Does not block D2; blocks `1a`'s criterion 7 being truthful.

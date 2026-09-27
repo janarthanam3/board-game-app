@@ -544,3 +544,42 @@ criterion that `1d` renders its live routes from `legalActions()` rather than fr
 Related, for whoever regenerates `1n`: `cashZeroed` carries only `playerId` and `amount`, so neither
 the match log nor the notification card can say whether the money went to the pot or out of play —
 which, after OQ-29, are two different outcomes for the same card.
+
+## `1a-auth.md` and `07-api-contract.md` disagree about the auth routes, in four ways
+
+**Found:** 27 September 2026, building D2. **Rule 0 — two derived docs, no winner picked.**
+
+| What | `docs/07-api-contract.md` | `docs/screens/1a-auth.md` |
+| --- | --- | --- |
+| Sign-in route | `POST /auth/signin` | `POST /auth/login` (§5, §6) |
+| Sign-up route | `POST /auth/signup` | `POST /auth/register` (§5, §6) |
+| Forgot password | absent from the table | `POST /auth/forgot`, with copy and criterion 7 |
+| Sign-up body | `{ handle, email, password }` | one added field, "Display name" — no handle |
+| Error codes | `E_EMAIL_TAKEN`, `E_CREDENTIALS_INVALID` (docs/13) | `E_AUTH_EMAIL_TAKEN`, `E_AUTH_INVALID_CREDENTIALS` |
+| Email-taken copy | "That email is already registered." | "That email already has an account." |
+
+**What D2 implemented, and why.** `docs/07` for the three routes it names, because it is the API
+contract and says of itself that the shared schema *is* the contract; `docs/13` for the codes, because
+it is the error catalog. `/auth/forgot` is implemented as `1a` describes it, since 07 is **silent**
+on it rather than contrary, and a screen that cannot reach its own endpoint is not shippable.
+
+**Consequence if this is not resolved before E-phase:** `1a` as written calls three routes, two of
+which do not exist, expects two codes that are never sent, and cannot supply the `handle` that
+sign-up requires. Whichever side wins, one of the two docs needs regenerating — the route names and
+the sign-up body are not cosmetic.
+
+---
+
+## `1a` requires a digit in a sign-up password; the catalog's rule is length only
+
+**Found:** 27 September 2026, building D2.
+
+`1a` §5 validates a sign-up password as "≥ 8 chars with one letter and one digit". `docs/13`'s
+`E_PASSWORD_WEAK` copy is "Use at least 8 characters.", and there is no code or copy for a missing
+digit. The server therefore enforces the length only: rejecting a letters-only password would mean
+sending `E_PASSWORD_WEAK` with copy that does not describe why it failed, which is worse than
+accepting it.
+
+So `1a`'s extra rule is client-side validation that never reaches the server. If the composition
+rule is meant to be real, the catalog needs a code and copy for it; if it is not, `1a` §5 should drop
+it. Recorded rather than guessed.
