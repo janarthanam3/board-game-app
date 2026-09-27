@@ -185,9 +185,14 @@ interface FuzzProfile {
    */
   dealJailPass?: boolean;
   /**
-   * Deal one of each C9 card to every seat. Drawing them is possible but rare, and a card that is
-   * never in a hand is a branch the invariant sweep never enters — which is how the whole set of
-   * targeted effects stayed unswept while the suite passed.
+   * Deal one of each C9 card to every seat, and open one trade offer per seat. Drawing the cards is
+   * possible but rare, and a card that is never in a hand is a branch the invariant sweep never
+   * enters — which is how the whole set of targeted effects stayed unswept while the suite passed.
+   *
+   * The seeded offers are what make `forceTradeAccept` reachable at all: it needs an offer open from
+   * the holder to the exact player it names, and random play does not reliably produce that pair.
+   * Leaving it to chance made the per-effect tally fall to zero the moment an unrelated change
+   * (allowing REDEEM while held, OQ-37) shifted which actions the RNG picked.
    */
   dealTargetCards?: boolean;
 }
@@ -240,6 +245,20 @@ function playRandom(seed: number, maxSteps: number, profile: FuzzProfile = SHORT
       { kind: "forceTradeAccept", target: "choose" },
       { kind: "rentMultiplier", factor: 2, side: "pay" },
     ];
+    // One open offer per seat, to the next seat round, expiring far beyond the step budget so the
+    // card's precondition holds however long the match runs.
+    THREE.forEach((seat, position) => {
+      const to = THREE[(position + 1) % THREE.length]!.id;
+      state.offers.push({
+        id: `offer-seeded-${seat.id}`,
+        from: seat.id,
+        to,
+        give: { cash: 100, tileIndexes: [], holdCardIds: [] },
+        get: { cash: 0, tileIndexes: [], holdCardIds: [] },
+        createdAtMs: 0,
+        expiresAtMs: Number.MAX_SAFE_INTEGER,
+      });
+    });
     for (const seat of THREE) {
       for (const effect of aimed) {
         state.players[seat.id]!.holdCards.push({

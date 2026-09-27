@@ -180,3 +180,57 @@ describe("what 1d's raise-cash sheet is told (OQ-36)", () => {
     expect(legalActions(free, PRIYA).slice().sort()).toEqual(["DECLARE_BANKRUPTCY", "MORTGAGE", "OFFER_TRADE", "SELL"]);
   });
 });
+
+// OQ-37 (answered, option 2): §12's and §2.4's blocked list — "build, sell, mortgage and trade" — is
+// exhaustive, and REDEEM is not on it. Redeeming is a payment to the bank, the same shape as bail,
+// which §12 explicitly allows. OQ-36 made the asymmetry visible (a held player could mortgage while
+// owing but never un-mortgage) rather than creating it: the restriction was never traced to §12.
+describe("REDEEM while held (OQ-37 option 2)", () => {
+  /** Priya is held, owes nothing, and holds a mortgaged deed plus the cash to clear it. */
+  function heldWithMortgage(): MatchState {
+    let state = grant(grant(newMatch(), PRIYA, [...SKY, UTILITY]), NAVEEN, [3]);
+    state.tiles[UTILITY]!.mortgaged = true;
+    state = setCash(state, PRIYA, 10_000);
+
+    state = step(rollAs(state, NAVEEN, [1, 2]), at("END_TURN", NAVEEN));
+    // Her turn opens at jailChoice; rolling without a releasing double leaves her held at postRoll,
+    // which is where §15 step 6's side actions live.
+    state.players[PRIYA]!.jail = { in: true, roundsHeld: 0 };
+    state.turn.stage = "jailChoice";
+    state = rollAs(state, PRIYA, [2, 3]);
+
+    expect(state.players[PRIYA]!.jail.in).toBe(true);
+    expect(state.turn.stage).toBe("postRoll");
+    expect(state.debts).toEqual([]);
+    return state;
+  }
+
+  it("is allowed, and the deed comes out of mortgage", () => {
+    let state = heldWithMortgage();
+    const cashBefore = state.players[PRIYA]!.cash;
+    state = step(state, { kind: "REDEEM", by: PRIYA, tileIndexes: [UTILITY], atMs: 0 });
+
+    expect(state.tiles[UTILITY]!.mortgaged).toBe(false);
+    expect(state.players[PRIYA]!.cash).toBeLessThan(cashBefore);
+    expect(state.players[PRIYA]!.jail.in).toBe(true);
+    expect(checkInvariants(state)).toEqual([]);
+  });
+
+  it("appears in the actions a held player is offered", () => {
+    expect(legalActions(heldWithMortgage(), PRIYA)).toContain("REDEEM");
+  });
+
+  it("but the three §12 actions stay blocked in the same state", () => {
+    const state = heldWithMortgage();
+    expect(refusal(state, { kind: "SELL", by: PRIYA, what: "house", tileIndex: 6, atMs: 0 })).toBe("E_JAIL_BLOCKED");
+    expect(refusal(state, { kind: "MORTGAGE", by: PRIYA, tileIndexes: [9], atMs: 0 })).toBe("E_JAIL_BLOCKED");
+    expect(refusal(state, { kind: "BUILD", by: PRIYA, what: "house", tileIndex: 6, atMs: 0 })).toBe("E_JAIL_BLOCKED");
+  });
+
+  it("is still refused while a debt is open — that block is not a jail rule", () => {
+    // noOpenDebt is unchanged: a debtor raises cash, they do not spend it (rulebook §16).
+    const state = heldWithMortgage();
+    state.debts.push({ id: "d-1", debtorId: PRIYA, creditorId: "bank", amount: 50, createdRound: 1, payTo: "bank" });
+    expect(refusal(state, { kind: "REDEEM", by: PRIYA, tileIndexes: [UTILITY], atMs: 0 })).toBe("E_DEBT_BLOCKING");
+  });
+});

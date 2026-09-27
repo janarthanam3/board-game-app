@@ -891,6 +891,7 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | Doc | What it must say |
 | --- | --- |
 | `docs/05-game-rules.md` | §4 and §8 even build measured among the holder's tiles · §2.3 Tax office draws as well as charging · §7 the five-utility wording · §8 the dropped "Hotel returns houses" toggle · §9 the three rounding rules · §13 the `freeRestHouse` card and its use · §1 the teleport bonus as a permission |
+| `docs/05-game-rules.md` (cont.) | §12 and §16: the raise-cash exemption from OQ-36, and §12's blocked list confirmed exhaustive so REDEEM is allowed while held (OQ-37) |
 | `docs/screens/1z-rule-control.md` | §4.1 four MONEY directions · §4.2–4.3 the rulebook's ranges and expiry values |
 | `docs/screens/1n-notification-cards.md` | #3 `PROPERTY COST` must say when the deed is mortgaged and name the redeem cost (OQ-25) · cards for the two C9 events `cashZeroed` and `buildingRemoved`, which have no card in `1n` today |
 | `docs/screens/3m-*.md` | which tile pays out the free-parking pot |
@@ -1360,3 +1361,18 @@ a reason to raise cash, not to spend it.
 
 Raised 27 September 2026 by the audit of the OQ-29 and OQ-36 answers. Pre-existing behaviour — not
 introduced by either answer.
+
+**ANSWERED 27 September 2026 — option (2), the exhaustive reading of §12.** Redeem is not in §12's
+blocked list and is a payment to the bank, the same shape as bail, which §12 explicitly allows. The
+jail guard is gone from `validateRedeem`; the debt guard stays, because a debtor raises cash rather
+than spending it (§16), and that block is not a jail rule.
+
+**OQ-36 made the asymmetry visible rather than creating it.** The restriction was never traced to
+§12 — it arrived with the other three side actions, all of which §12 does name. What OQ-36 changed
+was only that a held player may now mortgage while a debt is open, which put the missing half in
+plain sight: they could encumber a deed but never clear one.
+
+**Where it takes effect.** A held player's turn opens at `jailChoice` and reaches `postRoll` after
+the roll that does not release them, so redeem is available there — the same `preRoll`/`postRoll`
+window every side action uses (§15 step 6). That stage set is unchanged: this answer removes the jail
+block, not the stage gate.

@@ -339,8 +339,11 @@ export function validateRedeem(state: MatchState, action: Redeem): ValidationRes
     matchIsLive(state),
     actorInMatch(state, action),
     isActorsTurn(state, action.by),
+    // Still blocked by a debt: a debtor raises cash, they do not spend it (§16).
     noOpenDebt(state, action.by),
-    notJailBlocked(state, action.by),
+    // No jail guard. OQ-37 (answered, option 2): §12's and §2.4's blocked list — build, sell,
+    // mortgage and trade — is exhaustive, and redeem is not on it. Redeeming is a payment to the
+    // bank, the same shape as bail, which §12 explicitly allows.
     inStage(state, "preRoll", "postRoll"),
   );
   if (!base.ok) {

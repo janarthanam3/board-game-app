@@ -56,6 +56,36 @@ _None yet — implementation has not started._
 
 ## Fixed
 
+### BUG-002 · A bankrupt player could inherit their own estate
+- severity: 1 — deeds and buildings end up owned by an eliminated player
+- found: 2026-09-27 · engine only, no build · found by the 1,000-match gate (seed 529, step 343)
+- area: rulebook §16 and `docs/flows/bankruptcy.md` §Resolution order; `src/reducer/debt.ts`
+- steps:
+  1. Naveen lands on Arun's built-up tile and cannot pay, so he owes Arun.
+  2. Arun is eliminated with Naveen as his creditor, so Arun's estate passes to Naveen.
+  3. Naveen declares bankruptcy. His debt to Arun cascades along Arun's estate (edge case #7) and
+     arrives back at Naveen.
+- expected: an estate goes to a creditor or, failing one, to the bank. Nobody inherits their own
+  estate, and `ownershipUnique` forbids a tile owned by an eliminated player.
+- actual: `effectiveCreditor()` returned Naveen — he is still solvent at that point in the
+  resolution — so step 3 assigned each of his deeds to himself. After step 5 set `bankrupt.out`,
+  eight tiles were owned by an eliminated player and the invariant broke.
+- seed / match id: fuzz seed 529, step 343 (`DECLARE_BANKRUPTCY`); reproduced deterministically in
+  `test/reducer/creditor-cycle.test.ts`
+- status: fixed
+- cause: `effectiveCreditor()` stops at the first solvent player in the chain, and the player
+  declaring bankruptcy is solvent until step 5. A two-player creditor cycle — A owes B, then B is
+  eliminated owing A — therefore resolves A's creditor to A.
+- fix: `resolveBankruptcy()` now treats a chain that resolves to the bankrupt player as having no
+  player creditor, so the estate goes to the bank exactly as an uncreditored bankruptcy does.
+  `effectiveCreditor()` itself is unchanged: it has no notion of whose debt it is resolving.
+- regression test: `a creditor chain that loops back to the debtor (BUG-002)` — three cases: the
+  estate reaching the bank, the buildings returning to the bank's supply, and a solvent creditor
+  still being paid normally.
+- note: the same cycle in `applyPayDebt()` makes a player pay themselves, which nets to zero and
+  clears the debt. Harmless, so it is left alone rather than changed alongside this fix; what a
+  self-directed debt *should* do is not stated anywhere.
+
 ### BUG-001 · A trade could be accepted by, or with, a player held in jail
 - severity: 1 — it moves deeds and cash in a state the rulebook forbids
 - found: 2026-09-27 · engine only, no build · found by the C9 rules audit

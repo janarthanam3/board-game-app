@@ -136,7 +136,12 @@ export function resolveBankruptcy(ctx: Ctx, playerId: PlayerId): void {
   const state = ctx.state;
   const player = playerOf(ctx, playerId);
   const debt = state.debts.find((candidate) => candidate.debtorId === playerId);
-  const creditorId: PlayerId | "bank" = debt ? effectiveCreditor(state, debt.creditorId) : "bank";
+  const resolved: PlayerId | "bank" = debt ? effectiveCreditor(state, debt.creditorId) : "bank";
+  // BUG-002: the estate chain can arrive back at the player who is going bankrupt right now — they
+  // are still solvent at this point, so effectiveCreditor returns them, and step 3 would then assign
+  // their own deeds to themselves. Nobody can inherit their own estate, so it goes to the bank,
+  // exactly as a bankruptcy with no player creditor does.
+  const creditorId: PlayerId | "bank" = resolved === playerId ? "bank" : resolved;
 
   // 1. Buildings first.
   state.tiles.forEach((tile, index) => {
