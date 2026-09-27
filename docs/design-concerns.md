@@ -751,3 +751,241 @@ contract the client is built against. One consequence worth noting: keying idemp
 means two different actions sent at the same `seq` are indistinguishable, where an `actionId` would
 tell them apart — so a client must not send a second action until the first is acked, which is what
 docs/07's own reconciliation rules already require.
+
+---
+
+## D4: `docs/07` and `docs/flows/match-create-join.md` describe two different lobbies
+
+**Found:** 27 September 2026, implementing D4. **Implemented: `docs/07`**, which the `socket-contract`
+skill names as the contract ("The contract is the doc").
+
+The flow doc's sequence diagram and step table use eight socket events that are **not in the
+contract's event tables at all**:
+
+| Flow doc | `docs/07` |
+| --- | --- |
+| `lobby:join` | `match:subscribe` |
+| `lobby:state`, `lobby:playerJoined` | `lobby:updated` |
+| `lobby:setPiece {piece, colour}` | `lobby:setColour {colour}` — no piece |
+| `lobby:ready` | *(nothing)* |
+| `lobby:invite` | *(nothing)* |
+| `match:start` | `lobby:start` |
+| `match:started` | *(nothing)* |
+| `match:join` | *(nothing — the state arrives on `match:state`)* |
+
+Three REST disagreements in the same pair of documents:
+
+- body: flow doc `POST /matches {name, boardVersionId}`; `docs/07` `{boardVersionId, settings: {}}`.
+- response: flow doc `{matchId, code}`; `docs/07` `{matchId, roomCode}`.
+- refusal: the flow doc's `E_MATCH_ALREADY_STARTED` is not a code in `13-error-catalog.md`, which has
+  `E_ROOM_STARTED` for that case.
+
+**What ships:** `docs/07`'s names throughout. `settings` is `{ name }` — `1b`'s `Game name` is the one
+field a host fills in, and the schema is strict, so a rule-shaped key is refused rather than stored
+(D1: rules come from the board, and there is no match-time override anywhere).
+
+**Two consequences worth naming.**
+
+1. **There is no "ready" and no piece.** `1b` §4 makes `Start game` conditional on "every non-host is
+   `ready`", and §3 row 14 draws a piece picker. Neither has an event in the contract, so `lobby:start`
+   checks seats only (at least 2, host only). The ready flag and the piece are unbuildable until the
+   contract carries them.
+2. **There is no start broadcast.** Guests learn the match began because `match:state` arrives, which
+   is what `docs/07` gives for a full state. The flow doc's `match:started` has no counterpart.
+
+**If accepted:** `docs/07` §Socket.IO gains `lobby:ready`, a piece field on `lobby:setColour`, and a
+start event; or the flow doc and `1b` are regenerated without them.
+
+---
+
+## D4: the socket's auth table would make spectating unreachable
+
+**Found:** 27 September 2026. **Implemented: a non-member's `match:subscribe` joins the spectator
+room**, and the membership check is applied to `match:action` and the `lobby:*` events instead.
+
+`docs/07` §"Auth and authorisation on the socket" lists `playerId ∈ match.players` → `E_NOT_IN_MATCH`
+as a flat check on the namespace. Read that way, a socket that is not seated can do nothing at all —
+which contradicts three other documents at once:
+
+- the `socket-contract` skill mandates a `match:<matchId>:spectators` room and server-side redaction
+  for it;
+- D4's own acceptance requires "spectator redaction enforced server-side" and a redaction test;
+- `1h` Spectating is a screen, reached from a friend row on `3g` — by definition from someone who is
+  **not** in the match.
+
+The reading that satisfies all four: the membership check guards *acting*, not *watching*. A caller
+who is not seated subscribes as a spectator and receives redacted snapshots only.
+
+**A related gap, still unanswered:** `docs/flows/match-create-join.md` says "spectating is offered when
+the board allows it", and no document says where that permission lives. Nothing gates spectating today.
+Raised as **OQ-43**.
+
+---
+
+## D4: the turn-ownership exemption list omits `PASS_BID`
+
+**Found:** 27 September 2026. **Implemented: `PASS_BID` is exempt**, alongside the four `docs/07`
+lists.
+
+`docs/07`'s auth table exempts `BID`, `RESPOND_TRADE`, `PAY_DEBT` and `DECLARE_BANKRUPTCY` from
+`action.by === state.turn.playerId`. `BID` without `PASS_BID` cannot be right: `validatePassBid` in the
+engine has no turn check either, and with the list as written a bidder who is not the turn player could
+enter an auction but never withdraw from it — so a lot could never resolve by everyone passing.
+
+**If accepted:** `docs/07`'s exemption row gains `PASS_BID`.
+
+---
+
+## D4: two deadlines the contract types as required are nullable in the engine
+
+**Found:** 27 September 2026. **Implemented: `deadlineMs` is nullable** on `turn:started` and
+`auction:updated`.
+
+`Ruleset.rounds.turnTimerSeconds` is explicitly nullable — "null = timer off" — and
+`AuctionState.deadlineMs` is `number | null`. `docs/07` types both events' `deadlineMs` as a plain
+number. A board with its timer off has no deadline, and `0` would render as "already expired", so the
+only truthful value is null.
+
+**If accepted:** `docs/07`'s two payload rows say `deadlineMs: number | null`.
+
+---
+
+## D4: writing `state.turn.deadlineMs` would break the re-derived state
+
+**Found:** 27 September 2026. **Implemented: nothing writes it.** The deadline lives in
+`turnclock:{matchId}` — which is exactly what `docs/09`'s Redis key layout provides for — and is pushed
+on `turn:started` and again on every subscribe and sync.
+
+`state.turn.deadlineMs` is commented "Set by the server; informational in the engine", and `docs/06`
+treats the turn deadline as part of turn state. But D4's wire format has the client re-derive its state
+by replaying the same events through the same engine build and comparing the engine's hash (see the
+entry above on `statePatch`). A deadline is wall-clock: the server could write one and the client could
+never reproduce it, so **every action would look like a divergence**.
+
+The field therefore stays null on both sides. The cost is that a full snapshot carries no deadline,
+which is why `match:subscribe` and `match:sync` re-emit `turn:started`. `docs/07` says the deadline is
+"pushed once per turn, never streamed"; this pushes it once per turn *plus* once per (re)subscribe,
+which a reconnecting client needs and no client can compute for itself.
+
+**If accepted:** `state.turn.deadlineMs` is removed from the engine's state shape, or `docs/07` says
+the deadline is never part of a snapshot.
+
+---
+
+## D4: four shapes `docs/07` gives no failure or no event for
+
+**Found:** 27 September 2026. Each implemented as noted, none reaching beyond the contract's own
+vocabulary.
+
+1. **The subscribe and sync acks have no failure form.** `docs/07` types both as `{ state, seq }`, but
+   a subscribe can fail — an unknown match, or a match still in its lobby. Every *other* ack in the
+   contract's table is `{ ok: false, code }`, so that arm was added to `stateAckSchema` rather than
+   invented from nothing. A lobby subscribe therefore refuses with `E_MATCH_NOT_LIVE`, whose catalog
+   copy ("That match isn't running.") is wrong for a lobby the player is happily sitting in — the
+   client should read the `lobby:updated` that accompanies it and ignore the code.
+2. **Nothing tells a kicked player they were kicked.** `lobby:kick` exists; no server to client event
+   corresponds to it. The kicked sockets receive `error { code: "E_NOT_IN_MATCH" }` — the catalog's own
+   copy for exactly that situation — and are removed from the match's rooms.
+3. **`players:insufficient` leads nowhere.** The event is emitted with `endsInMs: 10000` as specified.
+   Actually ending the match when the countdown runs out belongs to `3r`, which **H1** owns, so it is
+   not built here: the event fires and nothing acts on it yet.
+4. **`E_ENGINE_PANIC`'s "the match is flagged for review" has no column.** `docs/13` says the match is
+   flagged; `docs/08` has nowhere to flag it. It is logged at error with `matchFlaggedForReview: true`
+   until the schema has a home for it.
+
+---
+
+## D4: the room code is four characters in the design and six in the config doc
+
+**Found:** 27 September 2026. **Implemented: four**, drawn from `ROOM_CODE_ALPHABET`.
+
+`1b` §2.2 draws `7K2Q`, and `docs/flows/match-create-join.md` invariant 4 says "Room codes are four
+characters, unique among live rooms, and expire with the room." `docs/09-server-config.md`'s
+`ROOM_CODE_ALPHABET` row says "No I/O/0/1 — **6 chars**". The design is authority 1.
+
+The same pair disagrees on the code's lifetime: `docs/09`'s Redis layout gives `room:{code}` a **4 h**
+TTL; the flow doc's diagram writes `SETEX room:<code> -> matchId (24h)`. The config doc owns TTLs, so
+4 h ships — and it is coherent on its own terms, since a code is useless once the match starts.
+
+**If accepted:** whichever of the two is wrong is regenerated. Four characters of a 32-character
+alphabet is about a million codes, which is ample for concurrent *live* rooms, but worth a second look
+if room codes are ever made long-lived.
+
+---
+
+## D4: `2c` wants server-composed sentences; the engine forbids them
+
+**Found:** 27 September 2026. **Implemented: `docs/07`'s shape** — `{ items: MatchEvent[], nextCursor }`,
+with each item carrying the `category` its own filter chips need.
+
+`docs/07` types `GET /matches/:matchId/log` as returning `MatchEvent[]`. `2c` §7 types it as
+`{ id, round, category, sentence, refs }` and adds: "Sentences are generated **server-side** so every
+player sees identical wording, with `You` substituted client-side."
+
+That contradicts the engine's own contract, stated at the top of `packages/game-engine/src/events.ts`:
+"Names, subjects and amounts are carried as data; copy is composed at the render edge from the board's
+own tile and player names, **never** from the engine." A server-side sentence layer would be a second
+copy of every notification string, in a second place, in one language.
+
+**A second contradiction inside `2c` itself.** §4 says "Every entry carries a category" — one each —
+but files a **trade** under both Money ("trades of cash") and Property ("trades of tiles"), and an
+**auction** under both ("auction payments" and "auctions won"). One category per event is what ships: a
+trade is Property, a bid is Money, and the win is Property. A cash-only trade therefore appears under
+the Property chip.
+
+`2c` §7 also names a socket event `match:event` that is not in `docs/07`; the log appends from
+`match:applied`'s events instead.
+
+**If accepted:** `2c` §7 is regenerated with the contract's shape, or `docs/07` gains the sentence
+fields and the engine's copy rule is rewritten to allow them.
+
+---
+
+## D4: `2b` and `docs/07` name the result's per-player map differently
+
+**Found:** 27 September 2026. **Implemented: `docs/07`'s names.**
+
+- `docs/07` calls the map `breakdowns: Record<PlayerId, PlayerBreakdown>`; `2b` §7 calls it `perPlayer`.
+- `docs/07` types a chart point as `number`; `2b` §7 writes `{ round, netWorth }`. The plain number
+  ships — the x-axis is "round 1 to round \<last\>", which the array index already is.
+- `docs/07` declares `MatchResult` but never declares `PlayerBreakdown`. `2b` §2.2 draws it in full
+  (four KPIs, six money keys, set counts, portfolio), so the shape comes from the screen.
+
+Three of `2b`'s four awards are computable and ship — `Landlord`, `Most rent paid` and `Jailbird`. The
+fourth, `Best deal`, has no definition anywhere: see **OQ-42**.
+
+---
+
+## D4: `Idempotency-Key` is in the conventions and implemented nowhere
+
+**Found:** 27 September 2026. **Implemented: not at all**, consistently with D2 and D3.
+
+`docs/07`'s conventions say "`POST` routes that create state accept `Idempotency-Key`; a repeat returns
+the original result." No route in the repository honours it — the auth routes (D2) and the board routes
+(D3) do not, and `POST /matches` does not either. Making one route the only one that honours it would be
+worse than none honouring it.
+
+`POST /matches/join` is idempotent by nature: a guest who is already seated gets their `matchId` back
+rather than a second seat.
+
+**If accepted:** a small plugin storing `Idempotency-Key` against its response in Redis, applied to
+every state-creating POST at once, in its own task.
+
+---
+
+## D4: the live match uses one Redis key where `docs/09` specifies three
+
+**Found:** 27 September 2026. **Implemented: one key**, `match:{matchId}:state`, holding
+`{ seq, state, lastApplied }`.
+
+`docs/09`'s Redis key layout lists three keys per match: `:state` (the `MatchState`), `:seq` (the last
+applied sequence number) and `:log` (applied actions, "for replay and the match log"). The store keeps
+the seq inside the state key because a seq in its own key can be written while the state write fails,
+and a client would then be told the match is somewhere it is not. One key is one write.
+
+`match:{matchId}:log` is not kept at all: the durable log is `match_events` in Postgres, which `2c` and
+every analytic already read, and duplicating it in an expiring Redis list would give two logs that can
+disagree. `presence:{matchId}` and `turnclock:{matchId}` are implemented as `docs/09` specifies.
+
+**If accepted:** `docs/09`'s Redis table is regenerated with one match key, or the store is split and
+given a Lua script so the two writes are atomic.

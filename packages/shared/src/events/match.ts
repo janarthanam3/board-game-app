@@ -16,6 +16,8 @@
 
 import { z } from "zod";
 
+import { matchResultSchema } from "../schemas/matches";
+
 /** ULIDs everywhere (docs/07 "Ids: ULIDs as strings"); a length check is enough at this edge. */
 const idSchema = z.string().min(1).max(64);
 
@@ -72,8 +74,18 @@ export type ClientEventName = keyof typeof CLIENT_EVENTS;
 
 // ─── Acks ────────────────────────────────────────────────────────────────────────────────────────
 
-/** `match:subscribe` and `match:sync` both ack with the whole state (docs/07). */
-export const stateAckSchema = z.object({ state: z.unknown(), seq: seqSchema, stateHash: stateHashSchema });
+/**
+ * `match:subscribe` and `match:sync` both ack with the whole state (docs/07).
+ *
+ * The refusal arm is not in docs/07, which gives these two acks no failure form at all — yet a
+ * subscribe can fail: an unknown match, a match still in its lobby, a caller who is not seated. Every
+ * other ack in the contract's own table already carries `{ ok: false, code }`, so the shape is
+ * borrowed from its neighbours rather than invented. Recorded in docs/design-concerns.md.
+ */
+export const stateAckSchema = z.union([
+  z.object({ state: z.unknown(), seq: seqSchema, stateHash: stateHashSchema }),
+  z.object({ ok: z.literal(false), code: z.string().min(1) }),
+]);
 
 export const actionAckSchema = z.union([
   z.object({ ok: z.literal(true), seq: seqSchema }),
@@ -111,7 +123,8 @@ export const statePayloadSchema = z
   .object({ seq: seqSchema, state: z.unknown(), stateHash: stateHashSchema })
   .strict();
 
-export const endedPayloadSchema = z.object({ result: z.object({}).passthrough() });
+/** docs/07: `match:ended { result: MatchResult }`. The result's own schema lives with the REST ones. */
+export const endedPayloadSchema = z.object({ result: matchResultSchema });
 
 export const lobbyUpdatedPayloadSchema = z.object({
   players: z.array(
@@ -140,14 +153,24 @@ export const playersInsufficientPayloadSchema = z.object({ endsInMs: z.number().
 
 export const presencePayloadSchema = z.object({ playerId: idSchema, connected: z.boolean() });
 
-/** The deadline is an absolute server time; the client counts down locally and never extends it. */
-export const turnStartedPayloadSchema = z.object({ playerId: idSchema, deadlineMs: z.number().int().nonnegative() });
+/**
+ * The deadline is an absolute server time; the client counts down locally and never extends it.
+ *
+ * Nullable, which docs/07's table does not say: `Ruleset.rounds.turnTimerSeconds` is explicitly
+ * nullable ("null = timer off"), so a board with the timer off has no deadline to push and the only
+ * truthful value is null. Sending 0 would read as "already expired". In design-concerns.md.
+ */
+export const turnStartedPayloadSchema = z.object({
+  playerId: idSchema,
+  deadlineMs: z.number().int().nonnegative().nullable(),
+});
 
 export const auctionUpdatedPayloadSchema = z.object({
   tileIndex: z.number().int().nonnegative(),
   leading: idSchema.nullable(),
   leadingBy: z.number().int(),
-  deadlineMs: z.number().int().nonnegative(),
+  /** Nullable for the same reason as `turn:started`'s — `AuctionState.deadlineMs` is nullable. */
+  deadlineMs: z.number().int().nonnegative().nullable(),
   passed: z.array(idSchema),
 });
 
@@ -240,3 +263,47 @@ export type ActionPayload = z.infer<typeof actionPayloadSchema>;
 export type AppliedPayload = z.infer<typeof appliedPayloadSchema>;
 export type StatePayload = z.infer<typeof statePayloadSchema>;
 export type LobbyUpdatedPayload = z.infer<typeof lobbyUpdatedPayloadSchema>;
+
+// ─── Parsing, for both sides ─────────────────────────────────────────────────────────────────────
+//
+// The socket-contract skill: "Validate on both ends: the server parses every inbound client event,
+// the client parses every inbound server event. A parse failure is logged with the event name and
+// the failing path, never swallowed." Both sides call the same two functions below, so neither can
+// drift into a looser check than the other, and neither throws — a bad payload from the wire must
+// never take down a handler or a match screen.
+
+/** What a decode returns. A refusal names the event and the failing path, ready for one log line. */
+export type DecodeResult<T> =
+  | { ok: true; payload: T }
+  | { ok: false; event: string; path: string; message: string };
+
+function decode<T>(schemas: Record<string, { safeParse: (value: unknown) => { success: boolean; data?: unknown; error?: { issues: { path: (string | number)[]; message: string }[] } } }>, event: string, payload: unknown): DecodeResult<T> {
+  const schema = schemas[event];
+  if (!schema) {
+    // An event with no schema is an event the contract does not describe, which the skill treats as
+    // invented behaviour. It is refused here rather than handled on trust.
+    return { ok: false, event, path: "", message: "no schema for this event" };
+  }
+  const verdict = schema.safeParse(payload);
+  if (verdict.success) {
+    return { ok: true, payload: verdict.data as T };
+  }
+  const issue = verdict.error?.issues[0];
+  return {
+    ok: false,
+    event,
+    // "" for a failure on the payload itself (not an object, say), which has no path.
+    path: (issue?.path ?? []).join("."),
+    message: issue?.message ?? "invalid payload",
+  };
+}
+
+/** Server side: parses a payload that arrived from a client. */
+export function decodeClientEvent(event: string, payload: unknown): DecodeResult<unknown> {
+  return decode(CLIENT_EVENTS as unknown as Parameters<typeof decode>[0], event, payload);
+}
+
+/** Client side: parses a payload that arrived from the server. */
+export function decodeServerEvent(event: string, payload: unknown): DecodeResult<unknown> {
+  return decode(SERVER_EVENTS as unknown as Parameters<typeof decode>[0], event, payload);
+}

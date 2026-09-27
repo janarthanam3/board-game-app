@@ -278,6 +278,14 @@ Raised 20 September 2026 during A3. Does not block a task; must be settled befor
 **Recommendation:** (1). Socket.IO already provides a `connect` event, so `hello` adds nothing the
 client needs, and (3) would make test and production sockets behave differently.
 
+> **Still open after D4 (27 September 2026).** The real `/match` events have landed, so option 1's
+> precondition — "when the real `/match` events land" — is met and nothing in the app needs `hello` any
+> more. It was **not** removed, because A3's acceptance criterion names it and removing it would be
+> choosing an answer to this question rather than implementing one. What changed: the connect test now
+> authenticates (`docs/07`: "Handshake: `auth: { token }`"), and `hello` is deliberately absent from
+> `SERVER_EVENTS` in `packages/shared/src/events/match.ts`, so `decodeServerEvent("hello", …)` refuses it
+> and no client can be built against it. One line settles this: remove the emit and the A3 assertion.
+
 ---
 
 ## OQ-13 · Where does Android back go from Spectating (`1h`)?
@@ -903,6 +911,13 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/07-api-contract.md` (cont.) | §Socket.IO: `match:applied` as `{ seq, events, stateHash }`, and the size paragraph without RFC 6902 or the 8 KB fallback — `statePatch` is superseded by CLAUDE.md's shared-engine mandate (see design-concerns) |
 | `docs/screens/2a-board-builder.md` | §2.4 without the stakes line, and `UnpublishImpact` without the field (OQ-41) |
 | `docs/13-error-catalog.md` (cont.) | the three validator outcomes with no code, and codes for D7's five warnings |
+| `docs/07-api-contract.md` (D4) | §Socket.IO: `deadlineMs` nullable on `turn:started` and `auction:updated` · `PASS_BID` in the turn-exemption row · a failure form for the `match:subscribe` / `match:sync` acks · the membership check scoped to acting, not subscribing · a `settings` shape for `POST /matches` · declare `PlayerBreakdown` |
+| `docs/flows/match-create-join.md` (D4) | the eight lobby events it names that the contract does not have, `POST /matches`'s body and response, `E_MATCH_ALREADY_STARTED` → `E_ROOM_STARTED`, and the 24 h room-code TTL (`docs/09` says 4 h) |
+| `docs/09-server-config.md` (D4) | `ROOM_CODE_ALPHABET`'s "6 chars" — the design draws four (`1b` §2.2) · the Redis layout's three per-match keys, where the store keeps one |
+| `docs/screens/1b-host-lobby.md` (D4) | the `Ready` toggle and the piece picker, neither of which has an event in `docs/07` |
+| `docs/screens/2c-match-log.md` (D4) | §7's response shape and server-composed sentences (the engine composes copy at the render edge) · §7's `match:event` · §4's trade and auction, each filed under two categories where every entry carries one |
+| `docs/screens/2b-match-result.md` (D4) | §7's `perPlayer` → `breakdowns` and `{ round, netWorth }` → `number`, to match `docs/07` |
+| `docs/06-state-machines.md` (D4) | the turn deadline as part of turn state: it cannot live in `MatchState` without breaking the re-derived hash (see design-concerns) |
 
 ---
 
@@ -1531,3 +1546,87 @@ that always answered 0 is worse than no field. A test asserts the key is **absen
 Needs regenerating: `docs/07-api-contract.md`'s `UnpublishImpact` without the field, and `2a` §2.4's
 dialog without the line "₹84,200 in stakes stays held until those matches settle." The line above it
 ("46 open matches keep running to the end on v3.") already says the true thing.
+
+---
+
+## OQ-42 · What makes a deal the "Best deal" on the result screen?
+
+**Affects:** `docs/screens/2b-match-result.md` §2.1 AWARDS; `apps/server/src/match/result.ts`
+(`awardsOf`); `docs/07-api-contract.md` (`MatchResult.awards`); task **D4** (implemented), **E7**/`2b`.
+
+**Why it matters:** `2b` draws four award rows and its acceptance criterion 6 says "All four awards
+render with their exact labels". Three are unambiguous and are implemented:
+
+| Award | Measure |
+| --- | --- |
+| `Landlord` | most tiles held at the end |
+| `Most rent paid` | highest total rent paid |
+| `Jailbird` | most times sent to jail |
+
+The fourth is drawn as `Best deal — Priya · Bay Rd swap`, and nothing anywhere says what makes a trade
+best. A trade moves cash, tiles and hold cards in both directions; "best" could mean any of at least
+three different things, and each one would name a different winner on the same match.
+
+**Engine today:** the award is **not emitted**. `awards` is a list, so `2b` renders three rows and the
+fourth is simply absent — which is visibly wrong against the design, but better than shipping a number
+the design did not ask for and that no test can check.
+
+**Options**
+
+1. **Net worth swing.** The trade whose acceptance moved the most net worth to the accepter, valued at
+   the moment it was accepted (deeds at cost, buildings at build cost, as `netWorth` already does). One
+   number, already computable, and it matches the plain reading of "best deal" as "got the most".
+2. **Set completion.** The trade that completed a colour set for one side — the trade that actually won
+   something, rather than the one that moved the most money. Ties broken by net worth swing. Needs a
+   tie-break rule for a match with no set-completing trade, where the row would be absent again.
+3. **Rent earned afterwards.** The trade whose acquired tiles went on to collect the most rent for the
+   rest of the match. The most satisfying reading of "best", and the only one a player could not have
+   judged at the time — but it needs per-tile rent attributed back to the trade that moved the tile,
+   which nothing records today.
+
+**Recommendation:** (1). It is the only one computable from the log as it stands, it always has a
+winner in a match with at least one accepted trade, and `2b`'s own detail text (`Bay Rd swap`) is a
+name, not a number, so the row reads the same whichever measure is behind it.
+
+Raised 27 September 2026 during D4. Does not block D4 — the other three awards ship.
+
+---
+
+## OQ-43 · Which boards allow spectating, and where does that live?
+
+**Affects:** `docs/screens/1h-spectating.md`; `docs/flows/match-create-join.md` failure branches;
+`apps/server/src/sockets/match.ts` (`match:subscribe`); `docs/07-api-contract.md` §Socket.IO; task
+**D4** (implemented), **G3**/`3g` (the `Watch` action), **E1**.
+
+**Why it matters:** `docs/flows/match-create-join.md` says, of a guest who arrives after the match has
+started, that "spectating is offered **when the board allows it**". No other document mentions such a
+permission:
+
+- `1h` Spectating describes the screen unconditionally and says only that hands and pending trades stay
+  hidden;
+- `FrozenBoard` and `Ruleset` in the engine have no spectating field, and D1 says rules come from the
+  board, so a *match* setting would be the wrong home for it anyway;
+- `2a`'s publish settings have no such toggle;
+- `docs/07` has no spectate event and no field for it.
+
+**Why it blocks nothing today:** D4 implements spectating ungated — any signed-in user who is not seated
+may subscribe to any match and receives redacted snapshots only. That is the permissive reading. If the
+answer is that boards (or hosts) may forbid it, the gate goes in one place, `match:subscribe`.
+
+**Options**
+
+1. **Spectating is always allowed.** Public information only, which is what `1h` already promises, and
+   the flow doc's clause is regenerated away. Nothing to build.
+2. **A host setting on the room.** `settings` gains `spectators: boolean`, defaulting to on, shown in
+   `1b`'s lobby. It is not a rule, so it does not violate D1 — but `1b` draws no such control, so the
+   design would have to gain one.
+3. **A board setting, frozen at publish.** Matches the flow doc's words exactly ("the board allows it"),
+   and travels with the version. But it makes a social choice an immutable property of a board an
+   author published months earlier, which is the wrong owner for it.
+
+**Recommendation:** (1). `1h` is explicit that a spectator sees public information only, and there is
+nothing left to protect once hands and pending trades are redacted server-side. (3) is the only option
+the flow doc's wording supports literally, and it puts the decision in the hands of someone who is not
+in the match.
+
+Raised 27 September 2026 during D4. Does not block D4.

@@ -10,14 +10,32 @@
 // design-concerns.md), and `stateHash` lets it prove it arrived where the server did.
 
 import { hash } from "@royal-navy/game-engine";
-import type { MatchState } from "@royal-navy/game-engine";
+import type { MatchEvent, MatchState } from "@royal-navy/game-engine";
 
 import type { RedisClient } from "../db/redis.js";
+
+/**
+ * The result of the last applied action, kept so a redelivered `match:action` can be answered with
+ * the original outcome instead of being applied twice.
+ *
+ * `seq` is the seq the action was applied **at** — that is, the value the client sent with it, one
+ * less than `StoredMatch.seq`. Idempotency keys off that number rather than a per-action `actionId`,
+ * which is docs/07's shape and the owner's decision (design-concerns.md). The consequence is recorded
+ * there: two *different* actions sent at one seq are indistinguishable, so a client must not send a
+ * second action before the first is acked — which docs/07's reconciliation rules already require.
+ */
+export interface LastApplied {
+  seq: number;
+  events: MatchEvent[];
+  stateHash: string;
+}
 
 export interface StoredMatch {
   /** How many actions have been applied. 0 for a match that has just started. */
   seq: number;
   state: MatchState;
+  /** Absent only before the first action of the match. */
+  lastApplied?: LastApplied;
 }
 
 export interface MatchStore {

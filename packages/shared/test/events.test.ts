@@ -7,6 +7,8 @@ import {
   actionPayloadSchema,
   appliedPayloadSchema,
   CLIENT_EVENTS,
+  decodeClientEvent,
+  decodeServerEvent,
   errorPayloadSchema,
   lobbyUpdatedPayloadSchema,
   matchRoom,
@@ -163,5 +165,60 @@ describe("rooms and redaction", () => {
 
   it("lists the three fields a spectator must never receive", () => {
     expect([...SPECTATOR_REDACTED_FIELDS]).toEqual(["holdCards", "pendingTrades", "privatePrompts"]);
+  });
+});
+
+// ─── The client's half of the contract ─────────────────────────────────────────────────────────────
+//
+// The socket-contract skill's third test: "Client refuses a malformed payload without crashing the match
+// screen." Both sides parse through `decodeClientEvent` / `decodeServerEvent`, so this is where that is
+// pinned — the server's use of the same function over a real socket is proved in
+// apps/server/test/socket-contract.test.ts.
+
+describe("both sides decode through the same function", () => {
+  it("returns a payload for a server event the contract describes", () => {
+    const verdict = decodeServerEvent("match:applied", { seq: 3, events: [], stateHash: "0a1b2c3d" });
+
+    expect(verdict.ok).toBe(true);
+    if (verdict.ok) {
+      expect(verdict.payload).toEqual({ seq: 3, events: [], stateHash: "0a1b2c3d" });
+    }
+  });
+
+  it("refuses a malformed server payload with the event and the failing path, and never throws", () => {
+    // What a match screen would otherwise crash on: a hash of the wrong shape arriving mid-match.
+    const verdict = decodeServerEvent("match:applied", { seq: 3, events: [], stateHash: "nope" });
+
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) {
+      expect(verdict.event).toBe("match:applied");
+      expect(verdict.path).toBe("stateHash");
+      expect(verdict.message.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("refuses a payload that is not an object at all, with an empty path", () => {
+    for (const payload of [null, undefined, 7, "ROLL", []]) {
+      const verdict = decodeServerEvent("turn:started", payload);
+      expect(verdict.ok).toBe(false);
+    }
+  });
+
+  it("refuses an event the contract does not describe, rather than trusting it", () => {
+    // `hello` is emitted by the server today and is deliberately not in SERVER_EVENTS (OQ-12), so a
+    // client that tried to decode it would be told there is no schema instead of being handed a payload.
+    const verdict = decodeServerEvent("hello", { namespace: "/match" });
+
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) {
+      expect(verdict.message).toContain("no schema");
+    }
+  });
+
+  it("uses the client table for client events, so a direction cannot be confused", () => {
+    // `match:applied` is a server event: decoding it as a client event must fail, or a server could be
+    // fed a payload it never agreed to accept.
+    expect(decodeClientEvent("match:applied", { seq: 1, events: [], stateHash: "0a1b2c3d" }).ok).toBe(false);
+    expect(decodeClientEvent("match:subscribe", { matchId: MATCH }).ok).toBe(true);
   });
 });

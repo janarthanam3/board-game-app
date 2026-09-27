@@ -25,6 +25,7 @@
     "./colour": "./src/colour.ts",
     "./schemas/auth": "./src/schemas/auth.ts",
     "./schemas/boards": "./src/schemas/boards.ts",
+    "./schemas/matches": "./src/schemas/matches.ts",
     "./events/match": "./src/events/match.ts"
   }
 }

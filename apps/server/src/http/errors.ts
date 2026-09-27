@@ -20,6 +20,20 @@ const CATALOG = {
   E_ACCOUNT_DELETED: { status: 410, message: "This account was deleted." },
   E_VALIDATION: { status: 422, message: "That doesn't look right." },
 
+  // Lobby and match (docs/13 "Lobby and match"). Statuses and copy are the catalog's.
+  E_ROOM_NOT_FOUND: { status: 404, message: "No room with that code." },
+  E_ROOM_FULL: { status: 409, message: "That room is full." },
+  E_ROOM_STARTED: { status: 409, message: "That match has already started." },
+  E_ROOM_CLOSED: { status: 410, message: "The host closed this room" },
+  E_BLOCKED_BY_HOST: { status: 403, message: "You can't join this room." },
+  E_NOT_ENOUGH_PLAYERS: { status: 409, message: "Only one player is left. The match will end in 10 seconds." },
+  E_NOT_IN_MATCH: { status: 403, message: "You're not in this match." },
+  E_MATCH_NOT_LIVE: { status: 409, message: "That match isn't running." },
+  E_MATCH_ENDED_WHILE_AWAY: { status: 410, message: "This match ended while you were away" },
+  E_MATCH_UNAVAILABLE: { status: 503, message: "The match is catching up. One moment." },
+  E_HOST_ONLY: { status: 403, message: "Only the host can do that." },
+  E_SEAT_COLOUR_TAKEN: { status: 409, message: "Someone already has that colour." },
+
   // Boards and publishing (docs/13 "Board building and publishing").
   E_BOARD_INVALID: { status: 422, message: "Fix the errors before publishing." },
   E_PUBLISH_SLOTS_FULL: { status: 409, message: "All 3 slots used. Unpublish a board to free one." },
