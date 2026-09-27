@@ -159,7 +159,7 @@ afterAll(async () => {
 describe("the server refuses a malformed payload", () => {
   it("refuses match:subscribe with no matchId", async () => {
     const client = connect(host.token);
-    await once(client, "hello");
+    await once(client, "connect");
 
     // docs/13: a payload that fails its schema is logged as E_SCHEMA_MISMATCH; the user sees
     // E_ACTION_ILLEGAL. The ack carries what the user sees.
@@ -280,26 +280,102 @@ describe("idempotency", () => {
 });
 
 // ─── 6 · redaction: a spectator receives no hidden field ─────────────────────────────────────────────
+//
+// The skill: "A spectator socket must never be sent `hand`, `pendingTrades` or `privatePrompts` for any
+// player." `1h` §4 says it in the player's words, and §"Acceptance" item 5: "Cards in hand and pending
+// trades are never present in the spectator payload."
+//
+// Asserting that the *key names* are absent is not enough on its own: a payload could carry a hand under
+// another name and still pass. So the match is seeded with a hold card and a pending offer that have
+// distinctive, unguessable ids, and the assertions are that **those values** are nowhere in what the
+// spectator received — the denial, not the shape.
+//
+// The member case is pinned in the same test, and it is the opposite: a seated player receives every
+// other player's hand and every pending offer. That is deliberate and it is not a bug in this layer —
+// see the `design-concerns.md` entry "D4: re-deriving makes per-member redaction impossible". It is
+// asserted here so that the day someone decides hands should be private between players, this test
+// fails and points at the reason.
+
+/** A card id and an offer id no other part of the state could contain by accident. */
+const PLANTED_CARD_ID = "planted-card-zzq7";
+const PLANTED_OFFER_ID = "planted-offer-zzq7";
+
+/**
+ * Deals `holder` a hold card and opens an offer from `holder` to the other seat, by writing the stored
+ * state directly.
+ *
+ * Direct, rather than by playing to a state where the engine deals one: what is under test is the
+ * redaction boundary, and a seeded state reaches it in one step with values chosen to be unmistakable.
+ */
+async function plantSecrets(matchId: string, holder: string): Promise<{ other: string }> {
+  const stored = await app.matchStore.load(matchId);
+  if (!stored) {
+    throw new Error("plantSecrets: no stored match");
+  }
+  const other = Object.keys(stored.state.players).find((id) => id !== holder)!;
+
+  stored.state.players[holder]!.holdCards.push({
+    id: PLANTED_CARD_ID,
+    effect: { kind: "jailPass" },
+    uses: 1,
+    expires: "never",
+    tradeable: true,
+    grantedRound: 1,
+  });
+  stored.state.offers.push({
+    id: PLANTED_OFFER_ID,
+    from: holder,
+    to: other,
+    give: { cash: 4242, tileIndexes: [1], holdCardIds: [] },
+    get: { cash: 0, tileIndexes: [2], holdCardIds: [] },
+    createdAtMs: 1,
+    expiresAtMs: 99_999_999,
+  });
+  await app.matchStore.save(matchId, stored);
+  return { other };
+}
 
 describe("spectator redaction", () => {
-  it("sends a spectator a state with no holdCards and no offers, in the ack and on every update", async () => {
-    const { matchId, hostSocket, hostPlayerId } = await liveMatch();
+  it("denies a spectator another player's hand and a pending offer, by value", async () => {
+    const { matchId, hostPlayerId } = await liveMatch();
+    await plantSecrets(matchId, hostPlayerId);
 
     const spectator = connect(watcher.token);
     const ack = (await spectator.emitWithAck("match:subscribe", { matchId })) as StateAck;
-
-    // Asserted on the raw received payload, as the skill requires: the fields are absent, not empty.
     const raw = JSON.stringify(ack.state);
+
+    // The denial, asserted on the raw received payload: the planted card and offer are not in it under
+    // any name, at any depth, in any form.
+    expect(raw).not.toContain(PLANTED_CARD_ID);
+    expect(raw).not.toContain(PLANTED_OFFER_ID);
+    // Nor the offer's terms, which `1h` §4 hides alongside the offer itself ("Pending trade offers and
+    // their terms").
+    expect(raw).not.toContain("4242");
+
+    // And the containers are absent rather than emptied: an empty `holdCards: []` would still be a field
+    // the spectator received, and a client could not tell an empty hand from a hidden one.
     expect(raw).not.toContain("holdCards");
     expect(raw).not.toContain("offers");
+    expect("offers" in (ack.state as object)).toBe(false);
     for (const player of Object.values(ack.state!.players as Record<string, object>)) {
       expect("holdCards" in player).toBe(false);
     }
-    // Public information a spectator does need (`1h`: cash, tiles, the turn) is still there.
+
+    // `1h` §4's "Visible" column still arrives: board, ownership, cash, turn order.
     expect(ack.state).toHaveProperty("turn");
     expect(ack.state).toHaveProperty("tiles");
+    for (const player of Object.values(ack.state!.players as Record<string, { cash: unknown }>)) {
+      expect(typeof player.cash).toBe("number");
+    }
+  });
 
-    // And on an update: a spectator gets a redacted snapshot, never the events a member replays.
+  it("denies a spectator the hand on every later update, not only on subscribe", async () => {
+    const { matchId, hostSocket, hostPlayerId } = await liveMatch();
+    await plantSecrets(matchId, hostPlayerId);
+
+    const spectator = connect(watcher.token);
+    await spectator.emitWithAck("match:subscribe", { matchId });
+
     const update = once<{ state: unknown }>(spectator, "match:state");
     let appliedToSpectator = 0;
     spectator.on("match:applied", () => {
@@ -308,8 +384,45 @@ describe("spectator redaction", () => {
     await hostSocket.emitWithAck("match:action", { matchId, seq: 0, action: { kind: "ROLL", by: hostPlayerId, atMs: 1 } });
     const next = await update;
 
-    expect(JSON.stringify(next.state)).not.toContain("holdCards");
+    const raw = JSON.stringify(next.state);
+    expect(raw).not.toContain(PLANTED_CARD_ID);
+    expect(raw).not.toContain(PLANTED_OFFER_ID);
+    expect(raw).not.toContain("holdCards");
+    // A spectator never receives `match:applied`, because its events are what a member replays — and
+    // replaying them is exactly how a hand would arrive by the back door.
     expect(appliedToSpectator).toBe(0);
+  });
+
+  it("denies a spectator the hand over REST too, not only over the socket", async () => {
+    const { matchId, hostPlayerId } = await liveMatch();
+    await plantSecrets(matchId, hostPlayerId);
+
+    // `GET /matches/:id` is a second door onto the same state; redaction that only guarded the socket
+    // would be no redaction at all.
+    const response = await request(app.server).get(`/matches/${matchId}`).set("Authorization", `Bearer ${watcher.token}`);
+
+    expect(response.status).toBe(200);
+    expect(JSON.stringify(response.body.state)).not.toContain(PLANTED_CARD_ID);
+    expect(JSON.stringify(response.body.state)).not.toContain(PLANTED_OFFER_ID);
+  });
+
+  it("gives a seated player every other player's hand and every pending offer — pinned, not endorsed", async () => {
+    const { matchId, guestSocket, hostPlayerId } = await liveMatch();
+    await plantSecrets(matchId, hostPlayerId);
+
+    // The guest is not the card's owner and is the *recipient* of the offer, not its author.
+    const ack = (await guestSocket.emitWithAck("match:sync", { matchId })) as StateAck;
+    const raw = JSON.stringify(ack.state);
+
+    // This is what ships. Every member re-derives the same state from the same events, so there is no
+    // per-member redaction available without breaking that — design-concerns.md,
+    // "D4: re-deriving makes per-member redaction impossible". No document asks for hands to be private
+    // between players, and `1p` §4 needs a counterparty's tradeable hold cards visible to build a deal;
+    // but nothing says a *third* player should see an offer between two others, which is what the last
+    // assertion records.
+    expect(raw).toContain(PLANTED_CARD_ID);
+    expect(raw).toContain(PLANTED_OFFER_ID);
+    expect(raw).toContain("4242");
   });
 });
 

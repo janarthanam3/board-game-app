@@ -278,13 +278,20 @@ Raised 20 September 2026 during A3. Does not block a task; must be settled befor
 **Recommendation:** (1). Socket.IO already provides a `connect` event, so `hello` adds nothing the
 client needs, and (3) would make test and production sockets behave differently.
 
-> **Still open after D4 (27 September 2026).** The real `/match` events have landed, so option 1's
-> precondition — "when the real `/match` events land" — is met and nothing in the app needs `hello` any
-> more. It was **not** removed, because A3's acceptance criterion names it and removing it would be
-> choosing an answer to this question rather than implementing one. What changed: the connect test now
-> authenticates (`docs/07`: "Handshake: `auth: { token }`"), and `hello` is deliberately absent from
-> `SERVER_EVENTS` in `packages/shared/src/events/match.ts`, so `decodeServerEvent("hello", …)` refuses it
-> and no client can be built against it. One line settles this: remove the emit and the A3 assertion.
+> **ANSWERED 27 September 2026 by the owner — option 1: delete `hello`.** The reason given: it is A3
+> scaffolding, the A3 test authenticates now, and a dead event in the contract misleads the next reader.
+>
+> Done in D4. The emit is gone from `apps/server/src/sockets/match.ts`, and `apps/server/test/socket.test.ts`
+> asserts on Socket.IO's own `connect` and on a `match:subscribe` exchange — the first exchange `docs/07`
+> actually describes — instead of on `hello`. A3's line in `TASKS.md` records the change against its
+> acceptance criterion.
+>
+> Two guards keep it gone. The connect test asserts, via `onAny`, that the server emits **nothing** of its
+> own on connection, so any undocumented event reappearing fails it. And `hello` is still named in
+> `packages/shared/test/events.test.ts`, which asserts `decodeServerEvent("hello", …)` is refused for
+> having no schema — so if a server did emit it again, no client could be built against it.
+>
+> `docs/07-api-contract.md` needs no regeneration for this: it never listed `hello`.
 
 ---
 
@@ -918,6 +925,7 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/screens/2c-match-log.md` (D4) | §7's response shape and server-composed sentences (the engine composes copy at the render edge) · §7's `match:event` · §4's trade and auction, each filed under two categories where every entry carries one |
 | `docs/screens/2b-match-result.md` (D4) | §7's `perPlayer` → `breakdowns` and `{ round, netWorth }` → `number`, to match `docs/07` |
 | `docs/06-state-machines.md` (D4) | the turn deadline as part of turn state: it cannot live in `MatchState` without breaking the re-derived hash (see design-concerns) |
+| `docs/13-error-catalog.md` (D4) | `E_SPECTATE_REFUSED` is used by `1h` §5 with its own copy and is in no table here — it needs a status, a surface and a retry behaviour (OQ-43) |
 
 ---
 
@@ -1592,41 +1600,61 @@ Raised 27 September 2026 during D4. Does not block D4 — the other three awards
 
 ---
 
-## OQ-43 · Which boards allow spectating, and where does that live?
+## OQ-43 · Where does the host turn spectating off?
 
-**Affects:** `docs/screens/1h-spectating.md`; `docs/flows/match-create-join.md` failure branches;
+**Affects:** `docs/screens/1h-spectating.md` §5; `docs/screens/1b-host-lobby.md`;
+`docs/flows/match-create-join.md`; `docs/13-error-catalog.md`;
 `apps/server/src/sockets/match.ts` (`match:subscribe`); `docs/07-api-contract.md` §Socket.IO; task
-**D4** (implemented), **G3**/`3g` (the `Watch` action), **E1**.
+**D4** (implemented ungated), **G3**/`3g` (the `Watch` action), **E1**.
 
-**Why it matters:** `docs/flows/match-create-join.md` says, of a guest who arrives after the match has
-started, that "spectating is offered **when the board allows it**". No other document mentions such a
-permission:
+> **Corrected 27 September 2026, same day it was raised.** The first version of this question said "no
+> document says where that permission lives" and recommended that spectating always be allowed. That was
+> wrong, and the correction narrows the question rather than answering it: `1h` §5 **does** name the
+> refusal and its copy. The options below are rewritten accordingly.
 
-- `1h` Spectating describes the screen unconditionally and says only that hands and pending trades stay
-  hidden;
-- `FrozenBoard` and `Ruleset` in the engine have no spectating field, and D1 says rules come from the
-  board, so a *match* setting would be the wrong home for it anyway;
-- `2a`'s publish settings have no such toggle;
-- `docs/07` has no spectate event and no field for it.
+**What the design does say.** `1h` §5 gives a refused spectator a full-screen error state:
 
-**Why it blocks nothing today:** D4 implements spectating ungated — any signed-in user who is not seated
-may subscribe to any match and receives redacted snapshots only. That is the permissive reading. If the
-answer is that boards (or hosts) may forbid it, the gate goes in one place, `match:subscribe`.
+> `Can't watch this match` / `The host has spectating turned off.` with `Back` — error
+> `E_SPECTATE_REFUSED`
+
+and `1h`'s acceptance item 7 requires it: "A refused join shows `E_SPECTATE_REFUSED` with the documented
+copy." So spectating **can** be refused, and the copy says the **host** is who turned it off.
+
+**What no document says.** Where the host does that. Specifically:
+
+- `1b` Host setup and lobby draws no spectating control — not in §2.1's setup, not in §2.2's lobby, and
+  not in §3's fifteen-row element inventory. The `⋯` overflow on the lobby header is the only unspecified
+  surface it could live behind.
+- `docs/flows/match-create-join.md` says spectating "is offered when **the board** allows it", which
+  contradicts `1h`'s copy naming the host. A board setting and a host setting have different owners,
+  different lifetimes and different screens.
+- `E_SPECTATE_REFUSED` is **not in `docs/13-error-catalog.md`** at all, so it has no status, no surface
+  and no retry behaviour beside the other codes.
+- Nothing says the default. `1h` exists as a screen and `3g` offers `Watch` on a friend row, which
+  suggests on by default; the refusal's existence suggests it is a real choice.
+
+**Engine today:** spectating is **ungated**. Any authenticated caller who is not seated may
+`match:subscribe` and receives redacted snapshots only. `1h`'s refused state is therefore unreachable,
+and `E_SPECTATE_REFUSED` is emitted by nothing. Nothing was invented to gate it, because a gate needs a
+control, a default and an owner, and the design supplies none of the three.
 
 **Options**
 
-1. **Spectating is always allowed.** Public information only, which is what `1h` already promises, and
-   the flow doc's clause is regenerated away. Nothing to build.
-2. **A host setting on the room.** `settings` gains `spectators: boolean`, defaulting to on, shown in
-   `1b`'s lobby. It is not a rule, so it does not violate D1 — but `1b` draws no such control, so the
-   design would have to gain one.
-3. **A board setting, frozen at publish.** Matches the flow doc's words exactly ("the board allows it"),
-   and travels with the version. But it makes a social choice an immutable property of a board an
-   author published months earlier, which is the wrong owner for it.
+1. **A host toggle on the room, set in the lobby.** `settings` gains `spectators: boolean` (it is not a
+   rule, so D1 is not in play), `1b` gains a `ToggleRow` — behind the lobby `⋯` overflow, or as a row in
+   the RULES card — and `match:subscribe` refuses a non-member with `E_SPECTATE_REFUSED` when it is off.
+   Matches `1h`'s copy exactly. Costs one control `1b` does not draw.
+2. **A host toggle fixed at creation**, on `1b`'s setup screen beside `Starting cash`, so the answer
+   cannot change under someone who is already watching. Same copy, simpler server, but a host cannot shut
+   spectating off once the match is under way, which is when they would most want to.
+3. **Always allowed; the refusal is dropped.** `1h` §5's refused state and `E_SPECTATE_REFUSED` are
+   regenerated away, and the flow doc's clause with them. Nothing to build, and defensible on the merits
+   — a spectator sees only what `1h` §4's "Visible" column allows, and hands and pending trades are
+   already denied server-side — but it deletes a state the design drew deliberately, with its own copy.
 
-**Recommendation:** (1). `1h` is explicit that a spectator sees public information only, and there is
-nothing left to protect once hands and pending trades are redacted server-side. (3) is the only option
-the flow doc's wording supports literally, and it puts the decision in the hands of someone who is not
-in the match.
+**Recommendation:** (1). It is the only option that matches the copy the design already wrote, and a host
+who can kick a player (`lobby:kick`) should be able to close the door to onlookers too. It needs `1b`
+regenerated with the control, and `E_SPECTATE_REFUSED` added to `docs/13` with a status and a surface.
 
-Raised 27 September 2026 during D4. Does not block D4.
+Raised 27 September 2026 during D4. Does not block D4 — spectating works, and the redaction it exists to
+enforce is tested by value.

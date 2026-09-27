@@ -816,9 +816,17 @@ which contradicts three other documents at once:
 The reading that satisfies all four: the membership check guards *acting*, not *watching*. A caller
 who is not seated subscribes as a spectator and receives redacted snapshots only.
 
-**A related gap, still unanswered:** `docs/flows/match-create-join.md` says "spectating is offered when
-the board allows it", and no document says where that permission lives. Nothing gates spectating today.
-Raised as **OQ-43**.
+**What the access rule now is, exactly.** `match:subscribe` admits any authenticated caller: a seated
+one becomes a `member` and joins `match:<id>` and `lobby:<id>`; anyone else becomes a `spectator` and
+joins `match:<id>:spectators` and nothing else. `match:action` and every `lobby:*` event require
+`role === "member"` and refuse with `E_NOT_IN_MATCH` otherwise, which is `docs/07`'s check in the place
+it decides something. A spectator can therefore watch and can do nothing else — it has no path to the
+engine at all.
+
+**A related gap:** `docs/flows/match-create-join.md` says "spectating is offered when the board allows
+it", and `1h` §5 says a refused spectator sees `The host has spectating turned off.` — the *host*, not
+the board. Neither names a control, and `1b` draws none, so **nothing gates spectating today** and
+`1h`'s refused state is unreachable. Raised as **OQ-43**.
 
 ---
 
@@ -989,3 +997,52 @@ disagree. `presence:{matchId}` and `turnclock:{matchId}` are implemented as `doc
 
 **If accepted:** `docs/09`'s Redis table is regenerated with one match key, or the store is split and
 given a Lua script so the two writes are atomic.
+
+---
+
+## D4: re-deriving makes per-member redaction impossible
+
+**Found:** 27 September 2026, reviewing D4's redaction test. **Implemented: the spectator boundary is
+the only redaction there is.** Every seated player receives every other player's `holdCards` and every
+entry in `state.offers`, including offers between two players who are not them.
+
+**Why it is not a bug in the redaction layer.** `match:applied` carries events, and every member runs
+them through the same engine build to compute the state themselves — the owner's decision of 27
+September 2026, and the reason `stateHash` exists. That makes the members' states identical **by
+construction**: there is one state, and everyone who replays the events arrives at it. Redacting a
+field for one member and not another would mean that member's re-derived state no longer matched the
+hash the server sent, and the client would resync forever trying to reconcile a difference that is
+deliberate.
+
+Spectators can be redacted precisely because they do **not** re-derive: they are sent snapshots and
+nothing to replay, which is why `broadcastApplied` sends them `match:state` rather than
+`match:applied`.
+
+**So the choice is structural, not incidental.** Hands can be private between players, or state can be
+re-derived from events, but not both — unless the engine gains a per-viewer projection (a `view(state,
+playerId)` the server and the client both run, with the hidden parts replaced by counts the events can
+also produce). That is a substantial engine change, not a socket change.
+
+**What the design asks for today.** Nothing contradicts what ships:
+
+- `1h` is the **only** document that makes hands private, and it scopes that to spectating — §4's table
+  is headed "What a spectator may and may not see", and its acceptance item 5 says "never present in the
+  **spectator** payload".
+- `1p` §4 needs the opposite for members: `Hold cards marked Tradeable: Yes` are tradeable, so a player
+  building a deal must be able to see what the counterparty holds.
+- No screen shows a hidden hand between players. `1c`'s HUD does not mention hands at all.
+
+**The one part that looks unintended.** `state.offers` carries every live offer to every member, so a
+third player can see that A offered B a deal and on what terms. `1h` hides exactly that from spectators
+("Pending trade offers and their terms"), and the `socket-contract` skill's "Decisions are addressed"
+rule is honoured for the **event** — `trade:offered` goes only to the player being offered the deal —
+but the state behind it is shared. A third player's client is not told to render it; nothing stops it.
+
+**If accepted:** either `1p` gains a rule that a deal's terms are visible only to its two sides (and the
+engine gains the per-viewer projection above), or the design says plainly that a match is open
+information between its players and `1h`'s privacy is a spectator rule only. The second is what ships
+and is the cheaper of the two by a wide margin.
+
+**Pinned by test**, so this cannot change unnoticed: `apps/server/test/socket-contract.test.ts` plants a
+hold card and an offer with unmistakable ids and asserts a spectator receives neither, over the socket
+and over `GET /matches/:id` — and that a seated player receives both.

@@ -205,8 +205,8 @@ describe("both sides decode through the same function", () => {
   });
 
   it("refuses an event the contract does not describe, rather than trusting it", () => {
-    // `hello` is emitted by the server today and is deliberately not in SERVER_EVENTS (OQ-12), so a
-    // client that tried to decode it would be told there is no schema instead of being handed a payload.
+    // `hello` was A3's scaffolding and was removed in D4 (OQ-12). It is named here on purpose: if a
+    // server ever emits it again, a client is told there is no schema rather than handed a payload.
     const verdict = decodeServerEvent("hello", { namespace: "/match" });
 
     expect(verdict.ok).toBe(false);

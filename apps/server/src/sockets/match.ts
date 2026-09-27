@@ -125,10 +125,10 @@ export function registerMatchNamespace(namespace: Namespace, deps: MatchNamespac
     const socket = connection as MatchSocket;
     deps.log.info({ socketId: socket.id, userId: socket.data.userId }, "socket connected to /match");
 
-    // SKELETON ONLY (A3): `hello` is not in docs/07's event table. A3's acceptance names it and OQ-12
-    // asks whether it should go; it is left in place rather than settled here, and it is deliberately
-    // absent from SERVER_EVENTS so no client can be built against it.
-    socket.emit("hello", { namespace: "/match" });
+    // A3's `hello` was removed here (OQ-12, answered 27 September 2026): it was scaffolding that proved
+    // the namespace was reachable before there was anything to reach, and Socket.IO's own `connect`
+    // already tells a client that. An event in the code but not in docs/07's table misleads the next
+    // reader into thinking it is part of the contract.
 
     register(socket, namespace, deps);
   });

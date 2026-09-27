@@ -2,10 +2,12 @@
 //
 // docs/07-api-contract.md §Socket.IO: "Handshake: `auth: { token }`", and "Valid access token in the
 // handshake → disconnect with E_UNAUTHENTICATED". So a connection without a token is refused, and A3's
-// acceptance — "a socket client connects and receives `hello`" — is tested with one.
+// acceptance — "a socket client connects" — is tested with one.
 //
-// `hello` itself is still not in the contract's event table. **OQ-12** asks whether it should go; it is
-// unanswered, so the event stays where A3 put it rather than being removed here.
+// **A3's `hello` is gone** (OQ-12, answered 27 September 2026). It was never in the contract's event
+// table; it proved the namespace was reachable before there was anything to reach. Socket.IO's own
+// `connect` is what tells a client it is connected, so this asserts on that and on the first real
+// exchange the contract describes instead. The last assertion is what stops it coming back.
 
 import type { FastifyInstance } from "fastify";
 import request from "supertest";
@@ -52,16 +54,48 @@ describe("Socket.IO /match namespace", () => {
     return client;
   }
 
-  it("an authenticated client connects and receives hello", async () => {
+  it("an authenticated client connects", async () => {
     const client = connect({ token });
 
-    const hello = await new Promise<unknown>((resolve, reject) => {
-      client.once("hello", resolve);
+    await new Promise<void>((resolve, reject) => {
+      client.once("connect", () => resolve());
       client.once("connect_error", reject);
     });
 
-    expect(hello).toEqual({ namespace: "/match" });
     expect(client.connected).toBe(true);
+  });
+
+  it("a connected client's first exchange is the one docs/07 describes", async () => {
+    const client = connect({ token });
+    await new Promise<void>((resolve, reject) => {
+      client.once("connect", () => resolve());
+      client.once("connect_error", reject);
+    });
+
+    // "On connect the client emits `match:subscribe`" — with no match of its own it is refused, but the
+    // exchange proves the namespace is wired, which is all A3's `hello` ever proved.
+    const ack = (await client.emitWithAck("match:subscribe", { matchId: "01JNOSUCHMATCH0000000000000" })) as {
+      ok: boolean;
+      code: string;
+    };
+
+    expect(ack).toEqual({ ok: false, code: "E_NOT_IN_MATCH" });
+  });
+
+  it("emits nothing of its own on connect — no undocumented event", async () => {
+    const client = connect({ token });
+    const uninvited: string[] = [];
+    // onAny catches every event name, so this fails if any event outside docs/07's table reappears.
+    client.onAny((event: string) => uninvited.push(event));
+
+    await new Promise<void>((resolve, reject) => {
+      client.once("connect", () => resolve());
+      client.once("connect_error", reject);
+    });
+    // Long enough for a server-side emit on connection to have arrived, which `hello` did.
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    expect(uninvited).toEqual([]);
   });
 
   it("refuses a handshake with no token, carrying E_UNAUTHENTICATED", async () => {
