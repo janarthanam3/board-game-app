@@ -196,12 +196,15 @@ describe("HOLD CARD", () => {
     expect(lastEvent(state, "holdCardGranted")).toMatchObject({ playerId: NAVEEN, effect: "jailPass" });
   });
 
-  it("Affects Another player: no target can be chosen yet, so nothing is granted and the log says why (OQ-19)", () => {
+  it("Affects Another player: granted to the drawer, who names the target when playing it (C9)", () => {
     const state = land([{ ...blank, holdCard: { affects: "anotherPlayer", effect: { kind: "sendToJail", target: "choose" }, uses: 1, expires: "never", tradeable: false } }]);
-    for (const id of [NAVEEN, PRIYA, ARUN]) {
+    // The card goes to the drawer like any other; `target: "choose"` is settled by USE_CARD.target
+    // at play time, which is what C9 added. Before that it was skipped (OQ-19 item 2).
+    expect(state.players[NAVEEN]!.holdCards.map((card) => card.effect.kind)).toEqual(["sendToJail"]);
+    for (const id of [PRIYA, ARUN]) {
       expect(state.players[id]!.holdCards).toEqual([]);
     }
-    expect(lastEvent(state, "holdCardSkipped")).toMatchObject({ playerId: NAVEEN, reason: "needsTarget" });
+    expect(lastEvent(state, "holdCardGranted")).toMatchObject({ playerId: NAVEEN, effect: "sendToJail" });
   });
 });
 

@@ -103,7 +103,16 @@ export function validateRespondTrade(state: MatchState, action: Respond): Valida
     return refuse("E_OFFER_EXPIRED", "the offer's 60 s have elapsed (edge case #23)");
   }
   if (!action.accept) {
+    // Refusing is not trading, so a held player may always say no.
     return OK;
+  }
+  // §12 "While held: build, sell, mortgage and trade are blocked". Either side being held blocks
+  // the swap, and it is checked here rather than only at offer time because a player can be jailed
+  // between the offer and the answer, and because forceTradeAccept (C9) reaches this path without
+  // the held player acting at all.
+  const neitherHeld = all(notJailBlocked(state, offer.from), notJailBlocked(state, offer.to));
+  if (!neitherHeld.ok) {
+    return neitherHeld;
   }
   // Revalidation at accept time is mandatory (docs/06 "Trade").
   return validateTerms(state, offer.from, offer.to, offer.give, offer.get);

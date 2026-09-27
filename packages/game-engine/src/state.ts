@@ -265,6 +265,8 @@ export interface PlayerState {
   rentWaivers: number;
   /** 1 when nothing is armed; a collect-side rentMultiplier raises it for one collection. */
   rentCollectMultiplier: number;
+  /** 1 when nothing is armed; a paid-side rentMultiplier, aimed at this player, raises it once. */
+  rentPayMultiplier: number;
   freeBuilds: number;
   connected: boolean;
   bankrupt: { out: true; round: number; owedTo: PlayerId | "bank"; amount: number } | null;

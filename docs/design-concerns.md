@@ -453,3 +453,46 @@ modified client could report a full, error-free board and have an empty one read
 - **At unpublish**, D3 re-derives from the live version rather than restoring the last draft
   values. The draft may have drifted since publish, and a stale restore would put the board in a
   state its own contents deny — the failure this closes.
+
+## §12 and §16 contradict each other for a player who is jailed and in debt
+
+**Found:** 27 September 2026, during the C9 re-audit. **Rule 0 — no winner picked here.**
+
+`docs/05-game-rules.md` §16 gives three routes out of a debt — mortgage, sell, trade. §12 blocks
+"build, sell, mortgage and trade" while a player is held, and §2.4's COMMON row repeats it. The
+overlap is complete: every §16 route is a §12-blocked action, so a player who is both held and in
+debt has no route out and only **Declare bankruptcy** remains. §12 also promises "Max rounds held
+3 — release is automatic after that, paid or not", which a player eliminated in round one never sees.
+
+Neither section acknowledges the other. The engine currently follows §12, which is the literal
+reading of the narrower rule, and the question of which should win is **OQ-36** — unanswered.
+
+Whichever way it is answered, §12 or §16 needs regenerating to say so.
+
+---
+
+## `E_JAIL_BLOCKED`'s toast copy assumes the reader is the jailed one
+
+**Found:** 27 September 2026, during the C9 re-audit.
+
+`docs/13-error-catalog.md` gives `E_JAIL_BLOCKED` the copy "Not while you're in jail." After
+BUG-001, the refusal can also fire because the **other** side of a trade is held — the offerer was
+jailed after making the offer, or a `forceTradeAccept` card names a held player. The acting player
+then reads second-person copy about somebody else.
+
+The engine behaviour is correct per §12; it is the derived copy that no longer covers every case.
+Recorded here rather than fixed, and added to the regeneration table in `docs/OPEN-QUESTIONS.md`.
+
+---
+
+## A card can be labelled `affects: "me"` and still act on another player
+
+**Found:** 27 September 2026, during the C9 re-audit. See **OQ-35**.
+
+§5.1 pairs `affects` with two disjoint effect lists. Before C9 the engine enforced that pairing only
+as a side effect of refusing to grant `anotherPlayer` cards at all; now that C9 grants them, the
+field is read by nothing and the pairing is enforced nowhere. A board authored with
+`affects: "me"` on `sendToJail` plays as a targeted card regardless of the label.
+
+The design presents `affects` as an author's choice in `1z` §4.3, so this is a gap in validation
+rather than something to fix by changing the authoring model. OQ-35 recommends a publish-time check.

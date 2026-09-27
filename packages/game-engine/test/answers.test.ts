@@ -446,14 +446,18 @@ describe("OQ-15 — the state-shape additions stand", () => {
   });
 });
 
-describe("OQ-19 item 2 — 'Affects another player' still waits for a target action", () => {
-  it("grants nothing and says why, until CHOOSE_TARGET lands", () => {
+describe("OQ-19 item 2 — 'Affects another player' is granted and played with a target (C9)", () => {
+  it("grants the card to the drawer, who plays it by naming a player", () => {
     const state = withDeck(newMatch(), {
       holdCard: { affects: "anotherPlayer", effect: { kind: "sendToJail", target: "choose" }, uses: 1, expires: "never", tradeable: false },
     });
     const after = rollAs(state, NAVEEN, [1, 3]);
-    expect(lastEvent(after, "holdCardSkipped")).toMatchObject({ reason: "needsTarget" });
-    expect(after.players[NAVEEN]!.holdCards).toEqual([]);
+    expect(lastEvent(after, "holdCardGranted")).toMatchObject({ effect: "sendToJail" });
+    const cardId = after.players[NAVEEN]!.holdCards[0]!.id;
+
+    const played = step(after, { kind: "USE_CARD", by: NAVEEN, cardId, target: PRIYA, atMs: 0 });
+    expect(played.players[PRIYA]!.jail.in).toBe(true);
+    expect(played.players[NAVEEN]!.holdCards).toEqual([]);
   });
 });
 

@@ -10,7 +10,7 @@ import { checkInvariants, checkTransitionInvariants } from "../src/invariants";
 import { createMatch, replay } from "../src/match";
 import { apply, legalActions, validate } from "../src/reducer/index";
 import { nextUint32, type Rng } from "../src/rng";
-import { type FrozenDeck, isSolvent, type MatchState, type PlayerId } from "../src/state";
+import { type CardEffect, type FrozenDeck, isSolvent, type MatchState, type PlayerId } from "../src/state";
 import { ARUN, NAVEEN, PRIYA, setup } from "./support/match";
 
 /** Concrete candidates for every legal kind, built the same way the actions sheet would. */
@@ -58,8 +58,8 @@ function candidates(state: MatchState, by: PlayerId, atMs: number): Action[] {
         });
         break;
       case "OFFER_TRADE": {
-        const partner = state.seatOrder.find((id) => id !== by && isSolvent(state.players[id]!));
-        if (partner) {
+        for (const partner of state.seatOrder) {
+          if (partner === by || !isSolvent(state.players[partner]!)) continue;
           const mine = state.tiles.findIndex((tile) => tile.ownerId === by && tile.houses === 0 && !tile.hotel);
           const theirs = state.tiles.findIndex((tile) => tile.ownerId === partner && tile.houses === 0 && !tile.hotel);
           const cash = Math.min(500, player.cash);
@@ -93,6 +93,23 @@ function candidates(state: MatchState, by: PlayerId, atMs: number): Action[] {
             // Offer a handful of destinations rather than all forty, and never the current tile.
             for (const tileIndex of [0, 2, 5, 9, 12]) {
               if (tileIndex !== player.position) out.push({ kind, by, cardId: card.id, tileIndex, atMs });
+            }
+            continue;
+          }
+          // The five "Affects: Another player" effects are played by naming a target (C9), so
+          // offer every opponent — otherwise the fuzz never reaches those branches at all.
+          if (needsTarget(card.effect)) {
+            for (const target of Object.keys(state.players)) {
+              if (target === by) continue;
+              if (card.effect.kind === "removeBuilding") {
+                for (const [index, tile] of state.tiles.entries()) {
+                  if (tile.ownerId === target && (tile.houses > 0 || tile.hotel)) {
+                    out.push({ kind, by, cardId: card.id, target, tileIndex: index, atMs });
+                  }
+                }
+                continue;
+              }
+              out.push({ kind, by, cardId: card.id, target, atMs });
             }
             continue;
           }
@@ -136,6 +153,11 @@ const fuzzDeck: FrozenDeck = {
     { active: true, diceTotals: [], rule: { id: "wipe", name: "Clear a debt", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "clearDebt" }, uses: 1, expires: "never", tradeable: true } } },
     { active: true, diceTotals: [], rule: { id: "gift", name: "Free house or hotel", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "freeBuild" }, uses: 1, expires: "never", tradeable: true } } },
     { active: true, diceTotals: [], rule: { id: "siesta", name: "Skip a turn", conditions: null, money: null, move: null, holdCard: { affects: "me", effect: { kind: "skipTurn" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "nick", name: "Send them in", conditions: null, money: null, move: null, holdCard: { affects: "anotherPlayer", effect: { kind: "sendToJail", target: "choose" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "wipeout", name: "Zero their cash", conditions: null, money: null, move: null, holdCard: { affects: "anotherPlayer", effect: { kind: "zeroCash", target: "choose" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "demolish", name: "Remove a building", conditions: null, money: null, move: null, holdCard: { affects: "anotherPlayer", effect: { kind: "removeBuilding", target: "choose" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "forced", name: "Force a trade", conditions: null, money: null, move: null, holdCard: { affects: "anotherPlayer", effect: { kind: "forceTradeAccept", target: "choose" }, uses: 1, expires: "never", tradeable: true } } },
+    { active: true, diceTotals: [], rule: { id: "gouge", name: "Double rent paid", conditions: null, money: null, move: null, holdCard: { affects: "anotherPlayer", effect: { kind: "rentMultiplier", factor: 2, side: "pay" }, uses: 1, expires: "never", tradeable: true } } },
     { active: true, diceTotals: [], rule: { id: "rich", name: "Landlord bonus", conditions: { holdsColourSet: true, ownsEveryTileInSet: false, cashAbove: null, hasHouseOrHotel: false }, money: { direction: "bankPaysYou", amount: 2000, basis: "perTileOwned" }, move: null, holdCard: null } },
   ],
 };
@@ -162,6 +184,21 @@ interface FuzzProfile {
    * single play before the even-build change shifted how matches run.
    */
   dealJailPass?: boolean;
+  /**
+   * Deal one of each C9 card to every seat. Drawing them is possible but rare, and a card that is
+   * never in a hand is a branch the invariant sweep never enters — which is how the whole set of
+   * targeted effects stayed unswept while the suite passed.
+   */
+  dealTargetCards?: boolean;
+}
+
+/** The effects that are only playable with a `target` on the action (C9). */
+function needsTarget(effect: CardEffect): boolean {
+  if (effect.kind === "rentMultiplier") {
+    // Only the paid side is aimed at someone else; the collect side is the holder's own.
+    return effect.side === "pay";
+  }
+  return effect.kind === "sendToJail" || effect.kind === "zeroCash" || effect.kind === "removeBuilding" || effect.kind === "forceTradeAccept";
 }
 
 const SHORT: FuzzProfile = { rounds: 4, startingCash: 10_000 };
@@ -193,6 +230,27 @@ function playRandom(seed: number, maxSteps: number, profile: FuzzProfile = SHORT
         tradeable: true,
         grantedRound: 1,
       });
+    }
+  }
+  if (profile.dealTargetCards) {
+    const aimed: CardEffect[] = [
+      { kind: "sendToJail", target: "choose" },
+      { kind: "zeroCash", target: "choose" },
+      { kind: "removeBuilding", target: "choose" },
+      { kind: "forceTradeAccept", target: "choose" },
+      { kind: "rentMultiplier", factor: 2, side: "pay" },
+    ];
+    for (const seat of THREE) {
+      for (const effect of aimed) {
+        state.players[seat.id]!.holdCards.push({
+          id: `card-${effect.kind}-${effect.kind === "rentMultiplier" ? effect.side : "x"}-${seat.id}`,
+          effect,
+          uses: 2,
+          expires: "never",
+          tradeable: false,
+          grantedRound: 1,
+        });
+      }
     }
   }
   if (profile.dealSets) {
@@ -287,11 +345,17 @@ describe(`random legal play over ${MATCHES} seeded three-player matches`, () => 
     let diceChosen = 0;
     let cardsUsed = 0;
     let disconnects = 0;
+    const targeted: Record<string, number> = { sendToJail: 0, zeroCash: 0, removeBuilding: 0, forceTradeAccept: 0, rentMultiplier: 0 };
     const longMatches = Math.max(8, Math.floor(MATCHES / 25));
     for (let seed = 500; seed < 500 + longMatches; seed++) {
-      const { actions, final } = playRandom(seed, 2_000, { rounds: 25, startingCash: 40_000, preferBuilding: true, dealSets: true, dealJailPass: true });
+      const { actions, final } = playRandom(seed, 2_000, { rounds: 25, startingCash: 40_000, preferBuilding: true, dealSets: true, dealJailPass: true, dealTargetCards: true });
       assertCashConserved(final);
       cardsUsed += actions.filter((action) => action.kind === "USE_CARD").length;
+      for (const event of final.log) {
+        if (event.kind === "cardUsed" && event.target !== undefined) {
+          targeted[event.effect] = (targeted[event.effect] ?? 0) + 1;
+        }
+      }
       for (const event of final.log) {
         if (event.kind === "built" && event.what === "hotel") hotelsBuilt++;
         if (event.kind === "diceRolled" && event.chosen) diceChosen++;
@@ -302,6 +366,11 @@ describe(`random legal play over ${MATCHES} seeded three-player matches`, () => 
     expect(diceChosen).toBeGreaterThan(0);
     expect(cardsUsed).toBeGreaterThan(0);
     expect(disconnects).toBeGreaterThan(0);
+    // One assertion per C9 effect. A single combined counter passed on any one branch, which hid
+    // that forceTradeAccept — the branch edge case #41 lives on — was never swept at all.
+    for (const [effect, count] of Object.entries(targeted)) {
+      expect(count, `targeted card ${effect} was never played`).toBeGreaterThan(0);
+    }
   });
 
   it("replays byte-identically from the seed and action list, and two replays of one seed agree", () => {

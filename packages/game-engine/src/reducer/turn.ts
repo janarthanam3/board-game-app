@@ -14,8 +14,9 @@ import { pick, rollDice } from "../rng";
 import { type CornerTile, isSolvent, type MatchState, type PlayerId, type TileIndex } from "../state";
 import { openAuction } from "./auction";
 import { resolveCardSpace } from "./cards";
-import { type Ctx, emit, payFine, playerOf } from "./context";
+import { type Ctx, emit, payBank, payFine, playerOf } from "./context";
 import { charge, resolveBankruptcy } from "./debt";
+import { applyRespondTrade, validateRespondTrade } from "./trade";
 import { actorInMatch, all, inStage, isActorsTurn, matchIsLive, noOpenDebt } from "./guards";
 
 // ─── Turn start ─────────────────────────────────────────────────────────────────
@@ -237,7 +238,9 @@ export function resolveLanding(ctx: Ctx, playerId: PlayerId, tileIndex: TileInde
       // §7: the board's rent first, then the card effects, last.
       const rent = applyRentEffects(rentFor(state, tileIndex, diceTotal), {
         waiver: payer.rentWaivers > 0,
-        multiplier: owner.rentCollectMultiplier,
+        // Both sides of §5.1's rentMultiplier: the owner's "double rent collected" and the
+        // payer's "double rent paid", which another player aimed at them.
+        multiplier: owner.rentCollectMultiplier * payer.rentPayMultiplier,
       });
       if (payer.rentWaivers > 0) {
         payer.rentWaivers -= 1;
@@ -245,6 +248,9 @@ export function resolveLanding(ctx: Ctx, playerId: PlayerId, tileIndex: TileInde
       }
       if (owner.rentCollectMultiplier !== 1) {
         owner.rentCollectMultiplier = 1;
+      }
+      if (payer.rentPayMultiplier !== 1) {
+        payer.rentPayMultiplier = 1;
       }
       if (rent === 0) {
         state.turn.stage = "postRoll";
@@ -452,8 +458,57 @@ export function validateUseCard(state: MatchState, action: Extract<Action, { kin
       return OK;
     }
 
-    case "rentWaiver":
     case "rentMultiplier":
+      // Two cards share this effect: the collect side is the holder's own (C8), the paid side is
+      // aimed at someone else (§5.1 "Double rent paid").
+      if (card.effect.side === "pay") {
+        return all(noOpenDebt(state, action.by), targetable(state, action));
+      }
+      return noOpenDebt(state, action.by);
+
+    case "sendToJail":
+      return all(noOpenDebt(state, action.by), targetable(state, action));
+
+    case "zeroCash": {
+      const aimed = all(noOpenDebt(state, action.by), targetable(state, action));
+      if (!aimed.ok) {
+        return aimed;
+      }
+      return (state.players[action.target!]?.cash ?? 0) > 0
+        ? OK
+        : refuse("E_ACTION_ILLEGAL", "that player has no cash to take");
+    }
+
+    case "removeBuilding": {
+      const aimed = all(noOpenDebt(state, action.by), targetable(state, action));
+      if (!aimed.ok) {
+        return aimed;
+      }
+      if (action.tileIndex === undefined) {
+        return refuse("E_ACTION_ILLEGAL", "name the tile to take a building from");
+      }
+      const tile = state.tiles[action.tileIndex];
+      if (!tile || tile.ownerId !== action.target) {
+        return refuse("E_ACTION_ILLEGAL", `tile ${action.tileIndex} is not theirs`);
+      }
+      return tile.houses > 0 || tile.hotel ? OK : refuse("E_ACTION_ILLEGAL", "nothing is built there");
+    }
+
+    case "forceTradeAccept": {
+      const aimed = all(noOpenDebt(state, action.by), targetable(state, action));
+      if (!aimed.ok) {
+        return aimed;
+      }
+      const offer = state.offers.find((candidate) => candidate.from === action.by && candidate.to === action.target);
+      if (!offer) {
+        return refuse("E_ACTION_ILLEGAL", "no offer of yours is waiting on that player");
+      }
+      // Edge case #41: the terms are revalidated, and a target who cannot pay refuses the whole
+      // action — a refused action changes nothing, so the card is not consumed.
+      return validateRespondTrade(state, { kind: "RESPOND_TRADE", by: offer.to, offerId: offer.id, accept: true, atMs: action.atMs });
+    }
+
+    case "rentWaiver":
     case "freeBuild":
       // These arm an effect for a later event and move nothing, so no stage need forbid them:
       // playable at any point in the holder's own turn. The debt guard keeps them out of raise
@@ -465,6 +520,28 @@ export function validateUseCard(state: MatchState, action: Extract<Action, { kin
   }
 }
 
+/**
+ * The player a card is aimed at has to be named, in the match, solvent, and someone other than
+ * the holder. `USE_CARD.target` is the field SPEC.md already gives for this — see OQ-28 on why no
+ * CHOOSE_TARGET action was added.
+ */
+function targetable(state: MatchState, action: Extract<Action, { kind: "USE_CARD" }>): ValidationResult {
+  if (action.target === undefined) {
+    return refuse("E_ACTION_ILLEGAL", "this card must name the player it is aimed at");
+  }
+  if (action.target === action.by) {
+    return refuse("E_ACTION_ILLEGAL", "this card is aimed at another player");
+  }
+  const target = state.players[action.target];
+  if (!target) {
+    return refuse("E_ACTION_ILLEGAL", `${action.target} is not in this match`);
+  }
+  if (!isSolvent(target)) {
+    return refuse("E_ACTION_ILLEGAL", `${action.target} is out of the match`);
+  }
+  return OK;
+}
+
 export function applyUseCard(ctx: Ctx, action: Extract<Action, { kind: "USE_CARD" }>): void {
   const player = playerOf(ctx, action.by);
   const card = player.holdCards.find((candidate) => candidate.id === action.cardId);
@@ -473,7 +550,13 @@ export function applyUseCard(ctx: Ctx, action: Extract<Action, { kind: "USE_CARD
   }
   const effect = card.effect;
   consumeCard(ctx, player.id, effect.kind, card.id);
-  emit(ctx, { kind: "cardUsed", playerId: player.id, cardId: card.id, effect: effect.kind });
+  emit(ctx, {
+    kind: "cardUsed",
+    playerId: player.id,
+    cardId: card.id,
+    effect: effect.kind,
+    ...(action.target === undefined ? {} : { target: action.target }),
+  });
 
   switch (effect.kind) {
     case "jailPass":
@@ -487,11 +570,61 @@ export function applyUseCard(ctx: Ctx, action: Extract<Action, { kind: "USE_CARD
       return;
 
     case "rentMultiplier":
-      // Only the collect side is a "Me" effect; the paid side is a card aimed at someone else (C9).
       if (effect.side === "collect") {
         player.rentCollectMultiplier = effect.factor;
+      } else if (action.target !== undefined) {
+        playerOf(ctx, action.target).rentPayMultiplier = effect.factor;
       }
       return;
+
+    case "sendToJail":
+      if (action.target !== undefined) {
+        // OQ-17 item 1: the entry charge is for landing on a GET IN corner, not for a card.
+        sendToJail(ctx, action.target, "card");
+      }
+      return;
+
+    case "zeroCash": {
+      if (action.target === undefined) {
+        return;
+      }
+      const victim = playerOf(ctx, action.target);
+      const amount = victim.cash;
+      // The money leaves play, so the bank's ledger records it absorbed.
+      payBank(ctx, action.target, amount);
+      emit(ctx, { kind: "cashZeroed", playerId: action.target, amount });
+      return;
+    }
+
+    case "removeBuilding": {
+      if (action.target === undefined || action.tileIndex === undefined) {
+        return;
+      }
+      const tile = ctx.state.tiles[action.tileIndex];
+      if (!tile) {
+        return;
+      }
+      if (tile.hotel) {
+        tile.hotel = false;
+        ctx.state.bank.hotels += 1;
+        emit(ctx, { kind: "buildingRemoved", playerId: action.target, tileIndex: action.tileIndex, what: "hotel" });
+      } else {
+        tile.houses -= 1;
+        ctx.state.bank.houses += 1;
+        emit(ctx, { kind: "buildingRemoved", playerId: action.target, tileIndex: action.tileIndex, what: "house" });
+      }
+      return;
+    }
+
+    case "forceTradeAccept": {
+      const offer = ctx.state.offers.find((candidate) => candidate.from === player.id && candidate.to === action.target);
+      if (!offer) {
+        return;
+      }
+      // The swap runs exactly as the target accepting it would (§11), atomically.
+      applyRespondTrade(ctx, { kind: "RESPOND_TRADE", by: offer.to, offerId: offer.id, accept: true, atMs: ctx.atMs });
+      return;
+    }
 
     case "freeBuild":
       player.freeBuilds += 1;

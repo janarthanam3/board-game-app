@@ -56,4 +56,30 @@ _None yet — implementation has not started._
 
 ## Fixed
 
-_None yet._
+### BUG-001 · A trade could be accepted by, or with, a player held in jail
+- severity: 1 — it moves deeds and cash in a state the rulebook forbids
+- found: 2026-09-27 · engine only, no build · found by the C9 rules audit
+- area: rulebook §12 and §2.4 COMMON; `packages/game-engine/src/reducer/trade.ts`
+- steps:
+  1. Naveen offers Priya a tile for ₹900; the offer validates and stays open.
+  2. Priya is sent to jail (any route), on a board whose jail corner has
+     `blockActionsWhileHeld` on.
+  3. `RESPOND_TRADE { accept: true }` from Priya, or Naveen playing a `forceTradeAccept` card
+     aimed at her.
+- expected: refused. §12 "While held: build, sell, mortgage and trade are blocked", and §2.4's
+  COMMON row repeats it: "Block build, sell, mortgage and trade".
+- actual: `validateRespondTrade` returned OK and the swap ran. `validateOfferTrade` called
+  `notJailBlocked`, so the *offer* side was covered; the accept side never was.
+- seed / match id: n/a — reproduced from a constructed state in
+  `test/reducer/target-cards.test.ts`
+- status: fixed
+- cause: the jail guard was applied only when composing an offer. A player jailed between the
+  offer and the answer, and C9's `forceTradeAccept` (which reaches the accept path without the
+  held player acting at all), both slipped past it.
+- fix: `validateRespondTrade` now checks `notJailBlocked` for **both** sides of the offer before
+  revalidating the terms, on the accept path only — refusing an offer is not trading, so a held
+  player may still say no.
+- regression test: `forceTradeAccept — aimed at another player > is refused when the target is in
+  jail — §12 blocks trading while held`, plus the holder-jailed and may-still-reject cases beside
+  it.
+

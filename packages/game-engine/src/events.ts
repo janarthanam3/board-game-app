@@ -55,7 +55,6 @@ export type MatchEvent = Base &
     | { kind: "cardBlockSkipped"; playerId: PlayerId; ruleId: RuleId; block: "move"; reason: "debtOpen" }
     | { kind: "holdCardGranted"; playerId: PlayerId; ruleId: RuleId; cardId: string; effect: CardEffect["kind"] }
     /** OQ-19: "Affects another player" needs a target-choice action that does not exist yet */
-    | { kind: "holdCardSkipped"; playerId: PlayerId; ruleId: RuleId; reason: "needsTarget" }
     /** 1n #4 AUCTION LIVE */
     | { kind: "auctionOpened"; tileIndex: TileIndex; minBid: number; bidders: PlayerId[]; reason: "declined" | "bankruptcy" }
     | { kind: "bidPlaced"; playerId: PlayerId; tileIndex: TileIndex; amount: number }
@@ -88,7 +87,11 @@ export type MatchEvent = Base &
     | { kind: "debtSettled"; debtId: string; debtorId: PlayerId; creditorId: PlayerId | "bank"; amount: number }
     /** 1n #17 BANKRUPT (compact) / 1o */
     | { kind: "bankrupt"; playerId: PlayerId; creditorId: PlayerId | "bank"; tiles: TileIndex[]; cashTransferred: number; round: number }
-    | { kind: "cardUsed"; playerId: PlayerId; cardId: string; effect: string }
+    | { kind: "cardUsed"; playerId: PlayerId; cardId: string; effect: string; target?: PlayerId }
+    /** A zeroCash card emptied a player's cash; the money left play (§5.1) */
+    | { kind: "cashZeroed"; playerId: PlayerId; amount: number }
+    /** A removeBuilding card took a house or hotel off a tile and returned it to the bank */
+    | { kind: "buildingRemoved"; playerId: PlayerId; tileIndex: TileIndex; what: "house" | "hotel" }
     /** A rentWaiver was spent: the payment is skipped and the owner collects nothing (§7) */
     | { kind: "rentWaived"; payerId: PlayerId; ownerId: PlayerId; tileIndex: TileIndex }
     /** A clearDebt card wiped a debt; no money moved and the creditor was not paid */

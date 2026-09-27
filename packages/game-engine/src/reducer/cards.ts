@@ -93,21 +93,19 @@ function applyRule(ctx: Ctx, playerId: PlayerId, rule: RuleDefinition, moveToken
   }
 
   if (rule.holdCard) {
-    if (rule.holdCard.affects === "anotherPlayer") {
-      // No action carries the chosen target yet (OQ-19); nothing is granted and the log says so.
-      emit(ctx, { kind: "holdCardSkipped", playerId, ruleId: rule.id, reason: "needsTarget" });
-    } else {
-      const card: HoldCard = {
-        id: nextId(ctx, "card"),
-        effect: rule.holdCard.effect,
-        uses: rule.holdCard.uses,
-        expires: rule.holdCard.expires,
-        tradeable: rule.holdCard.tradeable,
-        grantedRound: state.round,
-      };
-      playerOf(ctx, playerId).holdCards.push(card);
-      emit(ctx, { kind: "holdCardGranted", playerId, ruleId: rule.id, cardId: card.id, effect: card.effect.kind });
-    }
+    // Both `affects` values are granted the same way: a card aimed at another player names that
+    // player when it is played (USE_CARD.target, task C9), not when it is drawn. Before C9 there
+    // was nowhere to put the choice, so such a card was skipped — OQ-19 item 2, now answered.
+    const card: HoldCard = {
+      id: nextId(ctx, "card"),
+      effect: rule.holdCard.effect,
+      uses: rule.holdCard.uses,
+      expires: rule.holdCard.expires,
+      tradeable: rule.holdCard.tradeable,
+      grantedRound: state.round,
+    };
+    playerOf(ctx, playerId).holdCards.push(card);
+    emit(ctx, { kind: "holdCardGranted", playerId, ruleId: rule.id, cardId: card.id, effect: card.effect.kind });
   }
 }
 

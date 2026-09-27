@@ -95,6 +95,7 @@ function player(id: PlayerId, seat: number, name: string, cash: number): PlayerS
     holdCards: [],
     rentWaivers: 0,
     rentCollectMultiplier: 1,
+    rentPayMultiplier: 1,
     freeBuilds: 0,
     skipTurns: 0,
     connected: true,

@@ -804,8 +804,10 @@ on tiles that do **not** hold a hotel, as implemented. `packages/game-engine/SPE
 ## OQ-19
 
 1. **MONEY directions** — four, as implemented. `1z` §4.1's six need regenerating.
-2. **"Affects another player" cards** — deferred to a new task, **C9 · Target-choice action**.
-   Until it lands the block is skipped and logged, which a test now pins.
+2. **"Affects another player" cards** — **done in C9** (27 September 2026). The card is granted to
+   the drawer like any other and played by `USE_CARD` naming a `target`; no `CHOOSE_TARGET` action
+   and no new turn stage were added, for the reasons in **OQ-28**. The `holdCardSkipped` event this
+   item created is gone, since nothing can emit it any more.
 3. **Basis under Share / Collect** — confirmed: the amount is per counterpart.
 4. **MOVE after a MONEY debt** — confirmed: the move is dropped, the hold card still applies.
 5. **Ranges and expiry** — the rulebook's values win; `1z` §4.2–4.3 needs regenerating.
@@ -890,10 +892,11 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | --- | --- |
 | `docs/05-game-rules.md` | §4 and §8 even build measured among the holder's tiles · §2.3 Tax office draws as well as charging · §7 the five-utility wording · §8 the dropped "Hotel returns houses" toggle · §9 the three rounding rules · §13 the `freeRestHouse` card and its use · §1 the teleport bonus as a permission |
 | `docs/screens/1z-rule-control.md` | §4.1 four MONEY directions · §4.2–4.3 the rulebook's ranges and expiry values |
-| `docs/screens/1n-notification-cards.md` | #3 `PROPERTY COST` must say when the deed is mortgaged and name the redeem cost (OQ-25) |
+| `docs/screens/1n-notification-cards.md` | #3 `PROPERTY COST` must say when the deed is mortgaged and name the redeem cost (OQ-25) · cards for the two C9 events `cashZeroed` and `buildingRemoved`, which have no card in `1n` today |
 | `docs/screens/3m-*.md` | which tile pays out the free-parking pot |
 | `docs/02-design-tokens.md` | the board-map insets and pip anchors now in `tokens.board` |
 | `docs/08-database.md` | the derived pending / completed column from OQ-6 |
+| `docs/13-error-catalog.md` | `E_JAIL_BLOCKED` needs copy for the case where the *other* side of a trade is the one held (BUG-001); the present "Not while you're in jail." is second-person about someone else |
 
 ---
 
@@ -1005,3 +1008,275 @@ in advance, it is spent by whatever rent happens to come next, which may not be 
 was saving it for.
 
 Raised 26 September 2026 during C8.
+
+---
+
+## OQ-28 · C9 names an action and a stage that neither SPEC.md nor docs/06 has
+
+**Affects:** `packages/game-engine/src/reducer/turn.ts` (`validateUseCard`, `applyUseCard`,
+`targetable`); `TASKS.md` C9; `1v` the actions row.
+
+**Why it matters:** C9's acceptance criteria ask for a `CHOOSE_TARGET` action and a target-choice
+turn stage, and for the two "one player" MONEY directions to become playable. Three problems:
+
+- **`SPEC.md` has no `CHOOSE_TARGET` action.** Its `Action` union is closed and `USE_CARD` already
+  carries `target?: PlayerId` — the field exists precisely so a card can name a player.
+- **`docs/06-state-machines.md` has no target-choice stage.** The turn machine's stages are
+  `preRoll`, `moving`, `decision`, `postRoll`, `jailChoice`, `auction`, `raiseCash`, `handover`,
+  `ended`. Adding a tenth is inventing flow control, which the `state-machine` skill forbids.
+- **OQ-19 item 1's answer ("cut to four") removed the two MONEY directions C9 names.** A card can no
+  longer send money to or take money from one chosen player, so there is nothing left to implement
+  on that half of the task.
+
+**What was implemented instead:** the five "Affects: Another player" effects — `sendToJail`,
+`zeroCash`, `removeBuilding`, `forceTradeAccept` and `rentMultiplier` with `side: "pay"` — are
+played through `USE_CARD.target`, with a shared `targetable()` guard that refuses an unnamed target,
+a self-target, a player not in the match, and an insolvent one. No new action, no new stage.
+
+**Options**
+1. Keep this. Regenerate C9's acceptance to describe `USE_CARD.target`, and drop the MONEY half as
+   answered by OQ-19 item 1.
+2. Add `CHOOSE_TARGET` as a separate action anyway, making a targeted card a two-step play: name the
+   card, then name the player. This needs a stage to hold the half-played card, and it needs the
+   design to say what the screen looks like between the two steps — which it does not.
+3. Reinstate the two MONEY directions, reopening OQ-19 item 1.
+
+**Recommendation:** (1). The one thing (2) would buy is a cancellable target picker, and the design
+does not describe one; if `1v` turns out to need it, it is a UI-side concern that can compose the
+single `USE_CARD` when the player confirms.
+
+Raised 27 September 2026 during C9.
+
+---
+
+## OQ-29 · Where does the money a `zeroCash` card takes actually go?
+
+**Affects:** `packages/game-engine/src/reducer/turn.ts` (`applyUseCard`, `case "zeroCash"`);
+`1z` §4.3; `1n` the notification card for the effect.
+
+**Why it matters:** rulebook §5.1 names the effect ("Zero their cash") and says nothing about the
+destination. Cash cannot simply vanish — `cashConservation` requires every rupee to be held by a
+player, in the fine pot, in auction escrow, or absorbed by the bank — so the engine has to pick one.
+
+**Engine today:** `payBank(...)`, so the ledger records it absorbed. On a board whose `finesTo` is
+`pot`, the money therefore bypasses the pot, which sits awkwardly beside the answered **OQ-22
+item 2** ("a card's 'You pay bank' is a fine, so a pot board collects it").
+
+Edge case #42 is silent on this too: it says the cash goes to 0 and the debt stands, and a creditor
+owed by the emptied player gets nothing either way.
+
+**Options**
+1. Out of play to the bank, as implemented. Simplest, and the card is punitive rather than
+   redistributive.
+2. Treat it as a fine, so `finesTo: "pot"` collects it and a later STAY HERE payout can hand it
+   back out. Consistent with OQ-22 item 2, and it makes the card swing a pot board hard.
+3. To the card holder. Turns the card into the largest single transfer in the game — on a 6-player
+   board it can exceed every rent on the board combined.
+
+**Recommendation:** (2). It is the only option with a precedent already answered in this project,
+and it keeps one rule for "card money with no named recipient" rather than two.
+
+Raised 27 September 2026 by the C9 rules audit.
+
+---
+
+## OQ-30 · Do a collect-side and a paid-side `rentMultiplier` compose?
+
+**Affects:** `packages/game-engine/src/reducer/turn.ts` (the rent calculation);
+`docs/05-game-rules.md` §7; `1n` the RENT DUE card.
+
+**Why it matters:** §7 says card effects modify the result last, "rentMultiplier (×2 collect **or**
+×2 paid)". Two different players can arm the two sides at the same moment: the owner holds "double
+rent collected" and someone has aimed "double rent paid" at the payer. "Or" reads as a list of the
+two forms the effect takes, not as a promise that only one can be live.
+
+**Engine today:** they multiply — `owner.rentCollectMultiplier * payer.rentPayMultiplier` — so a
+₹50 rent is charged ₹200. Both are spent afterwards whatever happens, including on a rent that a
+waiver reduced to ₹0.
+
+**Options**
+1. Compose, as implemented. ×4 is reachable but needs two cards and the right landing.
+2. Cap the combined multiplier at the larger of the two, spending both. Never worse than ×2.
+3. Cap at the larger and spend only the one that applied, so the other stays armed.
+
+**Recommendation:** (1), and regenerate §7 to say so. A ×4 rent is a memorable moment and both
+players spent a card to get it; (3) is the fiddliest to explain on `1n`.
+
+**Also unstated:** whether an armed multiplier survives a rent that a `rentWaiver` zeroed. The
+engine burns it. This is not new — the collect side has behaved this way since C8 — but §7 does not
+settle it.
+
+Raised 27 September 2026 by the C9 rules audit.
+
+---
+
+## OQ-31 · What does `removeBuilding` pay the owner, and must it respect Build evenly?
+
+**Affects:** `packages/game-engine/src/reducer/turn.ts` (`case "removeBuilding"`);
+`docs/05-game-rules.md` §5.1 and §8.
+
+**Why it matters:** §5.1 gives the label "Remove a house or hotel" and nothing else. §8 covers
+building and selling — a voluntary sale returns half the build cost — but not confiscation by a
+card. Three things are undefined: what the owner is paid, which piece comes off a tile that has a
+hotel, and whether the result has to satisfy Build evenly.
+
+**Engine today:** the owner is paid nothing; a hotel is taken before a house and leaves the tile at
+0 houses; and the result may be uneven, on the ground that even build governs *building* (§8's own
+framing) rather than every path a building can leave a tile by. Returning the piece to the bank's
+supply is not optional — the `houseSupply` and `hotelSupply` invariants require it.
+
+**Options**
+1. As implemented: nothing paid, hotel first, evenness not enforced afterwards.
+2. Pay the owner the §8 sale price (half the build cost), making the card a forced sale.
+3. Enforce evenness by taking the piece from the highest tile the target holds in that group, and
+   refuse when no tile can lose one without breaking the ladder.
+
+**Recommendation:** (1) for what the owner is paid — a card that pays its victim is a strange
+punishment — and (3) is worth taking for *which* piece comes off, because an uneven group is a state
+`1v`'s build controls then refuse to repair. Note that (3) means the card sometimes cannot be
+played, which needs copy on `1n`.
+
+Raised 27 September 2026 by the C9 rules audit.
+
+---
+
+## OQ-32 · From which turn stages may a targeted card be played?
+
+**Affects:** `packages/game-engine/src/reducer/turn.ts` (`validateUseCard`);
+`docs/06-state-machines.md` the turn machine; `1v` the actions row.
+
+**Why it matters:** §15 step 6 lists optional actions "before and after the roll". The turn machine
+has no arrow for a card played out of `decision` (an open buy prompt) or `auction` (a live lot), and
+the engine is inconsistent with itself: C8 gated `moveAnywhere` to `preRoll`/`postRoll` and
+`skipTurn` to `preRoll`, while C9's four immediate effects carry no stage guard at all.
+
+**Engine today:** playable from any stage of the holder's turn with no open debt — including while
+an auction is running, which lets a holder zero a rival bidder's cash mid-lot. §21 #4's escrow rule
+says nothing about that.
+
+**Options**
+1. Gate all four to `preRoll` and `postRoll`, matching §15 step 6 and C8's cards.
+2. Leave them open, and answer the auction interaction separately.
+3. Gate to `preRoll`/`postRoll` and additionally forbid them while any auction is live, since an
+   auction suspends the turn rather than being part of it.
+
+**Recommendation:** (3). It is the reading that makes the engine internally consistent, and it
+closes the escrow question without needing a new rule for it.
+
+Raised 27 September 2026 by the C9 rules audit.
+
+---
+
+## OQ-33 · Is `zeroCash` refused on a target who already has nothing?
+
+**Affects:** `packages/game-engine/src/reducer/turn.ts` (`validateUseCard`, `case "zeroCash"`).
+
+**Why it matters:** nothing in §5.1 or §21 makes an empty wallet a precondition. Refusing protects
+the player from wasting a card on no effect; allowing it treats the card like any other that can be
+played into a situation where it does nothing.
+
+**Engine today:** refused with `E_ACTION_ILLEGAL` and the reason "that player has no cash to take".
+This is validation the rulebook does not state, so it is flagged rather than defended.
+
+**Options**
+1. Refuse, as implemented.
+2. Allow it, spend the use, and log a zero amount.
+3. Refuse, but only when *every* other player is empty — so the card is never dead while a
+   worthwhile target exists.
+
+**Recommendation:** (1), and regenerate §5.1 to say so. `1v` can then grey the card with a reason,
+which is the behaviour the error catalog is built for.
+
+Raised 27 September 2026 by the C9 rules audit.
+
+---
+
+## OQ-34 · Does a card re-jail a player who is already held, and does it reset the count?
+
+**Affects:** `packages/game-engine/src/reducer/turn.ts` (`case "sendToJail"`), the jail helpers;
+`docs/05-game-rules.md` §12.
+
+**Why it matters:** §12 gives entry, the ₹5,000 get-out, doubles, the jail pass and "Max rounds
+held 3 — release is automatic after that, paid or not". It does not say what a second entry does to
+a player already serving.
+
+**Engine today:** `jail` is set to `{ in: true, roundsHeld: 0 }` unconditionally, so the card resets
+the served count and can hold a player indefinitely — two opponents with the card could keep one
+player in jail past the three-round guarantee §12 makes.
+
+**Options**
+1. No-op on a player already held, logged. The three-round cap stays a guarantee.
+2. Reset `roundsHeld` to 0, as implemented. The cap applies per entry, not per player.
+3. Refuse the play, so the card is not spent.
+
+**Recommendation:** (1). §12's "release is automatic after that" reads as a promise to the held
+player, and (2) lets a card cancel it. (3) is defensible but makes the holder check the target's
+jail state before every play.
+
+Raised 27 September 2026 by the C9 rules audit.
+
+---
+
+## OQ-35 · Must a hold card's `affects` agree with its effect, and who enforces that?
+
+**Affects:** `packages/game-engine/src/state.ts` (`HoldCard.affects`), `src/reducer/cards.ts`,
+`src/publish.ts`; `1z` §4.3 the HOLD CARD block; `docs/05-game-rules.md` §5.1.
+
+**Why it matters:** §5.1 pairs the two `affects` values with disjoint effect lists — eight effects
+under **Me**, five under **Another player**. Until C9, the engine enforced that pairing by accident:
+an `anotherPlayer` card was skipped rather than granted, so a mislabelled card could not be played.
+C9 grants both the same way, because the target is named at play time. The field is now **read by
+nothing**, so the grammar is enforced nowhere.
+
+A board can therefore be authored with `affects: "me"` on a `sendToJail` effect. The engine grants
+it and plays it as the targeted card it is: a self-target is refused, aiming it at an opponent works.
+The label simply has no consequence.
+
+**Options**
+1. Check it at publish time, beside `checkMoveTargets()` in `src/publish.ts`, refusing a board whose
+   card labels disagree with §5.1's lists. Consistent with how OQ-26 was answered, and it keeps the
+   authored document honest.
+2. Derive `affects` from the effect kind and delete the stored field. One source of truth, and a
+   mislabel becomes unrepresentable — but `1z` shows the field as an author's choice, so the editor's
+   two dropdowns would become one dropdown and a derived caption.
+3. Leave it decorative, as today, and let `1z` be the only thing that keeps the pairing.
+
+**Recommendation:** (1). It matches the precedent just set for MOVE targets, it needs no change to
+`1z`'s authoring model, and a published version is immutable (D5) — so a board that passes the check
+once can never drift. (2) is cleaner in the engine but contradicts the design's own editor.
+
+Raised 27 September 2026 by the C9 re-audit.
+
+---
+
+## OQ-36 · May a player held in jail use §16's trade route to raise cash?
+
+**Affects:** `packages/game-engine/src/reducer/trade.ts`, `src/reducer/property.ts`;
+`docs/05-game-rules.md` §12 and §16; `1d` the raise-cash sheet.
+
+**Why it matters:** §16 gives three routes out of a debt — mortgage, sell, trade — and §12 blocks
+"build, sell, mortgage and trade" while a player is held. The rulebook never reconciles them, and the
+overlap is total: every §16 route is a §12-blocked action. A player who is both jailed and in debt
+therefore has no route at all, and only **Declare bankruptcy** remains.
+
+This became reachable in this form with BUG-001's fix (27 September 2026), which closed the last
+unguarded route by adding the jail check to the trade *accept* path. Before that fix a held debtor
+could still be rescued by accepting an incoming offer — which was itself a §12 violation, so the
+fix is right; it just makes the collision visible.
+
+**Options**
+1. §12 wins: a held debtor can only declare bankruptcy. As implemented. Harsh, and it means a jail
+   landing can end a match for a player who had assets to sell.
+2. §16 wins while a debt is open: the three raise-cash routes are exempt from the §12 block, since
+   they are forced, not opportunistic. The player still cannot build or trade freely.
+3. Split: allow the two solitary routes (mortgage and sell, which involve only the bank) and keep
+   trade blocked, since a trade needs a counterparty and is the route §12 most clearly targets.
+
+**Recommendation:** (3). It keeps §12's intent — a held player does not deal with other players —
+while leaving §16's promise of a way out intact. (1) makes "Max rounds held 3 — release is automatic"
+cold comfort, since the player can be eliminated before the third round.
+
+**Note for regeneration:** §12 and §16 contradict each other as written; this is recorded in
+`docs/design-concerns.md` as well, per Rule 0. No winner is picked here.
+
+Raised 27 September 2026 by the C9 re-audit.

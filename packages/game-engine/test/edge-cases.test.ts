@@ -153,6 +153,44 @@ describe("rulebook §21 — engine rows", () => {
     expect(after.players[NAVEEN]!.position).toBe(8);
   });
 
+  it("#10 a sendToJail card on a board with no jail is a no-op the log records", () => {
+    // C9 gave the card a target, so this row is the engine's. The corner half is #9.
+    const state = newMatch();
+    state.board.tiles[8] = { ...state.board.tiles[8]!, cornerType: "none" } as never;
+    const rolled = rollAs(grant(state, NAVEEN, [3]), NAVEEN, [1, 2]);
+    rolled.players[NAVEEN]!.holdCards.push({ id: "card-jail", effect: { kind: "sendToJail", target: "choose" }, uses: 1, expires: "never", tradeable: false, grantedRound: 1 });
+    const after = step(rolled, { kind: "USE_CARD", by: NAVEEN, cardId: "card-jail", target: PRIYA, atMs: 0 });
+    expect(lastEvent(after, "noJailOnBoard")).toMatchObject({ playerId: PRIYA });
+    expect(after.players[PRIYA]!.jail.in).toBe(false);
+  });
+
+  it("#41 forceTradeAccept on a player who cannot pay: rejected, and the card is not consumed", () => {
+    let state = rollAs(grant(newMatch(), NAVEEN, [3]), NAVEEN, [1, 2]);
+    state = step(state, { kind: "OFFER_TRADE", by: NAVEEN, to: PRIYA, give: { cash: 0, tileIndexes: [3], holdCardIds: [] }, get: { cash: 900, tileIndexes: [], holdCardIds: [] }, atMs: 0 });
+    state = setCash(state, PRIYA, 100);
+    state.players[NAVEEN]!.holdCards.push({ id: "card-force", effect: { kind: "forceTradeAccept", target: "choose" }, uses: 1, expires: "never", tradeable: false, grantedRound: 1 });
+    expect(refusal(state, { kind: "USE_CARD", by: NAVEEN, cardId: "card-force", target: PRIYA, atMs: 0 })).toBe("E_TRADE_INVALID");
+    expect(state.players[NAVEEN]!.holdCards.map((card) => card.id)).toEqual(["card-force"]);
+  });
+
+  it("#42 zeroCash on a player who owes: cash goes to 0 and the debt stands", () => {
+    let state = grant(newMatch(), NAVEEN, PURPLE);
+    for (const index of PURPLE) {
+      state.tiles[index]!.houses = 1;
+      state.bank.houses -= 1;
+    }
+    state = setCash(state, PRIYA, 20);
+    state = step(rollAs(state, NAVEEN, [1, 2]), at("END_TURN", NAVEEN));
+    state = rollAs(state, PRIYA, [1, 1]); // a rent she cannot pay
+    expect(state.debts).toHaveLength(1);
+    state = step(state, { kind: "TIMER_EXPIRED", scope: "turn", atMs: 30_000 });
+    state.players[NAVEEN]!.holdCards.push({ id: "card-zero", effect: { kind: "zeroCash", target: "choose" }, uses: 1, expires: "never", tradeable: false, grantedRound: 1 });
+    state = step(state, { kind: "USE_CARD", by: NAVEEN, cardId: "card-zero", target: PRIYA, atMs: 0 });
+
+    expect(state.players[PRIYA]!.cash).toBe(0);
+    expect(state.debts).toHaveLength(1);
+  });
+
   it("#11 a chosen dice total is never a double: no extra roll", () => {
     let state = grant(newMatch(), NAVEEN, [6]); // own Anna Salai so the landing resolves
     state.players[NAVEEN]!.holdCards.push({ id: "card-cd", effect: { kind: "chooseDice" }, uses: 1, expires: "never", tradeable: false, grantedRound: 1 });
@@ -334,7 +372,6 @@ describe("rulebook §21 — rows owned elsewhere", () => {
   // Each row is named with its owner so the table is accounted for in full. A row moves into the
   // engine block above when its owner task lands.
   const owners: Record<number, string> = {
-    10: "OQ-19 (the sendToJail hold card needs a target-choice action; sendToJail itself logs noJailOnBoard, see #9)",
     24: "OQ-2 / D4 server (queued offer while the target is in a modal)",
     27: "D4 server (disconnect grace and auto-play)",
     28: "D4 server (host transfer)",
@@ -344,14 +381,12 @@ describe("rulebook §21 — rows owned elsewhere", () => {
     35: "D3 API (unpublish leaves running matches alone)",
     36: "D3 API (published versions carry copies of decks and rules)",
     39: "D1/D5 (rules come from the frozen version; not reachable)",
-    41: "OQ-19 (forceTradeAccept needs a target-choice action)",
-    42: "OQ-19 (zeroCash needs a target-choice action)",
     44: "E7 / offline-local-mode (handover cover skips a bankrupt player)",
     45: "F5 (fast mode changes no rule)",
   };
 
   it("accounts for every one of the 45 rows exactly once", () => {
-    const engineRows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 30, 32, 33, 37, 38, 40, 43];
+    const engineRows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 30, 32, 33, 37, 38, 40, 41, 42, 43];
     const all = [...engineRows, ...Object.keys(owners).map(Number)].sort((a, b) => a - b);
     expect(all).toEqual(Array.from({ length: 45 }, (_, i) => i + 1));
   });
