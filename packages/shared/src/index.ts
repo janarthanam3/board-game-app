@@ -4,3 +4,4 @@ export * from "./colour";
 export * from "./id";
 export * from "./money";
 export * from "./schemas/auth";
+export * from "./schemas/boards";

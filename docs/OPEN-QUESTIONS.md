@@ -899,6 +899,8 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/08-database.md` | the derived pending / completed column from OQ-6 |
 | `docs/13-error-catalog.md` | `E_JAIL_BLOCKED` needs copy for the case where the *other* side of a trade is the one held (BUG-001); the present "Not while you're in jail." is second-person about someone else |
 | `docs/screens/1a-auth.md` | the route names, the sign-up field and the error codes it uses — none of which match `docs/07` or `docs/13` (see design-concerns, OQ-38 and OQ-39) |
+| `docs/07-api-contract.md` | declare `TileSummary`, `RuleSummaryRow` and `PublishedBoard` · list `GET /boards/name-available` (only `2a` has it) · say whether the publish body carries `ruleset` (OQ-40) |
+| `docs/13-error-catalog.md` (cont.) | the three validator outcomes with no code, and codes for D7's five warnings |
 
 ---
 
@@ -1442,3 +1444,79 @@ so the promise in the toast is not yet true. Nothing else in the system depends 
 survive to release is the toast, which currently states something that does not happen.
 
 Raised 27 September 2026 during D2. Does not block D2; blocks `1a`'s criterion 7 being truthful.
+
+---
+
+## OQ-40 · Does a published document carry its ruleset, and where?
+
+**Affects:** `apps/server/src/routes/boards.ts` (`POST /boards/publish`),
+`packages/shared/src/schemas/boards.ts`; `docs/07-api-contract.md` §Boards; `docs/08-database.md`
+`board_versions.document`; `packages/game-engine/src/state.ts` (`FrozenBoard`, `MatchSetup`).
+
+**Why it matters:** three docs describe the stored document differently.
+
+- `docs/07` types the publish body as `{ localBoardId, name, description, document: FrozenBoard }`.
+- `docs/08`'s column comment reads "FrozenBoard: tiles, groups, decks+rules copies, **ruleset**".
+- The engine's `FrozenBoard` has **no** ruleset field; `MatchSetup` takes `board` and `rules`
+  separately, and `createMatch` needs both.
+
+Decision D5 settles the intent — "a published board carries copies of its decks and rules… what makes
+a board work on a device whose rule library is entirely different" — so the version row must hold the
+ruleset somehow. It is only the shape that is unsettled.
+
+**Engine today:** the publish body takes `ruleset` as its own field beside `document`, and the server
+stores `{ ...document, boardVersionId, ruleset }` in the column. So the row is self-contained and a
+match can start from it alone, whichever way this is answered. `GET /catalogue/:id/rules` reads
+`document.ruleset` back out.
+
+**Options**
+1. Keep them separate on the wire, merged in the row, as implemented. `docs/07`'s body gains a
+   `ruleset` field and `docs/08`'s comment is already right.
+2. Add `ruleset` to the engine's `FrozenBoard`, making the document genuinely one object and `docs/07`
+   correct as written. `MatchSetup` then has the ruleset twice, and a match could be started with a
+   board whose embedded ruleset differs from the one passed in — a new way to go wrong.
+3. Store the ruleset in its own column on `board_versions`. Cleanest to query, but it contradicts
+   `docs/08`'s comment and the "one immutable document" idea D5 rests on.
+
+**Recommendation:** (1). The engine's split is deliberate — the ruleset is resolved *from* the board at
+match start (state.ts: "Resolved from the board at match start; never editable in-match") — and (2)
+creates a two-sources-of-truth hazard inside a single match setup.
+
+Raised 27 September 2026 during D3. Does not block D3.
+
+---
+
+## OQ-41 · What does `stakesHeld` on the unpublish sheet count?
+
+**Affects:** `apps/server/src/routes/boards.ts` (`impactOf`); `docs/07-api-contract.md`
+(`UnpublishImpact`); `docs/screens/2a-board-builder.md` §2.4.
+
+**Why it matters:** `2a`'s unpublish dialog promises a line of copy: "₹84,200 in stakes stays held
+until those matches settle." `UnpublishImpact` types `stakesHeld: number`. Nothing defines what a
+"stake" is, and the word appears nowhere else in the docs — there is no wager, buy-in or escrow in the
+rules beyond an auction's live bid.
+
+There is also nowhere to read it from. A running match's money lives in the engine's state (held in
+Redis under `MATCH_STATE_TTL`), and `match_players.cash` is only written when the match ends, so
+Postgres cannot answer the question for an *open* match — which is precisely the set the sheet is
+about.
+
+**Engine today:** `sum(match_players.cash)` over players in open matches, which is **0** until those
+rows are filled at match end. The number is therefore honest but almost always zero.
+
+**Options**
+1. Total cash held by players in open matches on this board, read from the live match state in Redis
+   rather than Postgres. Matches the copy's intent; needs the match-state store from D4, and a fan-out
+   read across every open match.
+2. Keep a running total on the match row, updated when a match starts and ends. Cheap to read; another
+   derived number that can drift from the state it summarises.
+3. Drop the line from `2a` and the field from `UnpublishImpact`. No money is actually at risk — a board
+   leaving the catalogue does not touch a running match — so the sentence may simply be reassurance
+   that reads as more than it is.
+
+**Recommendation:** (3), with (1) as the fallback if the line stays. Unpublishing cannot strand money:
+D5 says running matches finish on their version, so nothing is "held" in any sense the player can act
+on. If the intent is "the matches keep going", the copy should say that — which the line above it
+already does.
+
+Raised 27 September 2026 during D3. Does not block D3; the field is returned and answers 0.

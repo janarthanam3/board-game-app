@@ -43,6 +43,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // reports.reporter_id has no cascade (docs/08 specifies it that way, and the product soft-deletes
+  // accounts via users.deleted_at), so a hard delete has to clear the reports first.
+  await app.pg.query("delete from reports where reporter_id in (select id from users where email like '%@example.test')");
   await app.pg.query("delete from users where email like '%@example.test'");
   await app.close();
 });

@@ -58,7 +58,6 @@ export { MAX_CARD_CHAIN } from "./reducer/cards";
 // SPEC.md "Testing hooks".
 export { __debug, hash, stableStringify } from "./debug";
 // Publish-time checks (OQ-19 item 6).
-export { checkMoveTargets } from "./publish";
-export type { PublishIssue } from "./publish";
+export { type BoardIssue, checkMoveTargets, type PublishIssue, validateBoard } from "./publish";
 // C5a — the five state machines (docs/06).
 export * from "./machines/index";

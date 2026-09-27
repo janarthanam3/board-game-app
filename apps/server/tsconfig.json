@@ -2,9 +2,15 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    // Node 20 runs the server (via tsx), so resolve modules the way Node does, not a bundler.
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    // The server runs through tsx, which resolves both "./x.js" (the server's own style) and the
+    // extensionless relative imports inside packages/shared and packages/game-engine. Those two
+    // barrels are extensionless on purpose — Metro and Jest need them that way for the mobile app —
+    // so NodeNext cannot typecheck them, and this project shares TypeScript *source* between packages
+    // rather than building each one to dist. Bundler resolution accepts both styles, which is what
+    // tsx actually does at runtime. docs/design-concerns.md records the proper fix (a build step for
+    // the two libraries) for before release.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "types": ["node"]
   },
   "include": ["src", "test"]

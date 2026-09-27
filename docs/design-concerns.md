@@ -583,3 +583,96 @@ accepting it.
 So `1a`'s extra rule is client-side validation that never reaches the server. If the composition
 rule is meant to be real, the catalog needs a code and copy for it; if it is not, `1a` §5 should drop
 it. Recorded rather than guessed.
+
+## `docs/07` names three response types it never declares
+
+**Found:** 27 September 2026, building D3.
+
+`docs/07-api-contract.md` uses `TileSummary[]`, `RuleSummaryRow[]` and `PublishedBoard[]` in three
+route signatures — `/catalogue/:id` (`preview`, `ruleSummary`), `/catalogue/:id/rules` (`tiles`) and
+`/boards/published` (`items`) — and defines none of them, although it defines `CatalogueCard`,
+`BoardVersionDetail`, `UnpublishImpact` and `BoardAnalytics` in the same section.
+
+D3 therefore derived the smallest shape each consuming screen needs, in
+`apps/server/src/boards/document.ts`:
+
+- `TileSummary` = `{ index, kind, name, colour, cost }`
+- `RuleSummaryRow` = `{ label, value }`
+- `PublishedBoard` = `{ boardId, boardVersionId, name, version, ringSize, publishedAt, playCount }`
+
+When `1f`, `3l` and the published-boards list are built, these will be checked against what those
+screens actually render, and `docs/07` regenerated to declare them. Anything the screens need that is
+missing here is a contract gap, not a server bug.
+
+---
+
+## `GET /boards/name-available` exists only in `2a`, not in the contract's route table
+
+**Found:** 27 September 2026, building D3.
+
+`docs/screens/2a-board-builder.md` §Data contract names `GET /boards/name-available?name=` and §3.1
+describes its two chips (`Name available` / `Name taken`) with the hint "Must be unique across your
+boards." `docs/07`'s §Boards table does not list the route at all.
+
+Implemented as `2a` describes it, and scoped per author — which is what `boards`'
+`unique (author_id, name)` constraint already enforces — because `07` is silent on it rather than
+contrary. Same shape as `/auth/forgot` in D2. One of the two docs needs regenerating.
+
+---
+
+## The publish document's ruleset: `docs/07`, `docs/08` and the engine disagree
+
+**Found:** 27 September 2026, building D3. See **OQ-40**.
+
+`docs/07` types the publish body's `document` as a `FrozenBoard`. `board_versions.document`'s comment
+in `docs/08` says the stored document is "FrozenBoard: tiles, groups, decks+rules copies, **ruleset**",
+and decision D5 says a published board carries copies of its decks and rules. But the engine's
+`FrozenBoard` has **no** ruleset field — `MatchSetup` keeps `board` and `rules` apart.
+
+A published version must carry both or no match can start from it. D3 therefore takes `ruleset` as its
+own field on the publish body and stores it inside the document, so the row is self-contained either
+way OQ-40 is answered.
+
+---
+
+## Three validator outcomes have no code in the error catalog, and warnings have none at all
+
+**Found:** 27 September 2026, building D3.
+
+`docs/13-error-catalog.md` covers four of the validator's error rows — `E_SLOTS_EMPTY`,
+`E_TOO_FEW_TILES`, `E_CARD_SPACE_NO_DECK`, `E_SET_BELOW_THRESHOLD` — and the engine uses those codes
+verbatim. Three outcomes have no entry:
+
+- `E_SLOT_COUNT` — more tiles than the grid has slots. The builder cannot produce it; a hand-made
+  document can, and it must not publish.
+- `E_SET_CUSTOM_VALUE_MISSING` — Custom set mode with no threshold.
+- **Every warning.** D7 lists five and `2a` renders them in a WARNINGS tier, but the catalog carries no
+  warning codes, so the five `W_*` codes are the engine's own.
+
+The copy is D7's and `2a`'s verbatim wherever those docs give it. The catalog needs the missing rows.
+
+Related, minor: `E_NO_START_TILE` is in the catalog and in D7's error list, but it cannot be checked
+server-side at all — a `FrozenBoard` has no start marker, index 0 *is* the start. It stays a
+builder-side check on the local document.
+
+---
+
+## The server typechecks with bundler resolution because two libraries ship extensionless source
+
+**Found:** 27 September 2026, building D3.
+
+`packages/shared/src/index.ts` and `packages/game-engine/src/index.ts` both use extensionless relative
+imports, deliberately — the comment in `shared` says Metro and Jest resolve those and not Node-style
+`.js` specifiers, and the mobile app imports both barrels. `apps/server` had
+`moduleResolution: "NodeNext"`, which cannot typecheck either file, so importing the engine from the
+server failed with TS2835 on every line of its barrel.
+
+D3 changed `apps/server/tsconfig.json` to `module: "ESNext"` / `moduleResolution: "Bundler"`, which
+accepts both styles and matches what tsx actually does at runtime. The server's own files keep their
+`.js` specifiers.
+
+This works, but it is the wrong shape long term: the server's typecheck no longer reflects Node's real
+resolution, so a genuine ESM mistake in server code could pass. The proper fix is for `shared` and
+`game-engine` to build to `dist/` with declarations and for Node consumers to import the build, while
+Metro keeps consuming source. That is a repo-wide change with its own task, and it should land before
+release rather than as a side effect of D3.

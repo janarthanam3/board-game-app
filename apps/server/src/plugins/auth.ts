@@ -24,6 +24,12 @@ declare module "fastify" {
   interface FastifyInstance {
     /** Use as a route's `preHandler`. On success `request.user` is set; on failure it replies 401. */
     requireUser: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    /**
+     * Verifies an access token without requiring one. For a route that is open to everyone but shows
+     * more to a signed-in viewer; it does not check the account, so it is never a substitute for
+     * `requireUser` on anything that changes state.
+     */
+    verifyAccess: (token: string) => { sub: string; handle: string } | null;
   }
   interface FastifyRequest {
     user?: RequestUser;
@@ -32,6 +38,8 @@ declare module "fastify" {
 
 const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (app, options) => {
   app.decorateRequest("user", undefined);
+
+  app.decorate("verifyAccess", (token: string) => verifyAccessToken(options.env, token));
 
   app.decorate("requireUser", async (request: FastifyRequest, reply: FastifyReply) => {
     const header = request.headers.authorization;

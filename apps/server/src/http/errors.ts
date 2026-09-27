@@ -19,6 +19,12 @@ const CATALOG = {
   E_PASSWORD_WRONG: { status: 401, message: "Current password is wrong." },
   E_ACCOUNT_DELETED: { status: 410, message: "This account was deleted." },
   E_VALIDATION: { status: 422, message: "That doesn't look right." },
+
+  // Boards and publishing (docs/13 "Board building and publishing").
+  E_BOARD_INVALID: { status: 422, message: "Fix the errors before publishing." },
+  E_PUBLISH_SLOTS_FULL: { status: 409, message: "All 3 slots used. Unpublish a board to free one." },
+  E_PUBLISH_UNCHANGED: { status: 409, message: "Nothing has changed since version {n}." },
+  E_BOARD_UNAVAILABLE: { status: 404, message: "That board isn't available." },
 } as const;
 
 export type ErrorCode = keyof typeof CATALOG;

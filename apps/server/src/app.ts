@@ -6,6 +6,8 @@ import datastoresPlugin from "./plugins/datastores.js";
 import healthPlugin from "./plugins/health.js";
 import socketPlugin from "./plugins/socket.js";
 import authRoutes from "./routes/auth.js";
+import boardRoutes from "./routes/boards.js";
+import catalogueRoutes from "./routes/catalogue.js";
 
 // Read once at import time; used by /healthz so the client can display which server build it hit.
 const packageVersion: string = process.env["npm_package_version"] ?? "0.0.0";
@@ -44,6 +46,8 @@ export async function buildApp(env: ServerEnv, options: BuildAppOptions = {}): P
     env,
     ratePerMinute: options.authRateLimitPerMinute ?? AUTH_RATE_PER_MINUTE,
   });
+  await app.register(boardRoutes, { env, maxPublished: env.MAX_PUBLISHED_BOARDS });
+  await app.register(catalogueRoutes);
 
   return app;
 }

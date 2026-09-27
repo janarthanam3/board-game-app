@@ -1,9 +1,20 @@
 // Colour sets and thresholds (rulebook §4).
 
-import type { ColourGroup, GroupId, MatchState, PlayerId } from "./state";
+import type { ColourGroup, GroupId, MatchState, PlayerId, Ruleset } from "./state";
 
-function groupOf(state: MatchState, groupId: GroupId): ColourGroup {
-  const group = state.board.groups.find((candidate) => candidate.id === groupId);
+/**
+ * All the set rules need to decide a threshold: a board's groups and the ruleset's set mode. A
+ * MatchState satisfies it structurally, and so does a freshly submitted board plus its ruleset —
+ * which is how the publish validator (D3) and the builder (F2) share this logic rather than each
+ * carrying its own copy of it.
+ */
+export interface SetContext {
+  board: { groups: readonly ColourGroup[] };
+  rules: { sets: Ruleset["sets"] };
+}
+
+function groupOf(context: SetContext, groupId: GroupId): ColourGroup {
+  const group = context.board.groups.find((candidate) => candidate.id === groupId);
   if (!group) {
     throw new Error(`sets: unknown group ${groupId}`);
   }
@@ -14,20 +25,20 @@ function groupOf(state: MatchState, groupId: GroupId): ColourGroup {
  * threshold(group) = override, else group.size (All tiles), floor(size / 2) + 1 (Majority),
  * or the custom value (Custom).
  */
-export function thresholdFor(state: MatchState, groupId: GroupId): number {
-  const group = groupOf(state, groupId);
+export function thresholdFor(context: SetContext, groupId: GroupId): number {
+  const group = groupOf(context, groupId);
   if (group.thresholdOverride !== null) {
     return group.thresholdOverride;
   }
   const size = group.tileIndexes.length;
-  switch (state.rules.sets.mode) {
+  switch (context.rules.sets.mode) {
     case "allTiles":
       return size;
     case "majority":
       return Math.floor(size / 2) + 1;
     case "custom":
       // The board validator guarantees a custom value exists when the mode is custom.
-      return state.rules.sets.customValue ?? size;
+      return context.rules.sets.customValue ?? size;
   }
 }
 
@@ -83,10 +94,10 @@ export type GroupValidation =
  * threshold can never be held — a save- and publish-blocking error. Majority on an even group is
  * a warning. Copy is the design's, with the colour name capitalised.
  */
-export function validateGroup(state: MatchState, groupId: GroupId): GroupValidation {
-  const group = groupOf(state, groupId);
+export function validateGroup(context: SetContext, groupId: GroupId): GroupValidation {
+  const group = groupOf(context, groupId);
   const size = group.tileIndexes.length;
-  const threshold = thresholdFor(state, groupId);
+  const threshold = thresholdFor(context, groupId);
   const colour = capitalise(group.colour);
 
   if (size < threshold) {
@@ -96,7 +107,7 @@ export function validateGroup(state: MatchState, groupId: GroupId): GroupValidat
       detail: "This set can never be held",
     };
   }
-  if (state.rules.sets.mode === "majority" && group.thresholdOverride === null && size % 2 === 0) {
+  if (context.rules.sets.mode === "majority" && group.thresholdOverride === null && size % 2 === 0) {
     const half = size / 2;
     return {
       level: "warning",
