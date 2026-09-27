@@ -676,3 +676,49 @@ resolution, so a genuine ESM mistake in server code could pass. The proper fix i
 `game-engine` to build to `dist/` with declarations and for Node consumers to import the build, while
 Metro keeps consuming source. That is a repo-wide change with its own task, and it should land before
 release rather than as a side effect of D3.
+
+## The socket-contract skill forbids the delta event `docs/07` specifies
+
+**Found:** 27 September 2026, starting D4. **Both documents are mandated by D4's own acceptance.**
+
+`.claude/skills/socket-contract` states, as a hard rule:
+
+> **Snapshots, not patches.** `match:state` carries the full state. There is no partial update event,
+> no delta format, no "apply this one field" message.
+
+`docs/07-api-contract.md` §Socket.IO specifies exactly such an event:
+
+> `match:applied` | `{ seq, events: MatchEvent[], statePatch }`
+
+and, under Payload size and frequency:
+
+> `statePatch` uses RFC 6902 JSON Patch and is expected under 2 KB; a patch over 8 KB is sent as a
+> full state instead.
+
+D4's acceptance requires "every event and payload in `docs/07-api-contract.md`" **and** "use the
+`socket-contract` skill", so the two cannot both be satisfied as written.
+
+**Three narrower mismatches in the same pair of documents:**
+
+| | skill | `docs/07` |
+| --- | --- | --- |
+| Sequence field | `eventId`, monotonic per match, on every event | `seq`, on `match:applied` and actions |
+| Resync | `match:resync { lastEventId }` | `match:sync { matchId }` |
+| Idempotency key | `actionId` on every client action | `seq` on `match:action`; no `actionId` |
+
+**What D4 implements, and why.** `docs/07`'s wire format, because the skill's own opening says "the
+contract is the doc" and names `docs/07-api-contract.md` as that contract — a skill that defers to a
+document cannot then overrule it. So: `match:applied` carries `statePatch`, the field is `seq`, and
+`match:sync` is the resync event.
+
+The skill's *intent* is preserved everywhere it does not collide: `match:state` carries a full state
+and replaces the client's wholesale, a patch over 8 KB degrades to a full state, resync is idempotent,
+redaction is server-side, deadlines are server-supplied, money is integer rupees, and refusals use
+error-catalog codes. Only the "no delta event at all" rule is set aside, and only because the contract
+specifies one.
+
+**What needs deciding.** If patches are genuinely unwanted — they are the one part of this that can
+put a client into a state the server never held — then `docs/07` needs regenerating without
+`statePatch`, and `match:applied` becomes `{ seq, events }` with the client re-rendering from its own
+engine run. That is a product decision about bandwidth against safety, not something to settle in
+code, so it is recorded here rather than chosen.

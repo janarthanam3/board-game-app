@@ -5,3 +5,4 @@ export * from "./id";
 export * from "./money";
 export * from "./schemas/auth";
 export * from "./schemas/boards";
+export * from "./events/match";

@@ -24,6 +24,7 @@
     "./tokens": "./src/tokens.ts",
     "./colour": "./src/colour.ts",
     "./schemas/auth": "./src/schemas/auth.ts",
-    "./schemas/boards": "./src/schemas/boards.ts"
+    "./schemas/boards": "./src/schemas/boards.ts",
+    "./events/match": "./src/events/match.ts"
   }
 }
