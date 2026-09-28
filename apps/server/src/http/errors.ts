@@ -36,6 +36,9 @@ const CATALOG = {
 
   // Boards and publishing (docs/13 "Board building and publishing").
   E_BOARD_INVALID: { status: 422, message: "Fix the errors before publishing." },
+  E_BOARD_NAME_TAKEN: { status: 409, message: "You already have a board with that name." },
+  // docs/13 gives no status for this row; 422 matches its inline-validation neighbours.
+  E_BOARD_NAME_FILTERED: { status: 422, message: "Pick a different name." },
   E_PUBLISH_SLOTS_FULL: { status: 409, message: "All 3 slots used. Unpublish a board to free one." },
   E_PUBLISH_UNCHANGED: { status: 409, message: "Nothing has changed since version {n}." },
   E_BOARD_UNAVAILABLE: { status: 404, message: "That board isn't available." },

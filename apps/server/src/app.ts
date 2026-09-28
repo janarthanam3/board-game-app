@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
 
+import { createNameFilter, readList, type NameFilter } from "./boards/names.js";
 import type { ServerEnv } from "./config/env.js";
 import authPlugin from "./plugins/auth.js";
 import datastoresPlugin from "./plugins/datastores.js";
@@ -24,6 +25,11 @@ export interface BuildAppOptions {
    * passes it, so the documented 10/min stands; the limit test omits it too, on purpose.
    */
   authRateLimitPerMinute?: number;
+  /**
+   * Overrides the name filters built from the list files. Tests supply their own terms, because both
+   * shipped lists are empty until OQ-47 is answered and a filter that blocks nothing cannot be tested.
+   */
+  nameFilter?: NameFilter;
 }
 
 /**
@@ -47,7 +53,14 @@ export async function buildApp(env: ServerEnv, options: BuildAppOptions = {}): P
     env,
     ratePerMinute: options.authRateLimitPerMinute ?? AUTH_RATE_PER_MINUTE,
   });
-  await app.register(boardRoutes, { env, maxPublished: env.MAX_PUBLISHED_BOARDS });
+  // Boot sequence step 4 (docs/09): the word lists are read once, here, and never per request. An empty
+  // list is legitimate and is logged as such, so "nothing was blocked" is visible rather than assumed.
+  const nameFilter =
+    options.nameFilter ??
+    createNameFilter(readList(env.PROFANITY_LIST_PATH), readList(env.TRADEMARK_LIST_PATH));
+  app.log.info({ ...nameFilter.sizes }, "board name filters loaded");
+
+  await app.register(boardRoutes, { env, maxPublished: env.MAX_PUBLISHED_BOARDS, nameFilter });
   await app.register(catalogueRoutes);
   await app.register(matchRoutes, { env });
 

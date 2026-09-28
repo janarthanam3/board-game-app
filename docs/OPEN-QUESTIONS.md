@@ -926,6 +926,8 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/screens/2b-match-result.md` (D4) | §7's `perPlayer` → `breakdowns` and `{ round, netWorth }` → `number`, to match `docs/07` |
 | `docs/06-state-machines.md` (D4) | the turn deadline as part of turn state: it cannot live in `MatchState` without breaking the re-derived hash (see design-concerns) |
 | `docs/13-error-catalog.md` (D4) | `E_SPECTATE_REFUSED` is used by `1h` §5 with its own copy and is in no table here — it needs a status, a surface and a retry behaviour (OQ-43) |
+| `docs/07-api-contract.md` (D5) | §Socket.IO: `match:applied` as `{ seq, action, events, stateHash }` — the action is the field the client re-derives with (OQ-45), superseding the earlier `{ seq, events, stateHash }` note above |
+| `docs/08-database.md` (D5) | §"Seed data" item 5: the tile list contains seven Monopoly board spaces (Go, Community chest, Income tax, Park Avenue, Luxury tax, Free park, Go to jail) in the same section that ends "No Monopoly names in any fixture" — CLAUDE.md's hard constraint wins and the seed substitutes Chennai names · item 2 gives Classic no tile prices (OQ-46) · item 4's 27 deck rules are specified nowhere (OQ-46) · item 6 asks for six players and names four users, three of whom play (the other three seats are `2b`'s own guest names) |
 
 ---
 
@@ -1778,3 +1780,189 @@ builds the client that needs it.
 
 Raised 28 September 2026 during D5. **Does not block D5** — the gate's criteria are about the server, and
 the server is correct. It should block **E3**.
+
+> **ANSWERED 28 September 2026 by the owner — option 1: carry the action.** The reason given: a second
+> reducer over some sixty event kinds is a duplicate source of truth that would have to stay in lockstep
+> for ever, which is exactly what re-derive exists to prevent; one field is the right cost. Settled and
+> implemented immediately rather than left for E3.
+>
+> `match:applied` is now `{ seq, action, events, stateHash }`. The client applies the action through its
+> own engine build, uses the events for its `1n` cards, and compares the engine's hash. `appliedPayloadSchema`
+> requires the action, so a payload without one is refused rather than leaving a client holding a state it
+> cannot advance, and the schema stays `.strict()` so `statePatch` cannot return.
+>
+> A server action — `TIMER_EXPIRED`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED` — travels the same way and
+> is applied by every client identically; only a spectator is exempt, because a spectator receives a
+> redacted snapshot and never an applied.
+>
+> **Proved on live data**, which is what was missing before: `apps/server/test/two-client-match.test.ts`
+> plays a full six-round two-player match over the real socket while the guest client holds **one**
+> snapshot and computes every state after it from the actions alone, comparing the engine's hash on every
+> action — a few hundred of them, dice included, so the seeded RNG agreed across both runs of the engine
+> too — and finishes byte-identical to the server.
+>
+> `docs/07-api-contract.md`'s regeneration note now reads `{ seq, action, events, stateHash }`.
+
+---
+
+## OQ-46 · What are the 27 deck rules, and what does a Classic tile cost?
+
+**Affects:** `apps/server/src/db/seed-data.ts`; `docs/08-database.md` §"Seed data" items 2–4;
+`docs/screens/1y-card-decks.md`; `docs/screens/1z-rule-control.md`; task **D5** (the seed ships without
+them), **E4**/`1n`, **F1**/`1y`/`1z`, **G4**/`3u`.
+
+### 1. The deck rules
+
+**Why it blocks:** `docs/08` §Seed 4 asks for four decks with **14, 3, 6 and 4** rules — 27 in all — "with
+the rule library entries they use, copied into each board version's `document`". The decks themselves are
+fully specified and are seeded: names, draw modes and fallbacks, from `1y` §2.1. What no document gives is
+the **rules**.
+
+The whole design names six, in `1z` §2.1's rule library:
+
+| # | Name | Category | As drawn |
+| --- | --- | --- | --- |
+| 01 | Bank pays you | MONEY | collect 3,000 right away |
+| 02 | Pay every player | MONEY | pay 500 to every player |
+| 03 | Go back 3 tiles | MOVE | move back 3, no pass bonus |
+| 04 | Free bail card | HOLD CARD | use once to leave jail |
+| 05 | Rent ×2 on colour set | CONDITION | full set doubles rent |
+| 06 | Choose your dice roll | HOLD CARD | name any dice number next roll |
+
+`1y` §2.2's deck editor shows four more names in passing — `Go Jail`, `Jail free`, `Advance to Go`,
+`Get out of jail free` — with no effect definitions, and the last two are Monopoly's card wording, which
+CLAUDE.md forbids in a fixture.
+
+So twenty-one rules would have to be invented outright, and even the six named ones are not assigned to a
+deck or to a position in it. `1z` §2.1's header reads "46 rules · 27 used in decks", so the library is
+meant to be larger than the decks — another number with no contents.
+
+**What is needed to unblock, precisely.** For each of the 27: its **name**, its **deck**, its **position**
+in that deck's order, and its **effect** as the `1z` §4 grammar expresses it — which of MONEY, MOVE, HOLD
+CARD and CONDITIONS are active, and each active block's fields. For the two dice-number decks (Community
+fund, Club privilege) each rule also needs its **dice totals**, and `1y` §5 forbids duplicates within a
+deck, so the odd totals 3/5/7/9/11 must cover Community fund's three and the even totals 2/4/6/8/10/12
+Club privilege's four.
+
+**Engine today:** the four decks are seeded with `rules: []`. The engine treats an empty deck as a
+first-class case — `drawFromDeck` returns `source: "emptyDeck"` — so both boards are playable and a card
+space simply draws nothing.
+
+**Options**
+
+1. **Supply the 27.** The design gains them and the seed carries them. Only this makes `1n`'s Chance and
+   Community-chest cards, `2c`'s Cards filter and `3u`'s card analytics real.
+2. **Seed the six `1z` names only**, spread across the decks, and let `docs/08`'s counts be regenerated to
+   6. Playable card spaces immediately, at the cost of a design document being rewritten to match what
+   happens to exist.
+3. **Ship empty decks**, as now, until (1) is answered. Nothing is invented and nothing is wrong; card
+   play is simply untestable end to end.
+
+**Recommendation:** (3) until the rules exist, then (1). (2) inverts the authority order — it would change
+a design document to match a fixture.
+
+### 2. Classic's tile prices
+
+**Why it matters:** `docs/08` §Seed 2 gives Classic's ruleset — starting cash, pass bonus, round cap,
+timer, supplies, mortgage, set rent — and its forty tile names, and **no cost for any tile**. A board
+cannot exist without them.
+
+**Engine today:** cost rises with ring position, ₹1,200 at slot 1 in ₹100 steps, and every property uses
+the same percentage rent ladder (8 % base, 40/120/340/480 % houses, 600 % hotel). Reproducible and
+principled, but not from any document.
+
+**Options**
+
+1. **Supply a price list** for the forty slots, as the design would have it.
+2. **Confirm a formula** — the positional ladder above, or another — and state it in `docs/08` so the seed
+   and the builder's defaults agree.
+3. **Leave it as an undocumented fixture detail**, which is what ships and what this question exists to
+   stop being silent.
+
+**Recommendation:** (2). A formula is one line in a document, survives the board being resized, and gives
+the builder a sane default for a new board; a hand-written list of forty numbers would need re-deriving
+every time the ring changes.
+
+Raised 28 September 2026 during D5. **Blocks nothing that ships** — both boards are playable and seeded —
+but it blocks card play being testable, which is why D5 cannot assert it.
+
+---
+
+## OQ-47 · What goes in the profanity and trademark lists?
+
+**Affects:** `apps/server/config/blocklist.txt`, `apps/server/config/trademarks.txt`;
+`apps/server/src/boards/names.ts`; `docs/09-server-config.md` (`PROFANITY_LIST_PATH`,
+`TRADEMARK_LIST_PATH`); `docs/13-error-catalog.md` (`E_BOARD_NAME_FILTERED`); task **D3**/**D5**,
+**F4**/`2a` publish checks, Play Store compliance for user-generated content (D5).
+
+**Why it matters:** `docs/07` §Boards says publish applies "the name filters (D5)" and `docs/13` gives the
+refusal `E_BOARD_NAME_FILTERED` with `details.kind = 'profanity' | 'trademark'`. The mechanism now exists
+and is tested; **both lists ship empty**, so nothing is blocked. In particular CLAUDE.md's "No Monopoly
+board names … they are blocked at publish time too" is not yet enforced at publish time, because the list
+that would enforce it has no terms in it.
+
+**Engine today:** both files are read once at boot, parsed one term per line with `#` comments, and the
+filter matches whole words and whole phrases, case-insensitively, with punctuation normalised to spaces.
+Boot logs the size of each list, so an empty list is visible rather than assumed.
+
+**What is needed, precisely.**
+
+1. **Trademark terms.** At minimum the board-space names and game names CLAUDE.md means. Multi-word terms
+   are supported ("free parking" matches inside a longer name).
+2. **Profanity terms**, and in which languages. The catalogue is English and Tamil-flavoured; a list that
+   covers only English will pass names a Tamil speaker would report.
+3. **Whether the filter applies to more than the board name.** It runs on the board name today. Tile names
+   are author-written too and are far more numerous, and `1x` has its own `E_TILE_NAME_TAKEN` but no
+   filtered code.
+
+**A known limit, so the list is not mistaken for more than it is.** Matching does not join across
+punctuation: a name written `Mono-poly` normalises to two words and matches neither. Joining across
+punctuation is worse — it would turn "pass-age" into "passage" and refuse innocent names — so deliberate
+evasion is not something a word list solves. If evasion matters, it needs a different mechanism
+(moderation on report, which `3q` already describes) rather than a longer list.
+
+**Recommendation:** supply (1) first — it is short, it is the compliance-relevant half, and it is the one
+CLAUDE.md already commits to. (2) can follow. (3) is worth a decision before **F4**, since applying the
+filter to forty tile names per publish is a different performance and false-positive profile from applying
+it to one board name.
+
+Raised 28 September 2026 during D5, at the owner's direction. Does not block D5.
+
+---
+
+## OQ-48 · Where does a finished match's final state live once Redis has let it go?
+
+**Affects:** `apps/server/src/routes/matches.ts` (`GET /matches/:matchId/result`);
+`docs/screens/2b-match-result.md`; `docs/screens/3h-match-history.md`; `docs/09-server-config.md`
+(`MATCH_STATE_TTL`); task **D4** (implemented), **G2**/`3h`, **E7**.
+
+**Why it matters:** `GET /matches/:matchId/result` builds its `MatchResult` from the final `MatchState`,
+which lives in Redis under `MATCH_STATE_TTL` (24 h by default). After that the key is gone and the route
+answers `E_MATCH_UNAVAILABLE` — permanently, for every match older than a day.
+
+`3h` Match history lists finished matches with no time limit and `2b` is reached from it ("Standing row
+tap → push `/result/[matchId]`"), so a result a player opens from their history a week later cannot be
+served. The durable record — `matches`, `match_players`, `match_events`, `match_round_snapshots` — holds
+everything except the final board: who owned which tile, with how many houses, and each player's cash.
+
+Found on 28 September 2026 by D5's seed test: the seeded match is written straight to Postgres and never
+lives in Redis, so it is exactly the "read back later" case, and the route refuses it.
+
+**Options**
+
+1. **Persist the final state** on `match:ended`, in a `matches.final_state jsonb` column. One write per
+   match, at the moment the match ends, and every later read is a row lookup. Costs a migration and one
+   state-sized column per match.
+2. **Rebuild from `match_events`.** The log is append-only and complete, so the final board is derivable —
+   but only by an engine that can apply events, which is exactly what OQ-45 established does not exist.
+   It would also need the match's actions, which are not stored at all.
+3. **Persist the standings only**, which `match_players` already holds, and serve a reduced result:
+   winner, standings, stats and the chart, without the per-player portfolio `2b` §2.2 draws. Honest and
+   free, but `2b`'s breakdown page becomes unreachable for an old match.
+
+**Recommendation:** (1). It is a migration and one write; (2) depends on work OQ-45 declined to do, and
+(3) breaks a screen the design draws in full. `match_events` stays the log; the final state is a
+snapshot, and treating it as one is cheaper than deriving it.
+
+Raised 28 September 2026 during D5. **Does not block D5** — the gate's end-to-end match reads its result
+while the state is still live, which is the path `2b` takes — but it should be settled before **G2**.

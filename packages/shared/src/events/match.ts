@@ -108,6 +108,21 @@ export const okAckSchema = z.union([
 export const appliedPayloadSchema = z
   .object({
     seq: seqSchema,
+    /**
+     * The action that was applied — **the field the client re-derives with** (OQ-45, answered 28
+     * September 2026).
+     *
+     * The engine's reducer takes actions, not events: `apply(state, action)` and
+     * `replay(setup, actions)`, with `MatchEvent` as the *output* side. Without this field a client
+     * holding a state and a list of events has nothing to feed them to, and the re-derive decision is
+     * not executable. The owner chose one extra field over a second reducer covering every event kind,
+     * which would be a duplicate source of truth that had to stay in lockstep for ever.
+     *
+     * Note it can be a **server** action — `TIMER_EXPIRED`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED`
+     * — which no client sent. The client applies it exactly the same way.
+     */
+    action: z.object({ kind: z.string().min(1) }).passthrough(),
+    /** What the reducer emitted, for the `1n` notification cards. Never used to compute state. */
     events: z.array(z.object({ kind: z.string() }).passthrough()),
     stateHash: stateHashSchema,
   })

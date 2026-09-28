@@ -19,6 +19,7 @@ import { nameAvailableQuerySchema, publishBodySchema } from "@royal-navy/shared/
 import type { FastifyPluginAsync } from "fastify";
 
 import { coverMotif, deriveCounters, errorsOf, ruleChips } from "../boards/document.js";
+import type { NameFilter } from "../boards/names.js";
 import type { ServerEnv } from "../config/env.js";
 import { sendError } from "../http/errors.js";
 
@@ -26,6 +27,12 @@ export interface BoardRoutesOptions {
   env: ServerEnv;
   /** D5: 3 published boards per account, from MAX_PUBLISHED_BOARDS. */
   maxPublished: number;
+  /**
+   * The name filters, built at boot from the two list files (docs/09's PROFANITY_LIST_PATH and
+   * TRADEMARK_LIST_PATH). Passed in rather than read here, so a publish never touches the file system
+   * and a test can supply its own list.
+   */
+  nameFilter: NameFilter;
 }
 
 interface BoardRow {
@@ -97,6 +104,15 @@ const boardRoutes: FastifyPluginAsync<BoardRoutesOptions> = async (app, options)
     const { name, description, document, ruleset } = parsed.data;
     const board = document as unknown as FrozenBoard;
     const rules = ruleset as unknown as Ruleset;
+
+    // The name filters (docs/07: publish applies them; docs/13: E_BOARD_NAME_FILTERED carries
+    // `details.kind`). Checked before the document, because a refused name makes the rest moot and the
+    // check costs nothing. Both lists ship empty — their contents are OQ-47 — so nothing is blocked yet
+    // and this path is proved by tests that supply their own list.
+    const filtered = options.nameFilter.check(name);
+    if (filtered !== null) {
+      return sendError(reply, "E_BOARD_NAME_FILTERED", { kind: filtered });
+    }
 
     const issues = validateBoard(board, rules);
     const errors = errorsOf(issues);

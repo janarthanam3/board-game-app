@@ -14,6 +14,7 @@
 // single action. A divergence anywhere fails the test at the action that caused it.
 
 import {
+  apply,
   legalActions,
   hash,
   type Action,
@@ -90,6 +91,27 @@ function concrete(state: MatchState, playerId: PlayerId, kind: ActionKind, atMs:
       return { kind, by, atMs };
     case "END_TURN":
       return { kind, by, atMs };
+    // Raising cash. Without these the driver can stall: a debtor who cannot pay is refused PAY_DEBT, and
+    // the engine refuses DECLARE_BANKRUPTCY while they still hold something to sell — so the only legal
+    // move is one of these two, and the match seed decides whether that ever comes up.
+    case "MORTGAGE": {
+      const tileIndex = state.tiles.findIndex(
+        (tile, index) => tile.ownerId === by && !tile.mortgaged && tile.houses === 0 && !tile.hotel && index >= 0,
+      );
+      return tileIndex === -1 ? null : { kind, by, tileIndexes: [tileIndex], atMs };
+    }
+    case "SELL": {
+      const withHotel = state.tiles.findIndex((tile) => tile.ownerId === by && tile.hotel);
+      if (withHotel !== -1) {
+        return { kind, by, tileIndex: withHotel, what: "hotel", atMs };
+      }
+      const withHouse = state.tiles.findIndex((tile) => tile.ownerId === by && tile.houses > 0);
+      if (withHouse !== -1) {
+        return { kind, by, tileIndex: withHouse, what: "house", atMs };
+      }
+      const owned = state.tiles.findIndex((tile) => tile.ownerId === by && !tile.mortgaged);
+      return owned === -1 ? null : { kind, by, tileIndex: owned, what: "property", atMs };
+    }
     // Deliberately not driven: the builders and the card screens are Phase E and F work, and a driver
     // that traded or built would be testing its own choices rather than the socket.
     default:
@@ -112,6 +134,22 @@ const PRIORITY: ActionKind[] = [
   "ROLL",
   "END_TURN",
 ];
+
+/**
+ * The raise-cash routes, tried **only while the player owes something** (`1d`).
+ *
+ * They are not in PRIORITY because mortgaging is legal whenever a player owns an unmortgaged tile, so a
+ * driver that preferred it would mortgage the whole board on turn one and the match would be a
+ * degenerate one. They matter because the engine refuses `DECLARE_BANKRUPTCY` while a debtor still holds
+ * something to sell: without them a debtor who cannot pay from cash has no legal move at all, and whether
+ * that comes up is decided by the match seed — which is random per run, so it was intermittent.
+ */
+const RAISE_CASH: ActionKind[] = ["MORTGAGE", "SELL"];
+
+function kindsFor(state: MatchState, playerId: PlayerId): ActionKind[] {
+  const owes = state.debts.some((debt) => debt.debtorId === playerId);
+  return owes ? [PRIORITY[0]!, ...RAISE_CASH, ...PRIORITY.slice(1)] : PRIORITY;
+}
 
 beforeAll(async () => {
   app = await buildApp(parseEnv(testEnv()), { authRateLimitPerMinute: 10_000 });
@@ -164,21 +202,25 @@ describe("a scripted two-client match, end to end over the real socket", () => {
     // The lobby snapshot is what `1b` renders before the host starts.
     expect(await hostLobby).toMatchObject({ players: expect.any(Array) });
 
-    // What the guest can check today. **Not** a replay: `match:applied` carries events, and the engine
-    // reduces *actions* — `apply(state, action)` and `replay(setup, actions)` — with no way to apply a
-    // `MatchEvent` to a state. So the re-derive contract D4 committed to is not executable by a client
-    // as things stand; that is OQ-45, and this test deliberately does not pretend otherwise.
+    // The guest re-derives, which is the whole point of the contract (OQ-45, answered 28 September
+    // 2026): it takes one snapshot, and from then on computes each state itself by applying the action
+    // `match:applied` carries through its own engine build, then checks the engine's hash against the
+    // server's. Never a patch, never a merge, and the events are used only for cards.
     //
-    // What is checked instead is the part that is real and that a client depends on: every
-    // `match:applied` advertises a `stateHash`, every payload is well formed, and the last hash describes
-    // the state a fresh sync returns.
+    // This is the test that would have caught the gap OQ-45 records: before the action was carried, there
+    // was nothing here to apply.
+    let derived: MatchState | null = null;
     let lastAppliedSeq = -1;
-    let lastAppliedHash = "";
+    const divergences: string[] = [];
     const malformed: string[] = [];
     const cards: string[] = [];
 
-    guestSocket.on("match:applied", (payload: { seq: number; events: MatchEvent[]; stateHash: string }) => {
-      if (typeof payload.seq !== "number" || !Array.isArray(payload.events) || !/^[0-9a-f]{8}$/.test(payload.stateHash)) {
+    guestSocket.on("match:state", (payload: { state: MatchState; seq: number; stateHash: string }) => {
+      derived = payload.state;
+      lastAppliedSeq = payload.seq;
+    });
+    guestSocket.on("match:applied", (payload: { seq: number; action: Action; events: MatchEvent[]; stateHash: string }) => {
+      if (!payload.action?.kind || !Array.isArray(payload.events) || !/^[0-9a-f]{8}$/.test(payload.stateHash)) {
         malformed.push(`seq ${payload.seq}`);
         return;
       }
@@ -187,7 +229,13 @@ describe("a scripted two-client match, end to end over the real socket", () => {
         malformed.push(`gap at ${payload.seq}`);
       }
       lastAppliedSeq = payload.seq;
-      lastAppliedHash = payload.stateHash;
+      if (derived === null) {
+        return;
+      }
+      derived = apply(derived, payload.action).state;
+      if (hash(derived) !== payload.stateHash) {
+        divergences.push(`seq ${payload.seq} after ${payload.action.kind}`);
+      }
     });
     for (const card of ["turn:started", "auction:updated", "auction:resolved", "player:bankrupt"]) {
       guestSocket.on(card, () => cards.push(card));
@@ -226,7 +274,7 @@ describe("a scripted two-client match, end to end over the real socket", () => {
       let acted = false;
       for (const playerId of state.seatOrder) {
         const legal = new Set(legalActions(state, playerId));
-        const kind = PRIORITY.find((candidate) => legal.has(candidate));
+        const kind = kindsFor(state, playerId).find((candidate) => legal.has(candidate));
         if (kind === undefined) {
           continue;
         }
@@ -272,17 +320,20 @@ describe("a scripted two-client match, end to end over the real socket", () => {
     // The derived events fired too, so the ordering path was exercised rather than skipped.
     expect(cards.length).toBeGreaterThan(0);
 
-    // The advertised hash describes the state the server actually holds: the last one a client saw
-    // equals the engine's hash of the state a fresh sync returns. This is the part of the re-derive
-    // contract that works today — the client can *detect* divergence, even though it cannot yet
-    // reproduce the state itself (OQ-45).
+    // **The re-derive contract, on live data.** The client computed every state itself from one snapshot
+    // plus the actions, and agreed with the server's hash on every single one — a few hundred actions,
+    // including the dice, so the seeded RNG agreed across both runs of the engine too.
+    expect(divergences).toEqual([]);
+    expect(derived).not.toBeNull();
+
+    // And the state it arrived at is the server's, byte for byte.
     const synced = (await guestSocket.emitWithAck("match:sync", { matchId })) as
       | { state: MatchState; seq: number; stateHash: string }
       | { ok: false };
     if ("state" in synced) {
       expect(synced.stateHash).toBe(hash(synced.state));
       expect(synced.seq).toBe(lastAppliedSeq);
-      expect(synced.stateHash).toBe(lastAppliedHash);
+      expect(hash(derived!)).toBe(synced.stateHash);
     }
 
     // ── what the durable record says afterwards ──────────────────────────────────────────────────

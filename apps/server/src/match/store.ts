@@ -5,12 +5,13 @@
 // ends (docs/09's MATCH_STATE_TTL), while Postgres holds the durable record — the match row, its
 // players and its log. The engine is pure, so the state is plain JSON and needs no revival logic.
 //
-// Why the seq and the events live beside the state: the client re-derives its own state by replaying
-// the events (CLAUDE.md's shared-engine mandate, and the owner's decision recorded in
-// design-concerns.md), and `stateHash` lets it prove it arrived where the server did.
+// Why the seq, the action and the events live beside the state: the client re-derives its own state by
+// applying the same action through the same engine build (CLAUDE.md's shared-engine mandate, and the
+// owner's decision recorded in design-concerns.md), `events` carry the notification cards, and
+// `stateHash` lets it prove it arrived where the server did.
 
 import { hash } from "@royal-navy/game-engine";
-import type { MatchEvent, MatchState } from "@royal-navy/game-engine";
+import type { Action, MatchEvent, MatchState } from "@royal-navy/game-engine";
 
 import type { RedisClient } from "../db/redis.js";
 
@@ -26,6 +27,12 @@ import type { RedisClient } from "../db/redis.js";
  */
 export interface LastApplied {
   seq: number;
+  /**
+   * The action that produced this result. Stored because `match:applied` carries it — it is what the
+   * client re-derives with (OQ-45) — so a redelivered action must be re-acked with the same one, and a
+   * re-broadcast must carry it too.
+   */
+  action: Action;
   events: MatchEvent[];
   stateHash: string;
 }

@@ -1,0 +1,8 @@
+# Profanity blocklist for board names. One term per line; `#` starts a comment.
+#
+# Read once at boot (PROFANITY_LIST_PATH, docs/09-server-config.md) and applied by
+# POST /boards/publish, which refuses a match with E_BOARD_NAME_FILTERED and
+# details.kind = 'profanity' (docs/13-error-catalog.md).
+#
+# EMPTY ON PURPOSE. The contents are OQ-47, for the owner to supply. Matching is on whole
+# words and whole phrases, case-insensitive, with punctuation normalised away.

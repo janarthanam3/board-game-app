@@ -267,7 +267,7 @@ function register(socket: MatchSocket, namespace: Namespace, deps: MatchNamespac
     const next: StoredMatch = {
       seq: stored.seq + 1,
       state: applied.state,
-      lastApplied: { seq, events: applied.events, stateHash: stateHashOf(applied.state) },
+      lastApplied: { seq, action: candidate, events: applied.events, stateHash: stateHashOf(applied.state) },
     };
     await persist(deps, next, applied.state.round);
     ack?.({ ok: true, seq: next.seq });
@@ -521,7 +521,7 @@ async function applyServerAction(namespace: Namespace, deps: MatchNamespaceDeps,
     seq: stored.seq + 1,
     state: applied.state,
     // A server action has no client seq, so the seq it was "sent at" is the one the match was at.
-    lastApplied: { seq: stored.seq, events: applied.events, stateHash: stateHashOf(applied.state) },
+    lastApplied: { seq: stored.seq, action, events: applied.events, stateHash: stateHashOf(applied.state) },
   };
   await persist(deps, next, applied.state.round);
   await broadcastApplied(namespace, deps, matchId, next);
@@ -541,17 +541,22 @@ async function persist(deps: MatchNamespaceDeps, stored: StoredMatch, round: num
  * The ordering rule, in one function. The skill: "The server emits the resulting snapshot **before** the
  * derived event cards, so a card never describes a state the client has not yet received."
  *
- * Members get `match:applied` and re-derive. Spectators get a redacted `match:state`, because the events
- * a re-derivation needs include the hands and offers a spectator must never receive — so there is
- * nothing for a spectator to replay, and a snapshot is the only honest payload.
+ * Members get `match:applied` — the action to re-derive with, the events for their cards, and the hash to
+ * check themselves against. Spectators get a redacted `match:state`: applying the action needs the whole
+ * state, including the hands and offers a spectator must never receive, so a snapshot is the only honest
+ * payload for them.
  */
 async function broadcastApplied(namespace: Namespace, deps: MatchNamespaceDeps, matchId: string, stored: StoredMatch): Promise<void> {
-  const events = stored.lastApplied?.events ?? [];
-  namespace.to(matchRoom(matchId)).emit("match:applied", {
-    seq: stored.seq,
-    events,
-    stateHash: stored.lastApplied?.stateHash ?? stateHashOf(stored.state),
-  });
+  const last = stored.lastApplied;
+  const events = last?.events ?? [];
+  if (last) {
+    namespace.to(matchRoom(matchId)).emit("match:applied", {
+      seq: stored.seq,
+      action: last.action,
+      events,
+      stateHash: last.stateHash,
+    });
+  }
   namespace.to(spectatorRoom(matchId)).emit("match:state", snapshotFor(stored, true));
 
   await broadcastDerived(namespace, deps, matchId, stored.state, events);

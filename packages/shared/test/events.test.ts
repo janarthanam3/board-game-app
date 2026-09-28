@@ -74,9 +74,10 @@ describe("round-trip: encode, decode, deep-equal", () => {
     expect(decoded).toEqual(payload);
   });
 
-  it("match:applied carries events and a state hash, never a patch", () => {
+  it("match:applied carries the action, the events and a state hash, never a patch", () => {
     const payload = {
       seq: 8,
+      action: { kind: "ROLL", by: PLAYER, atMs: 1_700_000_000_000 },
       events: [{ kind: "diceRolled", dice: [3, 4], doubles: false }],
       stateHash: "1a2b3c4d",
     };
@@ -85,12 +86,41 @@ describe("round-trip: encode, decode, deep-equal", () => {
     expect(decoded).toEqual(payload);
   });
 
-  it("refuses a match:applied that carries a state patch", () => {
-    // The client re-derives from the events through the same engine build, so a patch has no meaning
-    // here and must not be accepted quietly: CLAUDE.md's shared-engine mandate supersedes docs/07's
-    // statePatch, and a silently ignored field is how a wire format drifts back.
+  it("refuses a match:applied with no action — the field the client re-derives with", () => {
+    // OQ-45: the engine reduces actions, not events, so a payload without one cannot be re-derived from
+    // and the client would be left holding a state it has no way to advance.
     const verdict = appliedPayloadSchema.safeParse({
       seq: 8,
+      events: [{ kind: "diceRolled" }],
+      stateHash: "1a2b3c4d",
+    });
+
+    expect(verdict.success).toBe(false);
+    if (!verdict.success) {
+      expect(verdict.error.issues[0]?.path).toEqual(["action"]);
+    }
+  });
+
+  it("accepts a server action, which no client sent", () => {
+    // A disconnect or a timer expiry is applied by the server and re-derived by every client the same
+    // way. It carries no `by`, so a schema that required one would refuse a payload the server emits.
+    const decoded = appliedPayloadSchema.parse({
+      seq: 9,
+      action: { kind: "PLAYER_DISCONNECTED", playerId: PLAYER, atMs: 1 },
+      events: [{ kind: "playerDisconnected", playerId: PLAYER }],
+      stateHash: "1a2b3c4d",
+    });
+
+    expect(decoded.action.kind).toBe("PLAYER_DISCONNECTED");
+  });
+
+  it("refuses a match:applied that carries a state patch", () => {
+    // The client re-derives by applying the action through the same engine build, so a patch has no
+    // meaning here and must not be accepted quietly: CLAUDE.md's shared-engine mandate supersedes
+    // docs/07's statePatch, and a silently ignored field is how a wire format drifts back.
+    const verdict = appliedPayloadSchema.safeParse({
+      seq: 8,
+      action: { kind: "ROLL", by: PLAYER, atMs: 1 },
       events: [],
       stateHash: "1a2b3c4d",
       statePatch: [{ op: "replace", path: "/turn/stage", value: "postRoll" }],
@@ -101,7 +131,8 @@ describe("round-trip: encode, decode, deep-equal", () => {
 
   it("refuses a hash that is not the engine's eight hex digits", () => {
     for (const stateHash of ["", "xyz", "1A2B3C4D", "1a2b3c4", "1a2b3c4d5"]) {
-      expect(appliedPayloadSchema.safeParse({ seq: 1, events: [], stateHash }).success).toBe(false);
+      const payload = { seq: 1, action: { kind: "ROLL", by: PLAYER, atMs: 1 }, events: [], stateHash };
+      expect(appliedPayloadSchema.safeParse(payload).success).toBe(false);
     }
   });
 
@@ -177,17 +208,24 @@ describe("rooms and redaction", () => {
 
 describe("both sides decode through the same function", () => {
   it("returns a payload for a server event the contract describes", () => {
-    const verdict = decodeServerEvent("match:applied", { seq: 3, events: [], stateHash: "0a1b2c3d" });
+    const payload = { seq: 3, action: { kind: "ROLL", by: PLAYER, atMs: 1 }, events: [], stateHash: "0a1b2c3d" };
+
+    const verdict = decodeServerEvent("match:applied", payload);
 
     expect(verdict.ok).toBe(true);
     if (verdict.ok) {
-      expect(verdict.payload).toEqual({ seq: 3, events: [], stateHash: "0a1b2c3d" });
+      expect(verdict.payload).toEqual(payload);
     }
   });
 
   it("refuses a malformed server payload with the event and the failing path, and never throws", () => {
     // What a match screen would otherwise crash on: a hash of the wrong shape arriving mid-match.
-    const verdict = decodeServerEvent("match:applied", { seq: 3, events: [], stateHash: "nope" });
+    const verdict = decodeServerEvent("match:applied", {
+      seq: 3,
+      action: { kind: "ROLL", by: PLAYER, atMs: 1 },
+      events: [],
+      stateHash: "nope",
+    });
 
     expect(verdict.ok).toBe(false);
     if (!verdict.ok) {

@@ -9,6 +9,7 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "seed": "tsx src/db/seed-cli.ts",
     "migrate:up": "tsx src/db/migrate-cli.ts up",
     "migrate:down": "tsx src/db/migrate-cli.ts down"
   },

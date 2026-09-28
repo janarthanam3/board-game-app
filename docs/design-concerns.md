@@ -1061,3 +1061,41 @@ nothing here pre-empts it.
 hold card and an offer with unmistakable ids and asserts a spectator receives neither, over the socket
 and over `GET /matches/:id` — and that a seated player receives both. If OQ-44 is answered against the
 present behaviour, the offer half of that last assertion is what fails and points here.
+
+---
+
+## D5: `docs/08`'s seed tile list contains Monopoly board names, in the section that forbids them
+
+**Found:** 28 September 2026, building the seed. **ANSWERED the same day by the owner: substitute Chennai
+names.** CLAUDE.md makes it a hard constraint, and `docs/08` contradicts itself in the same section.
+
+`docs/08-database.md` §"Seed data" item 5 lists forty tile names "Royal Navy / Chennai names only" and
+ends: "**No Monopoly names in any fixture** (A2)." Seven of the forty are Monopoly's board spaces:
+
+| `docs/08` | Seeded as | Why |
+| --- | --- | --- |
+| Go | **Start** | The rulebook calls index 0 the start tile (§1) and the engine's pass bonus is the start bonus |
+| Community chest | **Community fund** | `docs/08`'s *own* deck name for the same thing (§Seed 4) |
+| Income tax | **Tax office** | The rulebook's name for the tile that charges (§2.3) |
+| Park Avenue | **Kilpauk** | A Chennai neighbourhood, like its neighbours |
+| Luxury tax | **Toll gate** | A second tax office; the board has two |
+| Free park | **Marina Park** | Chennai, and it keeps the "park" the free-parking pot is named for |
+| Go to jail | **Napier Bridge** | Chennai. The engine has no "go to jail" corner type — `cornerType` is `jail`, `restHouse` or `none` — so it is a plain corner either way |
+
+The other thirty-three are Chennai's and are kept exactly as `docs/08` writes them, in its order.
+
+**The conflict is inside one document**, not between two: the list and the sentence that follows it cannot
+both stand. CLAUDE.md's "Property names shipped with the app are Chennai/Royal Navy names. **No Monopoly
+board names in code, fixtures, seeds or tests** — they are blocked at publish time too" is the
+constitution, and it agrees with `docs/08`'s sentence against `docs/08`'s list.
+
+**Held by test**, so it cannot drift back: `apps/server/test/seed.test.ts` asserts that neither seeded
+board, and no stored `board_versions.document` row, contains any of nineteen Monopoly board names — and
+separately that the Chennai names `docs/08` lists are all still there, so the substitution cannot quietly
+become a rewrite.
+
+**Not yet enforced at publish time.** CLAUDE.md says these names are "blocked at publish time too". The
+filter that would block them now exists and is tested, but its list ships empty — **OQ-47**.
+
+**If accepted:** `docs/08` §"Seed data" item 5 is regenerated with the seven substitutions, and item 6's
+six players are reconciled with item 1's four users. Added to the regeneration table.

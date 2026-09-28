@@ -1,0 +1,12 @@
+# Trademark blocklist for board names. One term per line; `#` starts a comment.
+#
+# Read once at boot (TRADEMARK_LIST_PATH, docs/09-server-config.md) and applied by
+# POST /boards/publish, which refuses a match with E_BOARD_NAME_FILTERED and
+# details.kind = 'trademark' (docs/13-error-catalog.md).
+#
+# This is the list that enforces CLAUDE.md's "No Monopoly board names in code, fixtures,
+# seeds or tests - they are blocked at publish time too".
+#
+# EMPTY ON PURPOSE. The contents are OQ-47, for the owner to supply: the board-space names
+# and the game names that may not be published. Matching is on whole words and whole
+# phrases, case-insensitive, with punctuation normalised away, so a multi-word term works.
