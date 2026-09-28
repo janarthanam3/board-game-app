@@ -13,6 +13,7 @@
 
 import {
   changePasswordBodySchema,
+  updateMeBodySchema,
   forgotBodySchema,
   refreshBodySchema,
   signinBodySchema,
@@ -188,6 +189,41 @@ const authRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (app, options) =
     return reply.status(202).send({ ok: true });
   });
 
+  // GET /me and PATCH /me are docs/07's Auth table rows 5 and 6. They were missed in D2 — its task line
+  // listed "register, login, refresh, forgot, password change" and neither is among them — and the D5
+  // gate's route inventory is what found the gap.
+  app.get("/me", { preHandler: app.requireUser }, async (request, reply) => {
+    const user = request.user!;
+    const row = await loadUserById(app, user.id);
+    if (!row) {
+      return sendError(reply, "E_UNAUTHENTICATED");
+    }
+    return reply.status(200).send({ user: await toUser(app, row), stats: await statsOf(app, user.id) });
+  });
+
+  app.patch("/me", { preHandler: app.requireUser }, async (request, reply) => {
+    const user = request.user!;
+    const parsed = updateMeBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      return sendError(reply, "E_VALIDATION", parsed.error.issues);
+    }
+
+    // An absent displayName is a no-op rather than a blank name: docs/07 marks the field optional, so a
+    // body of `{}` is a valid request that changes nothing.
+    if (parsed.data.displayName !== undefined) {
+      await app.pg.query("update users set display_name = $1 where id = $2 and deleted_at is null", [
+        parsed.data.displayName,
+        user.id,
+      ]);
+    }
+
+    const row = await loadUserById(app, user.id);
+    if (!row) {
+      return sendError(reply, "E_UNAUTHENTICATED");
+    }
+    return reply.status(200).send({ user: await toUser(app, row) });
+  });
+
   app.post("/me/password", { preHandler: app.requireUser }, async (request, reply) => {
     const user = request.user;
     if (!user) {
@@ -242,6 +278,44 @@ async function loadUserById(
     [id],
   );
   return result.rows[0];
+}
+
+/**
+ * The `Stats` shape docs/07 declares, for `GET /me`.
+ *
+ * Only **finished** matches count: a match still in play has no `final_place`, and counting it would
+ * make the win rate move every time someone joined a room. Everything here is online play, because solo
+ * and pass-and-play never reach the server (D5) — **OQ-9** decides whether that stays true.
+ */
+async function statsOf(
+  app: Parameters<FastifyPluginAsync<AuthRoutesOptions>>[0],
+  userId: string,
+): Promise<{ matchesPlayed: number; wins: number; winRate: number; netWorthBest: number; boardsPublished: number }> {
+  const result = await app.pg.query<{ played: string; wins: string; best: string | null }>(
+    `select count(*)::text as played,
+            count(*) filter (where p.final_place = 1)::text as wins,
+            max(p.net_worth)::text as best
+       from match_players p
+       join matches m on m.id = p.match_id
+      where p.user_id = $1 and m.ended_at is not null and p.final_place is not null`,
+    [userId],
+  );
+  const boards = await app.pg.query<{ count: string }>(
+    "select count(*)::text as count from boards where author_id = $1 and status = 'published'",
+    [userId],
+  );
+
+  const matchesPlayed = Number(result.rows[0]?.played ?? "0");
+  const wins = Number(result.rows[0]?.wins ?? "0");
+  return {
+    matchesPlayed,
+    wins,
+    // `3e` acceptance 2: "win rate is a whole-number percentage". Rounded, not truncated, so 1 win in 3
+    // reads 33% and 2 in 3 reads 67%.
+    winRate: matchesPlayed === 0 ? 0 : Math.round((wins / matchesPlayed) * 100),
+    netWorthBest: Number(result.rows[0]?.best ?? "0"),
+    boardsPublished: Number(boards.rows[0]?.count ?? "0"),
+  };
 }
 
 /** The `User` shape docs/07 declares. The password hash never leaves this module. */

@@ -342,3 +342,102 @@ describe("rate limiting (docs/07: auth routes 10/min)", () => {
     }
   });
 });
+
+// GET /me and PATCH /me are docs/07's Auth table rows 5 and 6. They were missing until the D5 gate's
+// route inventory found them: D2's task line lists "register, login, refresh, forgot, password change",
+// and neither of these is among them.
+describe("GET /me", () => {
+  it("returns the User and Stats shapes docs/07 declares", async () => {
+    const { response: created } = await signup();
+
+    const me = await request(app.server).get("/me").set("Authorization", `Bearer ${created.body.accessToken}`);
+
+    expect(me.status).toBe(200);
+    expect(Object.keys(me.body.user).sort()).toEqual(
+      ["id", "handle", "displayName", "email", "createdAt", "publishedBoardCount"].sort(),
+    );
+    expect(Object.keys(me.body.stats).sort()).toEqual(
+      ["matchesPlayed", "wins", "winRate", "netWorthBest", "boardsPublished"].sort(),
+    );
+  });
+
+  it("reports zeroes for an account that has finished no matches", async () => {
+    const { response: created } = await signup();
+
+    const me = await request(app.server).get("/me").set("Authorization", `Bearer ${created.body.accessToken}`);
+
+    // `3e`'s empty state: "Stat tiles show 0, 0, 0%, ₹0". A win rate of 0 % is right for no matches —
+    // dividing by zero would be NaN, which is not a whole-number percentage.
+    expect(me.body.stats).toEqual({ matchesPlayed: 0, wins: 0, winRate: 0, netWorthBest: 0, boardsPublished: 0 });
+  });
+
+  it("never returns the password hash", async () => {
+    const { response: created } = await signup();
+
+    const me = await request(app.server).get("/me").set("Authorization", `Bearer ${created.body.accessToken}`);
+
+    expect(JSON.stringify(me.body)).not.toContain("password");
+  });
+
+  it("refuses without a token", async () => {
+    const me = await request(app.server).get("/me");
+
+    expect(me.status).toBe(401);
+    expect(me.body.error.code).toBe("E_UNAUTHENTICATED");
+  });
+});
+
+describe("PATCH /me", () => {
+  it("changes the display name and returns the updated user", async () => {
+    const { response: created } = await signup();
+
+    const patched = await request(app.server)
+      .patch("/me")
+      .set("Authorization", `Bearer ${created.body.accessToken}`)
+      .send({ displayName: "Naveen" });
+
+    expect(patched.status).toBe(200);
+    expect(patched.body.user.displayName).toBe("Naveen");
+
+    const me = await request(app.server).get("/me").set("Authorization", `Bearer ${created.body.accessToken}`);
+    expect(me.body.user.displayName).toBe("Naveen");
+  });
+
+  it("leaves the name alone for an empty body, because docs/07 marks the field optional", async () => {
+    const { account, response: created } = await signup();
+
+    const patched = await request(app.server)
+      .patch("/me")
+      .set("Authorization", `Bearer ${created.body.accessToken}`)
+      .send({});
+
+    expect(patched.status).toBe(200);
+    // Sign-up seeds display_name from the handle (there is no field for it — OQ-38).
+    expect(patched.body.user.displayName).toBe(account.handle);
+  });
+
+  it("refuses a field that is not the display name, so it cannot change a handle or an email", async () => {
+    const { account, response: created } = await signup();
+
+    const patched = await request(app.server)
+      .patch("/me")
+      .set("Authorization", `Bearer ${created.body.accessToken}`)
+      .send({ displayName: "Naveen", handle: "someone_else" });
+
+    expect(patched.status).toBe(422);
+    expect(patched.body.error.code).toBe("E_VALIDATION");
+    const me = await request(app.server).get("/me").set("Authorization", `Bearer ${created.body.accessToken}`);
+    expect(me.body.user.handle).toBe(account.handle);
+  });
+
+  it("refuses an empty display name", async () => {
+    const { response: created } = await signup();
+
+    const patched = await request(app.server)
+      .patch("/me")
+      .set("Authorization", `Bearer ${created.body.accessToken}`)
+      .send({ displayName: "" });
+
+    expect(patched.status).toBe(422);
+  });
+});

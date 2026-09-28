@@ -743,6 +743,20 @@ work and the socket-contract skill's resync-equivalence test need.
 `{ seq, events, stateHash }`, and the "Payload size and frequency" paragraph without RFC 6902 and
 without the 8 KB fallback. Added to the regeneration table in `docs/OPEN-QUESTIONS.md`.
 
+> **The payload as decided cannot be re-derived from — found 28 September 2026, during D5.** The engine's
+> reducer takes **actions**, not events: `apply(state, action)` and `replay(setup, actions)`, with no
+> `applyEvent`. `MatchEvent` is the reducer's *output* — the engine calls it "the only thing the UI and
+> the match log read". So a client holding a state and a list of events has nothing to feed them to, and
+> the "runs the same engine build over the same events" half of this decision is not executable as
+> written.
+>
+> Nothing that ships is wrong: the server is authoritative and every snapshot it sends is correct, and no
+> client exists yet — the mobile match networking is **E3**. What is missing is in front of E3, not behind
+> D4. It was not caught here because every D4 test compared snapshots the server produced or asserted
+> payload shape; none replayed. **OQ-45** carries the options, of which the smallest is to add the action
+> to the payload so the client can call `apply` — one field, no new engine surface, and the decision's
+> substance intact. It should be settled before E3 starts.
+
 **The three narrower mismatches stay as `docs/07` writes them**, by the owner's direction, and are
 logged here rather than reconciled: the sequence field is `seq` and not `eventId`; resync is
 `match:sync` and not `match:resync`; and idempotency keys off `seq` rather than a per-action

@@ -1718,3 +1718,63 @@ same treatment, so the two should be decided together rather than one at a time.
 
 Raised 28 September 2026, from the owner's direction while accepting the hands trade-off. Does not block
 D4 or D5.
+
+---
+
+## OQ-45 · The client cannot re-derive state from `match:applied`'s events — the engine reduces actions
+
+**Affects:** the re-derive decision of 27 September 2026; `packages/shared/src/events/match.ts`
+(`appliedPayloadSchema`); `packages/game-engine/src/reducer/index.ts`; `apps/server/src/sockets/match.ts`;
+`docs/07-api-contract.md` §Socket.IO; tasks **D4** (shipped), **E3** (turn loop and optimistic actions),
+**H1** (reconnect and resync).
+
+**Found:** 28 September 2026, writing D5's scripted two-client match — the first test that tried to
+actually re-derive rather than compare two snapshots.
+
+**The problem, exactly.** `match:applied` carries `{ seq, events, stateHash }`, and the decision it
+implements is that "the client runs the same engine build over the same events to compute the state
+itself". But the engine's reducer is written over **actions**, not events:
+
+- `apply(state: MatchState, action: Action): { state, events }`
+- `replay(setup: MatchSetup, actions: readonly Action[]): MatchState`
+
+There is no `applyEvent(state, event)` and no `replay` over events. `MatchEvent` is documented in the
+engine as the output side — "the only thing the UI and the match log read" — not as an input. So a client
+holding a state and a list of events has nothing to feed them to.
+
+**What this does and does not break.** Nothing that ships today: the server is authoritative, it holds
+the state, and every snapshot it sends is correct. No client code exists yet — the mobile match
+networking is **E3**. The hole is in front of E3, not behind D4.
+
+What does not work today is the *purpose* of the payload shape. A client can detect divergence (compare
+`stateHash` to a state it got from a snapshot) but cannot produce the next state from an applied event,
+so between snapshots it has no state at all. D5's end-to-end test asserts the part that works and
+explicitly does not pretend to replay.
+
+**Why it was not caught in D4.** Every D4 test compared hashes of snapshots the server produced, or
+asserted payload shape. None replayed. The gap is in the space between two things that were each tested.
+
+**Options**
+
+1. **Carry the action.** `match:applied` becomes `{ seq, action, events, stateHash }`. The client calls
+   `apply(state, action)` — the engine exactly as it is — gets the server's state, and uses `events` for
+   the notification cards. Smallest change, no new engine surface, and it keeps the decision's substance:
+   the client computes the state rather than being handed a patch. The action is already in the server's
+   hand when it emits. Costs: the payload carries the action a client just sent back to it, and a
+   spectator must not receive it (spectators already get snapshots, so this is no new rule).
+2. **Give the engine an event reducer.** `applyEvent(state, event)` covering all sixty-odd kinds, with a
+   test that `apply`'s events replayed through it reproduce `apply`'s state for every action. Honours the
+   payload shape as written. It is a second reducer that must agree with the first for ever — precisely
+   the drift the one-shared-engine mandate exists to prevent — and it is a large piece of engine work.
+3. **Snapshots only.** Drop the re-derive idea; `match:applied` becomes a notification-card carrier and
+   the client takes `match:state` for state. Simple and robust, but it is a bigger payload per action and
+   it reverses the 27 September decision.
+
+**Recommendation:** (1). It satisfies the decision's reasoning — one engine, one deterministic
+computation, no patches, a hash that proves agreement — at the cost of one field, and it needs nothing
+new in the engine. (2) is the only option that leaves the wire format untouched, and the price is a
+permanent second reducer. The choice should be made before **E3** starts, because E3 is the task that
+builds the client that needs it.
+
+Raised 28 September 2026 during D5. **Does not block D5** — the gate's criteria are about the server, and
+the server is correct. It should block **E3**.

@@ -61,6 +61,29 @@ export const userSchema = z.object({
   publishedBoardCount: z.number().int().nonnegative(),
 });
 
+/**
+ * `PATCH /me` — docs/07's body is `{ displayName? }` and nothing else. `.strict()`, so an attempt to
+ * change a handle or an email through this route is a refusal rather than a silently dropped field.
+ */
+export const updateMeBodySchema = z.object({ displayName: z.string().min(1).max(40).optional() }).strict();
+
+/**
+ * `Stats` exactly as docs/07 declares it.
+ *
+ * `winRate` is a **whole-number percentage**, which is `3e`'s acceptance criterion 2 ("win rate is a
+ * whole-number percentage") and its drawn value `37%`. docs/07 only names the field.
+ *
+ * What these count is what the server has, which is online matches: solo and pass-and-play never leave
+ * the device (D5), so nothing else could be counted today. **OQ-9** decides whether that stays true.
+ */
+export const statsSchema = z.object({
+  matchesPlayed: z.number().int().nonnegative(),
+  wins: z.number().int().nonnegative(),
+  winRate: z.number().int().min(0).max(100),
+  netWorthBest: z.number().int(),
+  boardsPublished: z.number().int().nonnegative(),
+});
+
 export const tokenPairSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
