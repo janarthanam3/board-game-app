@@ -1000,11 +1000,16 @@ given a Lua script so the two writes are atomic.
 
 ---
 
-## D4: re-deriving makes per-member redaction impossible
+## D4: hands are visible between members — an accepted trade-off of the re-derive contract
 
-**Found:** 27 September 2026, reviewing D4's redaction test. **Implemented: the spectator boundary is
-the only redaction there is.** Every seated player receives every other player's `holdCards` and every
-entry in `state.offers`, including offers between two players who are not them.
+**Found:** 27 September 2026, reviewing D4's redaction test. **ACCEPTED by the owner, 28 September
+2026**, as a stated consequence of the re-derive decision rather than a gap to close.
+
+**The trade-off, stated.** A match is open information between the players in it. The spectator
+boundary is the only redaction there is: every seated player receives every other player's
+`holdCards`. That is what the design asks for — `1h` scopes privacy to spectating, and `1p` §4 requires
+a counterparty's tradeable cards to be visible to build a deal — and it is what re-deriving from events
+permits. Nothing further is owed here.
 
 **Why it is not a bug in the redaction layer.** `match:applied` carries events, and every member runs
 them through the same engine build to compute the state themselves — the owner's decision of 27
@@ -1023,7 +1028,7 @@ re-derived from events, but not both — unless the engine gains a per-viewer pr
 playerId)` the server and the client both run, with the hidden parts replaced by counts the events can
 also produce). That is a substantial engine change, not a socket change.
 
-**What the design asks for today.** Nothing contradicts what ships:
+**Why the design agrees.** Three documents, none of them contradicted by what ships:
 
 - `1h` is the **only** document that makes hands private, and it scopes that to spectating — §4's table
   is headed "What a spectator may and may not see", and its acceptance item 5 says "never present in the
@@ -1032,17 +1037,13 @@ also produce). That is a substantial engine change, not a socket change.
   building a deal must be able to see what the counterparty holds.
 - No screen shows a hidden hand between players. `1c`'s HUD does not mention hands at all.
 
-**The one part that looks unintended.** `state.offers` carries every live offer to every member, so a
-third player can see that A offered B a deal and on what terms. `1h` hides exactly that from spectators
-("Pending trade offers and their terms"), and the `socket-contract` skill's "Decisions are addressed"
-rule is honoured for the **event** — `trade:offered` goes only to the player being offered the deal —
-but the state behind it is shared. A third player's client is not told to render it; nothing stops it.
-
-**If accepted:** either `1p` gains a rule that a deal's terms are visible only to its two sides (and the
-engine gains the per-viewer projection above), or the design says plainly that a match is open
-information between its players and `1h`'s privacy is a spectator rule only. The second is what ships
-and is the cheaper of the two by a wide margin.
+**What this entry does *not* settle.** `state.offers` reaches every member the same way, so a player who
+is not party to a trade receives a pending offer between two others. That is inherited from the same
+mechanism but it is not the same question — no document says a third player should see a deal's terms,
+and `1h` hides exactly that from spectators. It is **OQ-44**, to be decided rather than inherited, and
+nothing here pre-empts it.
 
 **Pinned by test**, so this cannot change unnoticed: `apps/server/test/socket-contract.test.ts` plants a
 hold card and an offer with unmistakable ids and asserts a spectator receives neither, over the socket
-and over `GET /matches/:id` — and that a seated player receives both.
+and over `GET /matches/:id` — and that a seated player receives both. If OQ-44 is answered against the
+present behaviour, the offer half of that last assertion is what fails and points here.

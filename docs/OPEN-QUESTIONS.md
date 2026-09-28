@@ -1658,3 +1658,63 @@ regenerated with the control, and `E_SPECTATE_REFUSED` added to `docs/13` with a
 
 Raised 27 September 2026 during D4. Does not block D4 — spectating works, and the redaction it exists to
 enforce is tested by value.
+
+---
+
+## OQ-44 · May a player who is not party to a trade see that it was offered, and on what terms?
+
+**Affects:** `docs/screens/1p-deal.md`; `docs/screens/1n-notification-cards.md` #6 DEAL OFFER;
+`docs/screens/2c-match-log.md`; `packages/game-engine/src/state.ts` (`MatchState.offers`);
+`apps/server/src/sockets/match.ts`; `docs/07-api-contract.md` §Socket.IO (`trade:offered`); task **D4**
+(implemented as visible), **E5**/`1p`, **E4**/`1n`.
+
+**Why it matters:** `MatchState.offers` is one list on the shared state, so every seated player holds
+every live offer — who offered it, to whom, and both bundles. A four-player match means two players who
+have nothing to do with a deal can read its terms while it is still open, before the recipient has
+answered.
+
+Nothing in the design asks for that, and three things point the other way:
+
+- the `socket-contract` skill: "**Decisions are addressed.** A decision card event goes only to the
+  player who must decide, never broadcast with a 'for you' flag." D4 honours this for the **event** —
+  `trade:offered` is emitted only to the recipient — but the state behind it is shared, so the rule is
+  enforced on the wire and undone by the snapshot.
+- `1h` §4 hides "Pending trade offers and their terms" from spectators. It is silent on other players,
+  but it establishes that an open offer is treated as private information.
+- `1n` #6 is a decision card addressed to the target.
+
+And one points at visible: a match is open information between its players (see design-concerns, "hands
+are visible between members"), and a trade that completes is public in `2c` either way.
+
+**Why it is a real decision, not a leak to patch.** An offer's terms are a bargaining position. A third
+player who can read them can outbid, warn the recipient, or price their own deal against it — which is
+either a feature of a social board game or an exploit, depending on what the design intends. It cannot
+be settled by looking at the code.
+
+**Engine today:** **visible.** `state.offers` is unredacted for members, and
+`apps/server/test/socket-contract.test.ts` pins that with a planted offer. No client renders another
+player's offer — `1n` addresses its card to the recipient — so nothing surfaces it today; it is
+available to any client that looks.
+
+**Options**
+
+1. **Visible, and say so.** `1p` gains a line that an open deal is public to the table, and `1n` may
+   optionally gain a compact "deal in progress" line for onlookers. Costs nothing, matches the members'
+   open-information rule, and removes the mismatch between the addressed event and the shared state by
+   making the event's addressing a rendering choice rather than a privacy rule.
+2. **Private to its two sides, enforced in the engine.** `MatchState` gains a per-viewer projection —
+   `view(state, playerId)` run by the server *and* the client — that drops offers the viewer is not party
+   to. The only option that makes the skill's addressing rule true end to end. It is a substantial engine
+   change: the projection must be deterministic and hashable, so a client's re-derived view has to match
+   a hash of the same view, not of the full state. See design-concerns for why nothing smaller works.
+3. **Private by convention.** Leave the state as it is and rely on no client rendering it. What ships
+   today, unstated. Cheapest and the weakest: it is a privacy rule that holds only while every client is
+   ours and well-behaved, which for a multiplayer game with a public protocol is not a rule at all.
+
+**Recommendation:** (1). It is consistent with the trade-off the owner accepted for hands on 28 September
+2026, it needs no engine change, and it turns an accident into a stated rule. (2) is the right answer
+only if deal privacy is worth a per-viewer projection — and if it ever is, hands would likely want the
+same treatment, so the two should be decided together rather than one at a time.
+
+Raised 28 September 2026, from the owner's direction while accepting the hands trade-off. Does not block
+D4 or D5.
