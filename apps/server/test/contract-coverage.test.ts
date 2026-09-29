@@ -213,4 +213,29 @@ describe("every socket event docs/07 documents", () => {
       expect(source.includes(`"${event}"`)).toBe(true);
     });
   }
+
+  // D5's gate reads "contract tests pass for every documented endpoint **and event**". Emitting an event
+  // is not asserting it, so this is the other half: every server event must be named by a test that
+  // listens for it on a socket, or be one of the two that cannot be.
+  // This file is excluded from its own scan: it names every event in the lists above, so including it
+  // would make every event look asserted.
+  const here = fileURLToPath(import.meta.url);
+  const tests = sourceFiles(dirname(here))
+    .filter((file) => file !== here)
+    .map((file) => readFileSync(file, "utf8"))
+    .join("\n");
+
+  /** Events with no wire assertion, and why none is possible. */
+  const UNASSERTED_EVENTS: Record<string, string> = {
+    "board:versionChanged": "nothing emits it — F4's publish path owns it (see UNEMITTED_EVENTS)",
+  };
+
+  for (const event of Object.keys(SERVER_EVENTS)) {
+    const reason = UNASSERTED_EVENTS[event];
+    it(reason ? `has no wire assertion, accountably: ${event}` : `is asserted on the wire: ${event}`, () => {
+      // A test that listens for the event names it in a string, the same way the emit sites do.
+      const asserted = tests.includes(`"${event}"`);
+      expect(asserted).toBe(reason === undefined);
+    });
+  }
 });
