@@ -927,6 +927,9 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/06-state-machines.md` (D4) | the turn deadline as part of turn state: it cannot live in `MatchState` without breaking the re-derived hash (see design-concerns) |
 | `docs/13-error-catalog.md` (D4) | `E_SPECTATE_REFUSED` is used by `1h` §5 with its own copy and is in no table here — it needs a status, a surface and a retry behaviour (OQ-43) |
 | `docs/07-api-contract.md` (D5) | §Socket.IO: `match:applied` as `{ seq, action, events, stateHash }` — the action is the field the client re-derives with (OQ-45), superseding the earlier `{ seq, events, stateHash }` note above |
+| `docs/screens/1c-play-hud.md` (E1) | §2's list-view sample prints `Park Place` and `Boardwalk` — Monopoly board names in a derived doc · §3 #11 `PlayerChip` against docs/03's own `PlayerChip` · §3 #4's 17 dp Menu icon, a size docs/03 does not list · §3 #13's 44 dp primary against `control.primaryButton`'s 50 · §10's 320 ms cash count against `motion.count`'s 600 · §3 #15's build line, which has no singular and no zero form · §5's ring on "your token" against AC5's "active token" · §5's loading state, which names no state for the cash row or the holdings header |
+| `docs/12-accessibility-and-responsive.md` (E1) | the per-screen note "`1c` … The player list is the scroll region", against `1c` §8 and AC8's holdings-only scroller · the tablet rule "no new layout, no two-column redesign", against `1c` §8's 60/40 split |
+| `docs/screens/3i-pause-sheet.md` (E1) | §3's sheet, row, toggle, caret and button values, none of which are the docs/03 components they are built from · §2's fixed row order, which leaves `1v` (Actions) and `3m` (How to play) unreachable although `1c` §4, `3m` §1 and docs/04 all route them through this sheet |
 | `docs/08-database.md` (D5) | §"Seed data" item 5: the tile list contains seven Monopoly board spaces (Go, Community chest, Income tax, Park Avenue, Luxury tax, Free park, Go to jail) in the same section that ends "No Monopoly names in any fixture" — CLAUDE.md's hard constraint wins and the seed substitutes Chennai names · item 2 gives Classic no tile prices (OQ-46) · item 4's 27 deck rules are specified nowhere (OQ-46) · item 6 asks for six players and names four users, three of whom play (the other three seats are `2b`'s own guest names) |
 
 ---
@@ -1966,3 +1969,59 @@ snapshot, and treating it as one is cheaper than deriving it.
 
 Raised 28 September 2026 during D5. **Does not block D5** — the gate's end-to-end match reads its result
 while the state is still live, which is the path `2b` takes — but it should be settled before **G2**.
+
+---
+
+## OQ-49 · Four things the play HUD needs and `1c` does not draw
+
+**Affects:** `apps/mobile/src/screens/match/*` (task **E1**); `1c` play HUD, `1h` spectating,
+`docs/screens/1j-property-card.md`.
+
+**Why it matters:** each is a label, a rule or a whole surface E1 needed and no document gives.
+Every one is implemented as described below and marked in code; none blocks the task.
+
+1. **The primary action in the stages §4's table does not name.** §4 gives seven rows — awaiting
+   roll, moving, landed on an unowned tile, landed on an owned tile, rolled doubles, everything
+   resolved, not your turn. The engine's turn machine has sixteen stages, of which six persist in
+   match state: `preRoll`, `jailChoice`, `decision`, `postRoll`, `raiseCash` and `auction`. Three of
+   those six are unnamed by §4. `auction` and `raiseCash` route to their own screens (`1t`, `1d`),
+   so the button is idle there — but **`jailChoice` is a live decision with no HUD affordance**: the
+   three exits (`Roll`, `Jail Pass`, `Pay bail`) are on `1n` card #9, and the HUD's own button has
+   nothing to say. E1 shows `OK`, disabled, which is the label §4 already uses for "you cannot act
+   now" (moving, and not your turn), with no hint — §5 asks a disabled control for "a reason in its
+   hint" and gives no sentence for these. *Options:* (a) confirm `OK` disabled for every unnamed
+   stage, and add the one hint sentence each needs; (b) give `jailChoice` its own label on the HUD
+   (`Jail`, opening the card) and leave the rest at `OK`; (c) hide the button in stages where it
+   cannot act, which contradicts §4's "One button, one label at a time".
+   *Recommendation:* (a) — with a hint for `jailChoice` that names where the decision is, because a
+   player looking at a disabled button needs to be told the card is waiting.
+
+2. **What the card view shows for a utility.** §3 #15's ten-cell grid is a property's: `base rent`,
+   three house rungs, `hotel rent`, `house cost`, `hotel cost`. A utility is ownable, so it appears
+   in `My properties`, and it has none of those — its rent is dice × a multiplier by how many
+   utilities the owner holds (rulebook §7), which is not a standing figure at all. E1 renders the
+   three keys a utility owns — `cost`, `mortgage`, `rent now` — in the documented order, and its
+   `rent now` reads ₹0 because no dice have been thrown. *Options:* (a) a utility card with its own
+   keys (`cost`, `mortgage`, `owned 2 of 4`, `rent`, stated as the multiplier rather than an
+   amount); (b) the three shared keys only, as shipped; (c) the ten keys with the seven that do not
+   apply struck out or dashed. *Recommendation:* (a). "rent now ₹0" on a tile that charges rent is
+   misleading, and the multiplier is the only honest live figure.
+
+3. **The three holdings sorts have no direction and no tie-break.** §6 says the chip cycles
+   "colour, cost, rent now" and stops there. E1 sorts money high to low, colour by the board's own
+   group order, and breaks every tie by board order so the list cannot reorder itself between
+   renders. *Options:* (a) confirm high-to-low, as shipped; (b) low to high, matching the way the
+   list view reads down the board; (c) a direction toggle on the chip, which the design does not
+   draw. *Recommendation:* (a).
+
+4. **The player's public summary has no frame.** `1c` §6: "Tap a player chip → open that player's
+   public summary; long-press opens `3q`", and `1h` §6 repeats it as a "public summary sheet (name,
+   tiles, cash, net worth)". There is no `docs/screens/*` entry for it, no route in
+   `docs/04-navigation-map.md`'s route table and no overlay in its overlay table. E1 forwards both
+   presses to the caller and the route wires neither, so a chip tap does nothing today. *Options:*
+   (a) design the sheet — `1h` §6 names its four fields, so it is a small one; (b) reuse `3e`
+   Profile, which is an account screen and shows lifetime stats rather than this match's; (c) drop
+   the interaction from `1c` and `1h`. *Recommendation:* (a). Two screens ask for it by name, and
+   the long-press route into `3q` (report / block) has nothing to hang off without it.
+
+Raised 29 September 2026 during E1.

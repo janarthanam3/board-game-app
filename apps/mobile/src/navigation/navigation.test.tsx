@@ -90,7 +90,9 @@ describe("guards on the real route tree", () => {
     renderRouter(APP_DIR, { initialUrl: "/match/m-1" });
 
     expect(screen).toHavePathname("/match/m-1");
-    expect(screen.getByText('{"matchId":"m-1"}')).toBeTruthy();
+    // E1 replaced the placeholder with the HUD itself; with no snapshot yet it renders 1c §5's
+    // loading state, which is still the match screen and not a redirect.
+    expect(screen.getByTestId("hud")).toBeTruthy();
   });
 
   it("bankrupt: an eliminated player opening the match is sent to /out", async () => {

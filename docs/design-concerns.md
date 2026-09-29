@@ -1099,3 +1099,111 @@ filter that would block them now exists and is tested, but its list ships empty 
 
 **If accepted:** `docs/08` §"Seed data" item 5 is regenerated with the seven substitutions, and item 6's
 six players are reconciled with item 1's four users. Added to the regeneration table.
+
+## The play HUD and the pause sheet: what E1 found in the docs
+
+Raised 29 September 2026 while implementing `1c` (task E1), by me and by `design-guardian` over the
+diff. Recorded as found; none is resolved in code — the screen spec was implemented as written in
+every case, and where a screen spec and a shared component disagree the component is noted, not
+changed.
+
+### From the E1 design check, verbatim
+
+CONCERN: `1c` §2's layout map prints `Park Place cost ₹350` and `Boardwalk cost ₹400` in the LIST
+VIEW sample. Those are Monopoly board names in a derived doc, against CLAUDE.md's hard constraint
+("no Monopoly board names in code, fixtures, seeds or tests — they are blocked at publish time
+too"). The code and the engine fixtures use Chennai names only; the spec should be regenerated
+without them.
+
+CONCERN: nothing can reach `1v` (Actions) or `3m` (How to play). `1c` §4 states "The `Actions` sheet
+(`1v`) is reached from the Menu button, not from this button", `3m` §1 states it is "opened from the
+pause sheet (`3i`)", and `docs/04` gives both the pause sheet as their back target — but `3i` §2
+declares "Order is fixed: status, Sound, Haptics, Rules, Resume match, Settings, Leave match" and
+§3/§6 list no Actions row and no How-to-play row. The Menu button therefore has exactly one
+destination and E5 has nowhere documented to hang 1v.
+
+CONCERN: `docs/03-design-system.md` and `3i` §3 describe different components for the same sheet
+(the divergence also covers `ScreenHeader.dimmed`, which docs/03 defines as the pattern "while a
+sheet or dialog is over the screen" and `3i` §3 #1 gives to the scrim alone) —
+Sheet radius (22 vs 20), scrim (.66 vs .64), grabber (44 vs 36 wide, .3 vs .35), sheet shadow, the
+presence of a top border, Row height/radius (56/17 vs 48/16) and label type (700/15 #FFFFFF vs
+600/14 rgba(198,220,255,0.95)), Toggle (40×24 vs 44×26 with different on-track and knob colours),
+caret size (19 vs 16), and the ghost and destructive button radii, label type and label/fill/border
+colours. This is the same class as concerns A, B and C already recorded at the Phase B gate; `3i` as
+written cannot be built from the `03` components without a per-instance override on every one of
+them. One of the two docs needs regenerating from the design file — it is not a choice code should
+make.
+
+CONCERN: `1c` §5 gives the 2dp `#FFC84A` ring to "your token" on "your turn", while §11 AC5 speaks
+of keeping "the active token" in view. The two readings diverge on another player's turn, and the
+code has picked the AC5 reading.
+
+CONCERN: `1c` §3 #15's build line `<n> houses · <n> hotel built` has neither a zero form nor a
+singular, so a property with one house reads "1 houses" and an unbuilt one would read "0 houses · 0
+hotel built". The code suppresses the line entirely rather than printing either.
+
+CONCERN: `1c` §3 #8 gives the player token an `inset 0 -2px 0 rgba(5,15,40,.3)` bottom edge and §5
+gives the same token a 2 dp `#FFC84A` ring, and the design never states what happens where the two
+meet — whether the ring sits outside the edge, replaces it, or the edge survives across the ring's
+bottom. The implementation has to pick one; it should be stated in the spec instead.
+
+### The rest, found while building the screen
+
+**On the fourth concern above**, the code now carries both readings rather than one: `BoardMap`'s
+`PlayerTokenShape` has `active` (the actor's token, which the view follows — §6 and AC5) and
+`ringed` (the viewer's own token on the viewer's own turn — §5, whose "other's turn" row says the
+active chip is highlighted "**instead**"). On your own turn they are the same token. That satisfies
+both sentences without overriding either, but it is two flags where the design describes one thing,
+and it should collapse to one when the design says which.
+
+CONCERN: `docs/03` and `1c` §3 #11 describe two different components under the one name
+`PlayerChip`. docs/03: "Row: 25 dp player token (gradient + 1.5 dp ring), name `type.body`, cash
+`type.value`. Active player: `gold.flat` ring plus `motion.pulse` glow." `1c` §3 #11: "min 72×56,
+radius 13, card tokens; seat swatch 10dp; name `600 11px`; cash `800 13px`; the active player's chip
+gains a 1dp `rgba(255,200,74,.45)` border and `rgba(255,200,74,.09)` fill." Every value differs,
+including whether the active marker is a ring with a pulse or a border with a wash. The code follows
+`1c`, and the chip therefore lives with the screen rather than in the design system.
+
+CONCERN: `docs/12`'s per-screen table says of `1c` "The player list is the scroll region", while
+`1c` §8 and §11 AC8 say the holdings region "takes the rest and is the only scroller" and that the
+board "never scrolls off". Only one region can be the scroller. The code follows `1c`.
+
+CONCERN: `docs/12` "Responsive rules" says of the tablet class "Content column capped at 480 dp and
+centred; board map may grow to 560 dp; **no new layout, no two-column redesign**", while `1c` §8
+says "Tablet: board left (60%), strip + holdings right (40%)" — which is exactly a two-column
+layout, and a 560 dp board cannot sit in a 480 dp column. The code follows `1c` and splits inside
+the 480 dp column docs/12 caps, so the board is 268 dp there rather than 560.
+
+CONCERN: `1c` §10 gives the cash count as 320 ms where `motion.count` in `docs/02` gives 600 ms for
+the same thing ("money counter roll"). This is the same class of divergence as the token hop
+(180 ms in `1c` §10 against `motion.token`'s 260 ms), already recorded above. The screen spec
+governs the screen, so the HUD counts over 320 ms.
+
+CONCERN: `1c` §3 #13 gives the primary action "height 44, radius 16", where `docs/02`'s
+`control.primaryButton` and `docs/03`'s Button are 50 dp tall. 44 dp is the tap minimum, so the
+HUD's button is the shortest primary in the app. The code honours `1c` through a per-instance
+minimum on the shared component (`Button.minHeight` / `minWidth`), which is the same escape hatch
+`ScreenHeader.titleSize` already is.
+
+CONCERN: `1c` §3 #4 gives the Menu icon as 17 dp. `docs/03` "Icons" lists 15 / 19 / 24 dp only, and
+`IconButton` renders 19. 17 appears in no other spec and in no token. The code renders 19.
+
+CONCERN: `1c` §6 says a board tile tap opens "the property card (`1j`) for that tile", without
+qualification, but `1j` has no state for a corner or a card space — its §5 covers owned, unowned,
+mortgaged, spectating and building states of a *property*. Every tile is tappable, so `GO`, `CHEST`,
+`JAIL` and the card spaces all route to a screen that has nothing to show them.
+
+CONCERN: `1c` §5's loading row makes the board and the strip skeletons "for the first snapshot only"
+and says nothing about the cash row or the holdings region, which have no data either. Extending the
+skeleton to them would be a design decision, so the code does not: it renders ₹0 / ₹0 in the cash
+row, `My properties · 0` in the holdings header with its view switch and sort chip live over an
+empty region, and withholds only `No properties yet.` — the one sentence that would state a fact not
+yet known. Three of those four assert something the client does not know yet.
+
+### Not implemented, and owned elsewhere
+
+`3i` §9's focus behaviour ("focus starts on `Paused` and returns to the Menu button on dismiss") is
+not implemented. It belongs to the `Sheet` component, which every sheet in the app shares, and
+placing focus needs `AccessibilityInfo.setAccessibilityFocus` on a measured node — a change to a B3
+component rather than to this screen. Whoever finishes `3i` (E6 owns its status line; G1 owns the
+settings it writes) should implement it there, and H2's accessibility gate should hold it.

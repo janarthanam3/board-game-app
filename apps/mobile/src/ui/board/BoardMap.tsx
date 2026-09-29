@@ -84,8 +84,18 @@ export interface PlayerTokenShape {
   name: string;
   colour: string;
   tileIndex: number;
-  /** The viewer's own token on their turn: a 2 dp gold ring (1c §5). */
+  /**
+   * The token the view follows after a move — the player whose turn it is (1c §11 AC5: "the active
+   * token is kept in view after each move", §6: "the active token stays in view after every move").
+   */
   active?: boolean | undefined;
+  /**
+   * A 2 dp gold ring. 1c §5 puts it on "your token" on "your turn", and says that on another
+   * player's turn "the active chip is highlighted **instead**" — so the ring is the viewer's own,
+   * not the actor's, and it is a separate flag from the one the view follows. The two readings of
+   * "active" are recorded in docs/design-concerns.md.
+   */
+  ringed?: boolean | undefined;
 }
 
 export interface BoardMapProps {
@@ -388,7 +398,7 @@ function BoardToken({ token, layout }: { token: PlayerTokenShape; layout: Return
       accessibilityLabel={`${token.name} on slot ${token.tileIndex + 1}`}
       style={[
         styles.token,
-        token.active ? styles.tokenActive : null,
+        token.ringed ? styles.tokenRinged : null,
         { backgroundColor: token.colour, transform: position.getTranslateTransform() },
       ]}
     />
@@ -471,8 +481,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: player.tokenEdge.width,
     borderBottomColor: player.tokenEdge.color,
   },
-  // 1c §5: "a 2dp #FFC84A ring on your token".
-  tokenActive: { borderWidth: 2, borderColor: gold.flat },
+  // 1c §5: "a 2dp #FFC84A ring on your token". `borderBottomColor` above wins over `borderColor`
+  // in React Native, so the ring states its own bottom edge or it would render dark on one side.
+  // Which of the two the design means to survive where they meet is not stated — the ring is kept
+  // whole, because a ring broken on one side does not read as a ring (docs/design-concerns.md).
+  tokenRinged: { borderWidth: 2, borderColor: gold.flat, borderBottomColor: gold.flat },
   // The specs place these bars "bottom-left" and "bottom-right"; the inset is tokens.board
   // (OQ-24 item 4, confirmed).
   zoomBar: { position: "absolute", left: board.barInset, bottom: board.barInset, flexDirection: "row", alignItems: "center", gap: 7 },

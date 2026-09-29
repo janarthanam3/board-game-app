@@ -26,6 +26,15 @@ export interface ButtonProps {
    * screens use for Save, "+ New rule", Fit and Reorder (1y §3 #1, 1z §3 #1, 2a §3.1 #1 and #7).
    */
   size?: "default" | "dialog" | "small";
+  /**
+   * A minimum height and width this one instance states for itself, where a screen spec gives the
+   * button its own size: `1c` §3 #13 draws the HUD's primary action at "min 72 wide, height 44".
+   * Never below `control.minTapTarget`.
+   */
+  minHeight?: number;
+  minWidth?: number;
+  /** Spoken after the label — §9 of several screens: "when disabled, its reason". */
+  accessibilityHint?: string;
   testID?: string;
 }
 
@@ -55,8 +64,14 @@ export function Button({
   loading = false,
   block = true,
   size = "default",
+  minHeight,
+  minWidth,
+  accessibilityHint,
   testID,
 }: ButtonProps) {
+  if (minHeight !== undefined && minHeight < control.minTapTarget) {
+    throw new Error(`Button: minHeight ${minHeight} is below the ${control.minTapTarget} dp tap minimum`);
+  }
   const v = variantStyles[variant];
   const inert = disabled || loading;
   const reducedMotion = useReducedMotion();
@@ -80,6 +95,7 @@ export function Button({
         testID={testID ?? `button-${variant}`}
         accessibilityRole="button"
         accessibilityLabel={label}
+        {...(accessibilityHint === undefined ? {} : { accessibilityHint })}
         accessibilityState={{ disabled: inert, busy: loading }}
         onPress={onPress}
         hitSlop={size === "small" ? SMALL_HIT_SLOP : undefined}
@@ -94,6 +110,9 @@ export function Button({
           !block && styles.inlinePadding,
           size === "small" && styles.smallSize,
           disabled && styles.disabled,
+          // A screen-stated size wins over the variant's, which is why it comes last.
+          minHeight === undefined ? null : { minHeight },
+          minWidth === undefined ? null : { minWidth },
         ]}
       >
         {/* Button.small paints its own blue chip fill, so the variant's fill is suppressed. */}

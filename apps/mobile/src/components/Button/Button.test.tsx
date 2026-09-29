@@ -130,4 +130,22 @@ describe("Button", () => {
     expect(screen.getByTestId("wide-frame")).toHaveStyle({ alignSelf: "stretch" });
     expect(screen.getByTestId("narrow-frame")).toHaveStyle({ alignSelf: "flex-start" });
   });
+
+  it("takes a size a screen states for one instance (1c §3 #13: 44 dp tall, min 72 wide)", () => {
+    render(<Button variant="primary" label="Roll" onPress={jest.fn()} block={false} minHeight={44} minWidth={72} />);
+
+    expect(screen.getByRole("button")).toHaveStyle({ minHeight: 44, minWidth: 72 });
+  });
+
+  it("refuses a stated height below the 44 dp tap minimum", () => {
+    expect(() => render(<Button variant="primary" label="Roll" onPress={jest.fn()} minHeight={40} />)).toThrow(
+      /below the 44 dp tap minimum/,
+    );
+  });
+
+  it("announces a reason when one is given", () => {
+    render(<Button variant="primary" label="OK" onPress={jest.fn()} disabled accessibilityHint="Waiting for Priya." />);
+
+    expect(screen.getByRole("button").props.accessibilityHint).toBe("Waiting for Priya.");
+  });
 });

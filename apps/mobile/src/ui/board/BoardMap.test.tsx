@@ -1,7 +1,7 @@
 // BoardMap (docs/03 "Game components", 1c §3 #5–#9 / §5 / §6 / §8, 2a §2.1 / §3.1 #4–#9 / §4 / §5,
 // docs/12 accessibility).
 
-import { player } from "@royal-navy/shared";
+import { gold, player } from "@royal-navy/shared";
 import { fireEvent, render, screen, within } from "@testing-library/react-native";
 
 import { BoardMap, CENTRE_CAPTIONS, FIT_WARNING, PAN_HINT, type BoardShape } from "./index";
@@ -309,18 +309,23 @@ describe("ownership, buildings and tokens", () => {
     expect(screen.getByLabelText("Naveen on slot 4")).toBeTruthy();
   });
 
-  it("rings the active player's own token in gold (1c §5)", () => {
+  it("rings the viewer's own token in gold (1c §5), and only that one", () => {
     render(
       <BoardMap
         board={board(5, 5)}
         viewport={PLAY_VIEWPORT}
         tokens={[
-          { playerId: "p-naveen", name: "Naveen", colour: GOLD_SEAT, tileIndex: 3, active: true },
-          { playerId: "p-priya", name: "Priya", colour: GOLD_SEAT, tileIndex: 5 },
+          { playerId: "p-naveen", name: "Naveen", colour: GOLD_SEAT, tileIndex: 3, ringed: true },
+          // The actor: the view follows this token, but the ring is not its own (1c §5 "instead").
+          { playerId: "p-priya", name: "Priya", colour: GOLD_SEAT, tileIndex: 5, active: true },
         ]}
       />,
     );
-    expect(flatten(screen.getByTestId("board-token-p-naveen").props.style).borderWidth).toBe(2);
+    const ringed = flatten(screen.getByTestId("board-token-p-naveen").props.style);
+    expect(ringed.borderWidth).toBe(2);
+    // All four sides: the token's own dark bottom edge (§3 #8) must not break the ring.
+    expect(ringed.borderColor).toBe(gold.flat);
+    expect(ringed.borderBottomColor).toBe(gold.flat);
     expect(flatten(screen.getByTestId("board-token-p-priya").props.style).borderWidth).toBeUndefined();
   });
 });

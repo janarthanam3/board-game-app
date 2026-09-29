@@ -1,4 +1,8 @@
+import type { MatchState } from "@royal-navy/game-engine";
 import { create } from "zustand";
+
+import type { HoldingsSort } from "../screens/match/hudModel";
+import type { HoldingsView } from "../screens/match/Holdings";
 
 /**
  * The slice of match state the navigation guards need (docs/04 "Guards"). The full engine
@@ -22,14 +26,41 @@ export interface MatchGuardFacts {
   local: boolean;
 }
 
-export interface MatchState {
-  current: MatchGuardFacts | null;
-  setMatch: (facts: MatchGuardFacts) => void;
-  clearMatch: () => void;
+/**
+ * The authoritative match state plus the one thing the engine does not carry: the match name the
+ * host typed on `1b` (`1c` §3 #2). The socket fills this in E3; until then the HUD renders its
+ * loading state (`1c` §5: "Board and strip render as skeletons for the first snapshot only").
+ */
+export interface MatchSnapshot {
+  state: MatchState;
+  name: string;
 }
 
-export const useMatchStore = create<MatchState>((set) => ({
+export interface MatchStoreState {
+  current: MatchGuardFacts | null;
+  snapshot: MatchSnapshot | null;
+  /** `1c` §6: the Cards/List choice "persists per match", so both prefs are keyed by match id. */
+  holdingsView: Record<string, HoldingsView>;
+  holdingsSort: Record<string, HoldingsSort>;
+
+  setMatch: (facts: MatchGuardFacts) => void;
+  clearMatch: () => void;
+  setSnapshot: (snapshot: MatchSnapshot | null) => void;
+  setHoldingsView: (matchId: string, view: HoldingsView) => void;
+  setHoldingsSort: (matchId: string, sort: HoldingsSort) => void;
+}
+
+export const useMatchStore = create<MatchStoreState>((set) => ({
   current: null,
+  snapshot: null,
+  holdingsView: {},
+  holdingsSort: {},
+
   setMatch: (facts) => set({ current: facts }),
-  clearMatch: () => set({ current: null }),
+  clearMatch: () => set({ current: null, snapshot: null }),
+  setSnapshot: (snapshot) => set({ snapshot }),
+  setHoldingsView: (matchId, view) =>
+    set((state) => ({ holdingsView: { ...state.holdingsView, [matchId]: view } })),
+  setHoldingsSort: (matchId, sort) =>
+    set((state) => ({ holdingsSort: { ...state.holdingsSort, [matchId]: sort } })),
 }));
