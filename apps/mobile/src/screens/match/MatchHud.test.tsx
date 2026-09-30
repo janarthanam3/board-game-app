@@ -2,6 +2,7 @@
 // interactions (docs/screens/1c-play-hud.md).
 
 import type { MatchState } from "@royal-navy/game-engine";
+import { text } from "@royal-navy/shared";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { renderRouter, screen as routerScreen, waitFor } from "expo-router/testing-library";
 import { BackHandler, Dimensions } from "react-native";
@@ -387,6 +388,24 @@ describe("1c interactions (§6)", () => {
   });
 });
 
+describe("the set colour, which is board data and not a token (OQ-51)", () => {
+  it("paints the set line and the list bar in a group colour the platform can render", () => {
+    // The fixture's purple group: a colour React Native parses.
+    renderHud();
+    expect(screen.getByTestId("property-card-1-set")).toHaveStyle({ color: "purple" });
+  });
+
+  it("falls back rather than drawing nothing when the board stores an unrenderable colour", () => {
+    const state = clone(midgame());
+    // `sky` and `amber` are in the shipped seed and are not CSS colour keywords.
+    state.board.groups[0]!.colour = "sky";
+    renderHud({ state });
+    // The line still reads, in the meta colour, and still names the set.
+    expect(screen.getByTestId("property-card-1-set")).toHaveTextContent("sky set");
+    expect(screen.getByTestId("property-card-1-set")).toHaveStyle({ color: text.muted });
+  });
+});
+
 describe("1c accessibility (§9)", () => {
   it("a player chip is one focus stop, announcing the name and the cash in words", () => {
     renderHud();
@@ -412,18 +431,21 @@ describe("1c responsive (§8)", () => {
     expect(renderedBoardSize()).toBe(360 - 17 * 2);
   });
 
-  it("tablet: board left, strip and holdings right, with the strip a vertical column", () => {
+  it("tablet: board left, strip and holdings right, and the strip stays horizontal in portrait", () => {
     setWindow(800, 1200);
     renderHud();
-    expect(screen.getByTestId("player-chips").props.horizontal).toBe(false);
+    // §8 splits the tablet 60/40 but only landscape "becomes a vertical column"; §2 draws the strip
+    // horizontal, so a portrait tablet keeps it that way.
+    expect(screen.getByTestId("player-chips").props.horizontal).toBe(true);
     // 60% of the 480 dp content column (docs/02 "Responsive"), less its padding.
     expect(renderedBoardSize()).toBe(Math.round((480 - 34) * 0.6));
   });
 
-  it("landscape: the same split as a tablet", () => {
+  it("landscape: the same split, and there the strip becomes a vertical column", () => {
     setWindow(780, 360);
     renderHud();
     expect(screen.getByTestId("player-chips").props.horizontal).toBe(false);
+    expect(renderedBoardSize()).toBe(Math.round((480 - 34) * 0.6));
   });
 
   it("130% font scale: the chips grow to 64 dp and the strip still scrolls", () => {

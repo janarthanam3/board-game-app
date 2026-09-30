@@ -2025,3 +2025,106 @@ Every one is implemented as described below and marked in code; none blocks the 
    the long-press route into `3q` (report / block) has nothing to hang off without it.
 
 Raised 29 September 2026 during E1.
+
+---
+
+## OQ-50 · The Menu button is the only way to `1v` and `3m`, and the pause sheet has no row for either
+
+**Affects:** `docs/screens/3i-pause-sheet.md` §2, §3, §6; `docs/screens/1c-play-hud.md` §4;
+`docs/screens/1v-actions-sheet.md`; `docs/screens/3m-how-to-play.md`; `docs/04-navigation-map.md`;
+tasks **E5** (the actions sheet and its eight child screens) and **E1a** (the pause sheet).
+
+**Why it matters:** three documents route the player to `1v` and `3m` through the HUD's Menu
+button, and the screen that button opens has nowhere to put them.
+
+- `1c` §4: "The `Actions` sheet (`1v`) is reached from the Menu button, not from this button."
+- `3m` §1: it is "opened from the pause sheet (`3i`)", and `docs/04`'s route table gives `3m`'s back
+  target as the pause sheet.
+- `docs/04`'s route table gives `/match/[matchId]/actions` the back target "match (sheet)", and its
+  overlay table lists the pause sheet as fired by the "HUD menu button" — one button, one overlay.
+- `3i` §2: "Order is fixed: status, Sound, Haptics, Rules, Resume match, Settings, Leave match."
+  §3's element inventory and §6's interaction table list no Actions row and no How-to-play row.
+
+So the Menu button has exactly one destination, that destination is a sheet whose row order is
+declared fixed, and the two screens it is supposed to lead to are named in neither. E1 implemented
+`3i` §2's order exactly as written, which is why the HUD today can reach neither.
+
+**This does not stop E5 starting.** `/match/[matchId]/actions` is a real route with its own guard
+("actor's turn"), so all nine of E5's screens can be built and tested on their own. What E5 cannot
+do is wire the entry point the design names, and `1v` is the parent of the other eight — an actions
+sheet nothing opens is a feature nobody can reach. It is the same shape as OQ-2 and OQ-3: it decides
+what E5 ships, not whether E5 can begin.
+
+**Options**
+
+1. **Add an `Actions` row and a `How to play` row to `3i`**, and regenerate §2's fixed order with
+   them in it. The sheet is already the in-match menu, and both screens' own specs point at it.
+   Needs the design to say where in the order they sit — above `Rules` reads best, since `Actions`
+   is the only one of the three that changes the match.
+2. **Give the HUD a second control for `1v`.** `1c` §3 draws one icon button and §4 says the
+   Actions sheet is *not* reached from the primary action, so this means a new element on the
+   densest screen in the app, which OQ-4 already flags as having no 130% reference frame.
+3. **Open `1v` from the pause sheet's `Resume match` path** — dismiss to the HUD and let a second
+   Menu press cycle. Unworkable: it makes one control mean two things and leaves `3m` unreached.
+
+**Recommendation:** (1). It is the only option that changes no layout the design draws and no
+sentence in `1c` §4; it adds two rows to a list that already holds five, and both rows' destinations
+already exist as routes with guards and back targets. Until it is answered the Menu button keeps
+opening `3i` alone, as `3i` §2 says it should.
+
+Raised 30 September 2026 during E1's design check, by `design-guardian`, as a CONCERN in
+`docs/design-concerns.md`; recorded here because it needs an owner's answer before **E5** can wire
+what it builds.
+
+---
+
+## OQ-51 · What is a colour group's colour, as a value?
+
+**Affects:** `apps/mobile/src/ui/groupColour.ts`, `apps/mobile/src/screens/match/*` (task **E1**);
+`apps/mobile/src/ui/board/TileFace.tsx` (E2); `apps/server/src/db/seed-data.ts`;
+`docs/screens/1x-tile-builder.md` §3 (the `Colour` picker), `docs/05-game-rules.md` §4 "One colour,
+one set", `docs/02-design-tokens.md`; `1c` §3 #6 and #15, `1j` §3 #4, `2b` §3 #15, and every screen
+that draws a set colour.
+
+**Why it matters:** `ColourGroup.colour` is a free-form string (`packages/game-engine/src/state.ts`,
+`packages/shared/src/schemas/boards.ts`), and the design treats a group's colour as both **copy** and
+a **fill**:
+
+- copy — `1c` §3 #15's set line, quoted as `light grey set`, so the string is read aloud and printed;
+- fill — `1c` §3 #6's 6 dp tile band and §3 #16's 4 dp list bar "in the set colour", `1j` §3 #4's
+  pips "filled with the set colour", `2b` §3 #15's set counts "in group colour".
+
+Nothing maps one to the other. `1x` §3 gives a `Colour` picker with the note "One colour, one set.
+Pick an unused colour to start a new group", the rulebook makes the swatch the set's only identifier
+(§4, D2), and `docs/02` has no group palette — its colour tables are surfaces, text, roles and the
+six **player seat** colours, which are a different thing.
+
+The shipped seed stores names: `teal`, `sky`, `violet`, `amber`, `red`, `gold`, `green`, `navy`
+(`seed-data.ts`, the Classic board's eight groups). **React Native can parse six of the eight.**
+`sky` and `amber` are not CSS colour keywords, so passing them to a style draws nothing at all: on
+the board the design ships, two groups have no band, no bar and no coloured set line. E1 is the first
+consumer of group colour in the app, which is why it surfaces now.
+
+E1 resolves the string at the render edge (`resolveGroupColour`, which asks the platform's own parser
+rather than keeping a list) and falls back to a documented neutral — `text.muted` for the set line,
+`surface.divider.color` for the list bar, no band on the tile — so an unparseable colour is visibly
+plain instead of invisible. It invents no palette, and the set line still names the set either way.
+
+**Options**
+
+1. **A named palette in `docs/02`**: ten swatches with hex values and the names the picker shows
+   (`sky` → `#5BB8F5`…), keyed by the name the board stores. The board document keeps storing the
+   name, so published boards stay readable and the copy keeps working; the app maps name → value in
+   one place. Needs the design to state the ten.
+2. **Store the value, not the name**: `1x`'s picker writes a hex, and the set line prints… what? The
+   copy `light grey set` needs a word, so this needs a name anyway, or the set line has to change.
+3. **Constrain the string to CSS colour keywords** the platform already knows, and fix the seed's
+   `sky` and `amber`. Cheapest, and it keeps one string doing both jobs — but the set's colour is
+   then whatever the browser palette happens to contain, which is not a design decision.
+
+**Recommendation:** (1). The design already shows ten distinct swatches in `1x` and caps groups at
+"≈ 10"; naming them in `docs/02` makes the board document portable, keeps `1c` §3 #15's copy honest,
+and puts the one mapping in the token file where every other colour lives. Whatever is chosen, the
+seed's `sky` and `amber` need to become valid on the same pass.
+
+Raised 30 September 2026 during E1's third design-check pass.

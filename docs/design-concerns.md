@@ -1202,8 +1202,21 @@ yet known. Three of those four assert something the client does not know yet.
 
 ### Not implemented, and owned elsewhere
 
+**`3i` now has a task of its own — `E1a` in `TASKS.md`** — added 30 September 2026 so the twelve
+component divergences above sit with the screen that can decide them rather than with E1, which
+built the sheet only because `1c` §11 AC9 and `docs/04` make the HUD's Menu button its one opener
+and Android back never leaves the match. E1a passes each of the twelve per instance, the way
+`ScreenHeader.titleSize` and `Button.minHeight` already do, and changes no shared component's
+default. It also carries what E1 left undone:
+
 `3i` §9's focus behaviour ("focus starts on `Paused` and returns to the Menu button on dismiss") is
 not implemented. It belongs to the `Sheet` component, which every sheet in the app shares, and
 placing focus needs `AccessibilityInfo.setAccessibilityFocus` on a measured node — a change to a B3
-component rather than to this screen. Whoever finishes `3i` (E6 owns its status line; G1 owns the
-settings it writes) should implement it there, and H2's accessibility gate should hold it.
+component rather than to this screen. H2's accessibility gate should hold it. The status line's four
+variants are E1a's too; **E6 keeps the clock** they read (the server-driven countdown and whether it
+is genuinely held in local modes), so `3i` is not owned twice. Persistence of the `Sound` and
+`Haptics` preferences stays with **G1**, which owns `3f` and the store's five keys.
+
+The routing gap in the second concern above — `1v` and `3m` unreachable through a sheet whose row
+order `3i` §2 declares fixed — is now **OQ-50**, because it needs an owner's answer before E5 can
+wire what it builds.

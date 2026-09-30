@@ -5,6 +5,7 @@ import type { MatchState, PlayerId } from "@royal-navy/game-engine";
 import { frame, responsive } from "@royal-navy/shared";
 
 import type { BoardShape, BoardTileShape, PlayerTokenShape } from "../../ui/board";
+import { resolveGroupColour } from "../../ui/groupColour";
 import { seatFlat } from "../../ui/seat";
 
 export function boardShape(state: MatchState): BoardShape {
@@ -24,7 +25,14 @@ export function boardShape(state: MatchState): BoardShape {
       };
       switch (tile.kind) {
         case "property":
-          return { kind: "property", cost: tile.cost, groupColour: colourOf.get(tile.groupId), ...base };
+          // §3 #6's 6 dp band is the group's colour; an unparseable one draws no band rather than
+          // silently nothing where a colour was meant (OQ-51).
+          return {
+            kind: "property",
+            cost: tile.cost,
+            groupColour: resolveGroupColour(colourOf.get(tile.groupId)) ?? undefined,
+            ...base,
+          };
         case "utility":
           return { kind: "utility", cost: tile.cost, ...base };
         case "card":

@@ -4,7 +4,7 @@
 // on the screen (§11 AC8: "The holdings region is the only scroller"). Cards view shows a deed per
 // property; list view shows name and cost per row and expands the tapped row into the same card.
 
-import { motion, surface, text } from "@royal-navy/shared";
+import { motion, stackGap, surface, text } from "@royal-navy/shared";
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text as RNText, View } from "react-native";
 
@@ -13,6 +13,7 @@ import { easingFor, effectiveDuration, useReducedMotion } from "../../components
 import { ScrollRegion } from "../../components/ScrollRegion";
 import { Segmented } from "../../components/Segmented";
 import { textStyle } from "../../components/typography";
+import { resolveGroupColour } from "../../ui/groupColour";
 import type { HoldingModel, HoldingsSort } from "./hudModel";
 import { PropertyCard } from "./PropertyCard";
 
@@ -130,7 +131,9 @@ function ListEntry({ holding, expanded, onPress }: { holding: HoldingModel; expa
         onPress={onPress}
         style={styles.row}
       >
-        <View style={[styles.rowBar, holding.setColour ? { backgroundColor: holding.setColour } : styles.rowBarPlain]} />
+        {/* §3 #16's 4 dp bar in the set colour; a colour the platform cannot parse falls back to
+            the divider rather than drawing nothing (OQ-51). */}
+        <View style={[styles.rowBar, { backgroundColor: resolveGroupColour(holding.setColour) ?? surface.divider.color }]} />
         <View style={styles.rowText}>
           <RNText style={styles.rowName} numberOfLines={1}>
             {holding.name}
@@ -169,8 +172,8 @@ function CrossFade({ viewKey, children }: { viewKey: string; children: React.Rea
 
 const styles = StyleSheet.create({
   // flex + minHeight 0 is what makes this region, and not the screen, the scroller.
-  region: { flex: 1, minHeight: 0, gap: 8 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
+  region: { flex: 1, minHeight: 0, gap: stackGap.inner },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: stackGap.inner, flexWrap: "wrap" },
   title: { ...textStyle({ weight: 600, size: 14 }), color: text.secondary },
   controls: { flexDirection: "row", alignItems: "center", gap: 7 },
   // The switch sizes itself off its two labels; a minimum keeps the segments even, and it grows
@@ -181,10 +184,10 @@ const styles = StyleSheet.create({
   note: { ...textStyle({ weight: 600, size: 11 }), color: text.faint },
   // §3 #16 gives the row a height, a colour bar, a name and a cost — and no surface, so it carries
   // none; §2 draws the rows as bare lines under the header.
-  row: { minHeight: ROW_MIN_HEIGHT, flexDirection: "row", alignItems: "center", gap: 11 },
+  row: { minHeight: ROW_MIN_HEIGHT, flexDirection: "row", alignItems: "center", gap: stackGap.default },
   rowBar: { width: ROW_BAR, alignSelf: "stretch" },
   rowBarPlain: { backgroundColor: surface.divider.color },
-  rowText: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
+  rowText: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: stackGap.inner, flexWrap: "wrap" },
   rowName: { ...textStyle({ weight: 700, size: 15 }), color: text.primary },
   rowCost: { ...textStyle({ weight: 600, size: 12 }), color: text.muted },
 });

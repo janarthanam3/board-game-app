@@ -3,7 +3,7 @@
 // One row: `Cash ₹1,450`, `Net worth ₹3,210`, and the single gold button whose label is whatever
 // the turn state makes it. The button is the only control on the HUD that commits an action.
 
-import { gold, motion, text } from "@royal-navy/shared";
+import { gold, motion, stackGap, text } from "@royal-navy/shared";
 import { rupeesInWords } from "@royal-navy/shared";
 import { useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, Text as RNText, View } from "react-native";
@@ -84,8 +84,8 @@ function CountedValue({ value, style, testID }: { value: string; style: object; 
     <Animated.Text
       testID={testID}
       accessibilityLabel={rupeesInWords(numericRupees(shown))}
+      // No line limit: docs/12 "Money values — never truncated, never ellipsised — the row grows".
       style={[style, { opacity }]}
-      numberOfLines={1}
     >
       {shown}
     </Animated.Text>
@@ -100,7 +100,7 @@ function numericRupees(formatted: string): number {
 
 const styles = StyleSheet.create({
   // Money values never truncate (docs/12), so the row wraps rather than shrinking its values.
-  row: { flexDirection: "row", alignItems: "center", gap: 11, flexWrap: "wrap" },
+  row: { flexDirection: "row", alignItems: "center", gap: stackGap.default, flexWrap: "wrap" },
   pair: { flexDirection: "row", alignItems: "baseline", gap: 6 },
   spacer: { flexGrow: 1 },
   key: { ...textStyle({ weight: 600, size: 12 }), color: text.muted },

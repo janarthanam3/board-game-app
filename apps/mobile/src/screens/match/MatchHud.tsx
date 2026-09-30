@@ -94,8 +94,10 @@ export function MatchHud({
   const [expandedTileIndex, setExpandedTileIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(FIT_ZOOM);
 
-  // §8: tablet and landscape both split board left / strip and holdings right.
-  const split = width >= responsive.tabletMinWidth || width > height;
+  // §8: tablet and landscape both split board left / strip and holdings right — but only landscape
+  // turns the strip itself into a vertical column. A portrait tablet keeps §2's horizontal strip.
+  const landscape = width > height;
+  const split = width >= responsive.tabletMinWidth || landscape;
   const viewport = boardViewport(width, split);
 
   // §6 and AC9: Android back opens the pause sheet and never leaves the match. With an overlay up it
@@ -154,7 +156,7 @@ export function MatchHud({
                 turnLine={turnLine(state)}
                 onPlayerPress={(playerId) => onOpenPlayer?.(playerId)}
                 {...(onLongPressPlayer ? { onPlayerLongPress: onLongPressPlayer } : {})}
-                vertical={split}
+                vertical={landscape}
               />
             ) : (
               <Skeleton testID="player-strip-skeleton" width="100%" height={stripSkeletonHeight(fontScale)} borderRadius={radius.field} />

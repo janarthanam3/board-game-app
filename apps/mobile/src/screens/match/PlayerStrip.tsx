@@ -5,7 +5,7 @@
 // text, which is not what 1c §3 #11 draws (a 72×56 card with a 10 dp swatch) — recorded in
 // docs/design-concerns.md.
 
-import { gold, player as seatTokens, radius, shadow, surface, text, withAlpha } from "@royal-navy/shared";
+import { gold, player as seatTokens, radius, shadow, stackGap, surface, text, withAlpha } from "@royal-navy/shared";
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text as RNText, useWindowDimensions, View } from "react-native";
 
@@ -131,9 +131,8 @@ function PlayerChip({ player, onPress, onLongPress }: PlayerChipProps) {
         <RNText style={styles.name} numberOfLines={1}>
           {player.name}
         </RNText>
-        <RNText style={styles.cash} numberOfLines={1}>
-          {player.cash}
-        </RNText>
+        {/* No line limit on money: docs/12 "never truncated, never ellipsised — the row grows". */}
+        <RNText style={styles.cash}>{player.cash}</RNText>
       </View>
     </Pressable>
   );
@@ -143,8 +142,8 @@ function PlayerChip({ player, onPress, onLongPress }: PlayerChipProps) {
 const HANDOVER_MS = 200;
 
 const styles = StyleSheet.create({
-  region: { gap: 8 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  region: { gap: stackGap.inner },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: stackGap.inner },
   playersLabel: { ...textStyle({ weight: 600, size: 14 }), color: text.secondary },
   turnLine: { ...textStyle({ weight: 700, size: 13 }), color: gold.flat },
   chips: { flexDirection: "row", gap: CHIP_GAP },
