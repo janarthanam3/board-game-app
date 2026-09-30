@@ -1220,3 +1220,36 @@ is genuinely held in local modes), so `3i` is not owned twice. Persistence of th
 The routing gap in the second concern above — `1v` and `3m` unreachable through a sheet whose row
 order `3i` §2 declares fixed — is now **OQ-50**, because it needs an owner's answer before E5 can
 wire what it builds.
+
+## E1: two seeded group colours were values no renderer could parse
+
+**Found:** 30 September 2026, by E1's third design-check pass. **Fixed the same day in the seed**; the
+underlying question is **OQ-51**.
+
+A colour group's colour is one free-form string doing two jobs: it is drawn as a fill (`1c` §3 #6's 6 dp
+tile band and §3 #16's 4 dp list bar "in the set colour", `1j` §3 #4's pips, `2b` §3 #15's set counts) and
+read as copy (`1c` §3 #15's set line, quoted as `light grey set`). No document maps the string to a value:
+`1x` §3 gives a `Colour` picker with no palette, the rulebook makes the swatch the set's only identifier
+(§4, D2), and `docs/02` has no group colours — its six player colours are a different thing.
+
+The seed stored names. Classic's eight were `teal, sky, violet, amber, red, gold, green, navy`, and
+React Native parses six of them: **`sky` and `amber` are not colour keywords**, so those two groups drew
+no band, no bar and no coloured set line at all — and because both fell back to the same neutral, two of
+Classic's eight sets were indistinguishable, which is exactly what D2's "the swatch is the identifier"
+forbids. Chennai's `sky` had the same problem.
+
+**What changed, and what did not.** `sky` → `skyblue`, `amber` → `orange`: the nearest keyword to each,
+distinct from every other group on the same board. No palette was invented — the values are still names,
+still stored the same way, and OQ-51's answer replaces all nine. The client also stopped trusting the
+string: `resolveGroupColour` asks the platform's own parser and each caller falls back to a documented
+neutral, so a board authored with an unparseable colour is plain rather than invisible.
+
+**Held by two tests, in the packages that own each half:** `apps/server/test/seed.test.ts` asserts the
+seeded boards use only the colours `GROUP_COLOURS` declares and that no two groups on one board share
+one; `apps/mobile/src/ui/groupColour.test.ts` reads that same list and asserts the renderer accepts every
+entry. A ninth colour added to a seeded board fails the first; a colour the renderer cannot parse fails
+the second.
+
+**If OQ-51 is answered:** `docs/02-design-tokens.md` gains the group palette, `docs/08`'s seed section
+states the colours with it, and `GROUP_COLOURS` collapses into the token file. Added to the regeneration
+table.

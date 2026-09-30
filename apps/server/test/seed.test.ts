@@ -12,7 +12,14 @@ import { buildApp } from "../src/app.js";
 import { parseEnv } from "../src/config/env.js";
 import { migrateUp } from "../src/db/migrate.js";
 import { seed } from "../src/db/seed.js";
-import { chennaiBoard, chennaiRuleset, classicBoard, classicRuleset, SEED_USERS } from "../src/db/seed-data.js";
+import {
+  chennaiBoard,
+  chennaiRuleset,
+  classicBoard,
+  classicRuleset,
+  GROUP_COLOURS,
+  SEED_USERS,
+} from "../src/db/seed-data.js";
 import { testEnv } from "./helpers.js";
 
 let app: FastifyInstance;
@@ -215,6 +222,32 @@ describe("the four decks", () => {
     for (const deck of classicBoard().decks) {
       expect(deck.rules).toEqual([]);
     }
+  });
+});
+
+describe("the group colours the boards are seeded with", () => {
+  // A group's colour is board data, and the design states no palette (OQ-51). What broke is that the
+  // client draws it as a fill: `sky` and `amber` both shipped, neither is a colour keyword, and those
+  // groups drew no tile band, no list bar and no set line. The half of the guard that needs the
+  // renderer's own parser lives with the renderer, in
+  // `apps/mobile/src/ui/groupColour.test.ts`, which reads GROUP_COLOURS from this module. This half
+  // pins that the seeded boards use nothing outside it.
+  const colours = [...classicBoard().groups, ...chennaiBoard().groups].map((group) => group.colour);
+
+  it("uses only the colours GROUP_COLOURS declares, so a new one cannot slip in unchecked", () => {
+    expect([...new Set(colours)].sort()).toEqual([...GROUP_COLOURS].sort());
+  });
+
+  it("gives no two groups on one board the same colour (rulebook §4 'One colour, one set', D2)", () => {
+    for (const board of [classicBoard(), chennaiBoard()]) {
+      const used = board.groups.map((group) => group.colour);
+      expect(new Set(used).size).toBe(used.length);
+    }
+  });
+
+  it("no longer carries the two the client could not render", () => {
+    expect(colours).not.toContain("sky");
+    expect(colours).not.toContain("amber");
   });
 });
 

@@ -18,11 +18,28 @@
 // **3. Classic's per-tile prices are not specified anywhere.** docs/08 gives its ruleset numbers and its
 // tile names; no document gives a cost for a single tile. The ladder below is derived from the ring
 // position so it is at least principled and reproducible, and it is flagged in OQ-46 item 2.
+//
+// **4. Two group colours were renamed so they render.** Classic shipped `sky` and `amber`, and the
+// Chennai board shipped `sky`. A group's colour is drawn as a fill on four screens (`1c` §3 #6 and #16,
+// `1j` §3 #4, `2b` §3 #15) and read as copy on two, and neither `sky` nor `amber` is a colour keyword
+// any renderer knows — so those groups drew no tile band, no list bar and no coloured set line at all,
+// and two of Classic's eight sets were visually identical, against D2's "the swatch is the identifier".
+// They are now `skyblue` and `orange`: the nearest keyword to each, distinct from every other group on
+// the same board. Found by E1's design check, 30 September 2026. **The palette the colour picker is
+// meant to offer is OQ-51**, and its answer replaces these two names along with the other six.
 
 import type { ColourGroup, FrozenBoard, FrozenDeck, FrozenTile, Ruleset } from "@royal-navy/game-engine";
 
 /** docs/08 §Seed 1. The password is the same for all three playable accounts. */
 export const SEED_PASSWORD = "royalnavy";
+
+/**
+ * Every colour the seeded boards give a group, in Classic's ring order with Chennai's `purple` last.
+ * This is not the design's palette — no document states one (**OQ-51**) — it is the list these two
+ * boards use, named here so `seed.test.ts` can check each one against the client's own colour parser.
+ * A ninth colour added to a seeded board belongs in this list too, or that test fails.
+ */
+export const GROUP_COLOURS = ["teal", "skyblue", "violet", "orange", "red", "gold", "green", "navy", "purple"] as const;
 
 export const SEED_USERS = [
   { handle: "royalnavy", displayName: "Royal Navy", email: "royalnavy@royalnavy.test", official: true },
@@ -120,11 +137,15 @@ export const SEED_DECKS: FrozenDeck[] = [
  * Luxury tax → Toll gate, Free park → Marina Park, Go to jail → Napier Bridge.
  */
 export function classicBoard(): FrozenBoard {
+  // A group's colour is drawn as a fill on four screens and read as copy on two (`1c` §3 #6 and #15,
+  // `1j` §3 #4, `2b` §3 #15), so every value here has to be one the client can actually render.
+  // `sky` and `amber` were not — neither is a CSS colour keyword, so two of these eight groups drew
+  // no tile band, no list bar and no set line at all. See GROUP_COLOURS below and OQ-51.
   const groups: ColourGroup[] = [
     { id: "g-teal", colour: "teal", tileIndexes: [1, 3], thresholdOverride: null },
-    { id: "g-sky", colour: "sky", tileIndexes: [6, 8, 9], thresholdOverride: null },
+    { id: "g-sky", colour: "skyblue", tileIndexes: [6, 8, 9], thresholdOverride: null },
     { id: "g-violet", colour: "violet", tileIndexes: [11, 13, 14], thresholdOverride: null },
-    { id: "g-amber", colour: "amber", tileIndexes: [16, 18, 19], thresholdOverride: null },
+    { id: "g-amber", colour: "orange", tileIndexes: [16, 18, 19], thresholdOverride: null },
     { id: "g-red", colour: "red", tileIndexes: [21, 23, 24], thresholdOverride: null },
     { id: "g-gold", colour: "gold", tileIndexes: [26, 27, 29], thresholdOverride: null },
     { id: "g-green", colour: "green", tileIndexes: [31, 32, 34], thresholdOverride: null },
@@ -216,7 +237,8 @@ export function classicRuleset(): Ruleset {
 export function chennaiBoard(): FrozenBoard {
   const groups: ColourGroup[] = [
     { id: "g-purple", colour: "purple", tileIndexes: [1, 2, 3, 13, 14], thresholdOverride: null },
-    { id: "g-sky", colour: "sky", tileIndexes: [5, 6, 9, 10, 11], thresholdOverride: null },
+    // `sky` → `skyblue` for the same reason as the Classic board's: it has to render (OQ-51).
+    { id: "g-sky", colour: "skyblue", tileIndexes: [5, 6, 9, 10, 11], thresholdOverride: null },
   ];
 
   const tiles: FrozenTile[] = [

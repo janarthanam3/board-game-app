@@ -927,6 +927,7 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/06-state-machines.md` (D4) | the turn deadline as part of turn state: it cannot live in `MatchState` without breaking the re-derived hash (see design-concerns) |
 | `docs/13-error-catalog.md` (D4) | `E_SPECTATE_REFUSED` is used by `1h` §5 with its own copy and is in no table here — it needs a status, a surface and a retry behaviour (OQ-43) |
 | `docs/07-api-contract.md` (D5) | §Socket.IO: `match:applied` as `{ seq, action, events, stateHash }` — the action is the field the client re-derives with (OQ-45), superseding the earlier `{ seq, events, stateHash }` note above |
+| `docs/02-design-tokens.md` (E1) | the colour-group palette `1x`'s picker offers — ten swatches, named and valued, since a group's colour is both a fill and a word (OQ-51); `docs/08` §Seed's colours follow from it |
 | `docs/screens/1c-play-hud.md` (E1) | §2's list-view sample prints `Park Place` and `Boardwalk` — Monopoly board names in a derived doc · §3 #11 `PlayerChip` against docs/03's own `PlayerChip` · §3 #4's 17 dp Menu icon, a size docs/03 does not list · §3 #13's 44 dp primary against `control.primaryButton`'s 50 · §10's 320 ms cash count against `motion.count`'s 600 · §3 #15's build line, which has no singular and no zero form · §5's ring on "your token" against AC5's "active token" · §5's loading state, which names no state for the cash row or the holdings header |
 | `docs/12-accessibility-and-responsive.md` (E1) | the per-screen note "`1c` … The player list is the scroll region", against `1c` §8 and AC8's holdings-only scroller · the tablet rule "no new layout, no two-column redesign", against `1c` §8's 60/40 split |
 | `docs/screens/3i-pause-sheet.md` (E1) | §3's sheet, row, toggle, caret and button values, none of which are the docs/03 components they are built from · §2's fixed row order, which leaves `1v` (Actions) and `3m` (How to play) unreachable although `1c` §4, `3m` §1 and docs/04 all route them through this sheet |
@@ -2124,7 +2125,16 @@ plain instead of invisible. It invents no palette, and the set line still names 
 
 **Recommendation:** (1). The design already shows ten distinct swatches in `1x` and caps groups at
 "≈ 10"; naming them in `docs/02` makes the board document portable, keeps `1c` §3 #15's copy honest,
-and puts the one mapping in the token file where every other colour lives. Whatever is chosen, the
-seed's `sky` and `amber` need to become valid on the same pass.
+and puts the one mapping in the token file where every other colour lives.
 
 Raised 30 September 2026 during E1's third design-check pass.
+
+**The seed is already fixed, so nothing ships unrenderable while this waits.** On 30 September 2026
+Classic's `sky` and `amber` became `skyblue` and `orange` and Chennai's `sky` became `skyblue` — the
+nearest keyword to each, distinct from every other group on the same board — and the eight are now
+declared as `GROUP_COLOURS` in `apps/server/src/db/seed-data.ts`. Two tests hold it: `seed.test.ts`
+asserts the seeded boards use only that list, with no two groups on one board sharing a colour, and
+`apps/mobile/src/ui/groupColour.test.ts` reads the same list and asserts React Native renders every
+entry. An answer here replaces all nine values; the guard stays either way. The engine's own test
+fixtures still carry `sky`, `rose` and `amber` on purpose — `groupColour.test.ts` uses them as its
+unrenderable cases.
