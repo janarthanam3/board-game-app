@@ -1,4 +1,7 @@
-// Test-only: the engine's committed match fixtures, for the HUD's tests.
+// The engine's committed match fixtures, for the HUD's tests and for `app/dev-hud.tsx`, the
+// dev-only preview of `1c` and `3i`. Nothing in the shipped app reads this module: the preview route
+// is gated on EXPO_PUBLIC_ENV, so a release build renders a redirect instead. The fixture JSON it
+// imports does still enter the bundle, which H3 should check when it measures the release APK.
 //
 // `packages/game-engine/SPEC.md` "Testing hooks" names these five states, `make-fixtures.ts` builds
 // them and `fixtures.test.ts` asserts the committed JSON still matches the engine's shape — so the

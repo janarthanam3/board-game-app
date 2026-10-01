@@ -45,10 +45,13 @@ describe("route table", () => {
     expect(missing).toEqual([]);
   });
 
-  it("does not add routes the map does not document, apart from the deep-link resolvers and the dev gallery", () => {
+  it("does not add routes the map does not document, apart from the deep-link resolvers and the dev-only screens", () => {
     const documented = new Set(documentedRoutes());
     const extras = [...implementedRoutes()].filter((route) => !documented.has(route));
 
-    expect(extras.sort()).toEqual(["/", "/board/[boardVersionId]", "/gallery", "/join/[code]"]);
+    // `/` is the cold-start redirect; `/board/[boardVersionId]` and `/join/[code]` are the two
+    // deep-link resolvers; `/gallery` is B3's component gallery and `/dev-hud` previews `1c` and
+    // `3i`, both gated on EXPO_PUBLIC_ENV=development and both unreachable in a release build.
+    expect(extras.sort()).toEqual(["/", "/board/[boardVersionId]", "/dev-hud", "/gallery", "/join/[code]"]);
   });
 });
