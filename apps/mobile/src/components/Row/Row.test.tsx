@@ -17,6 +17,42 @@ describe("Row", () => {
     expect(screen.getByText("30 s")).toHaveStyle({ fontSize: type.bodySm.size, color: text.muted });
   });
 
+  it("takes the height, radius, label and caret a screen states for one instance (3i §3 #5–#6)", () => {
+    render(
+      <Row
+        title="Rules"
+        meta="Chennai Edition · read-only"
+        accessory={{ kind: "caret" }}
+        onPress={jest.fn()}
+        appearance={{
+          minHeight: 48,
+          radius: 16,
+          titleStyle: { weight: 600, size: 14 },
+          titleColour: text.secondary,
+          caretSize: 16,
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("row")).toHaveStyle({ minHeight: 48, borderRadius: 16 });
+    expect(screen.getByText("Rules")).toHaveStyle({ fontSize: 14, color: text.secondary });
+    const caret = screen.getByTestId("icon-caret-right");
+    expect([caret.props.width, caret.props.height]).toEqual([16, 16]);
+  });
+
+  it("passes a stated switch through to a toggle accessory (3i §3 #5)", () => {
+    render(
+      <Row
+        title="Sound"
+        accessory={{ kind: "toggle", value: true, onValueChange: jest.fn() }}
+        appearance={{ toggleAppearance: { trackWidth: 44, trackHeight: 26, knobColour: "navy" } }}
+      />,
+    );
+
+    expect(screen.getByRole("switch")).toHaveStyle({ width: 44, height: 26 });
+    expect(screen.getByTestId("toggle-knob")).toHaveStyle({ backgroundColor: "navy" });
+  });
+
   it("renders a leading slot", () => {
     render(<Row title="Classic" leading={<View testID="art" />} />);
 

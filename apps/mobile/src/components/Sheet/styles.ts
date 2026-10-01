@@ -15,6 +15,11 @@ export const styles = StyleSheet.create({
     // The grabber sits inside the padding; content follows with the same inner gap as a card.
     gap: 8,
   },
+  // §8's tablet case: the sheet becomes a centred dialog rather than a bottom sheet.
+  rootCentred: { justifyContent: "center", alignItems: "center" },
+  dialogCorners: { borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet },
+  // A capped panel must be able to shrink below its content, or its cap cannot bite.
+  capped: { flexShrink: 1, minHeight: 0 },
   grabber: {
     alignSelf: "center",
     width: control.sheetGrabber.width,

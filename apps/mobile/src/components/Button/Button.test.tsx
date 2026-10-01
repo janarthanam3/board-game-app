@@ -143,6 +143,26 @@ describe("Button", () => {
     );
   });
 
+  it("takes the radius, fill, border and label a screen states for one instance (3i §3 #9)", () => {
+    render(
+      <Button
+        variant="destructive"
+        label="Leave match"
+        onPress={jest.fn()}
+        radius={16}
+        minHeight={44}
+        labelStyle={{ weight: 700, size: 15 }}
+        labelColour={danger.text}
+        fill="teal"
+        borderColour="navy"
+      />,
+    );
+
+    expect(screen.getByRole("button")).toHaveStyle({ borderRadius: 16, minHeight: 44, borderColor: "navy" });
+    expect(screen.getByTestId("button-fill")).toHaveStyle({ backgroundColor: "teal" });
+    expect(screen.getByText("Leave match")).toHaveStyle({ fontSize: 15, color: danger.text });
+  });
+
   it("announces a reason when one is given", () => {
     render(<Button variant="primary" label="OK" onPress={jest.fn()} disabled accessibilityHint="Waiting for Priya." />);
 

@@ -17,6 +17,29 @@ describe("Toggle", () => {
     expect(screen.queryByTestId("toggle-on-fill")).toBeNull();
   });
 
+  it("takes a track, knob and on-tint a screen states for one instance (3i §3 #5)", () => {
+    render(
+      <Toggle
+        value
+        onValueChange={jest.fn()}
+        label="Sound"
+        appearance={{ trackWidth: 44, trackHeight: 26, onTrack: "teal", knobColour: "navy" }}
+      />,
+    );
+
+    expect(screen.getByRole("switch")).toHaveStyle({ width: 44, height: 26 });
+    // A stated tint replaces the gradient rather than covering it.
+    expect(screen.getByTestId("toggle-on-fill")).toHaveStyle({ backgroundColor: "teal" });
+    expect(screen.getByTestId("toggle-knob")).toHaveStyle({ backgroundColor: "navy" });
+  });
+
+  it("keeps the knob inside a stated track, so its travel is derived and not fixed", () => {
+    render(<Toggle value onValueChange={jest.fn()} label="Sound" appearance={{ trackWidth: 44, trackHeight: 26 }} />);
+
+    // Knob 20 in a 26-tall track insets by 3, so it travels 44 − 20 − 6 = 18.
+    expect(screen.getByTestId("toggle-knob")).toHaveStyle({ marginLeft: 3 });
+  });
+
   it("shows the green gradient when on", () => {
     render(<Toggle value onValueChange={jest.fn()} label="Event cards" />);
 

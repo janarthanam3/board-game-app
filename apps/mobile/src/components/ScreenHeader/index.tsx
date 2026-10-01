@@ -1,4 +1,5 @@
 import { text } from "@royal-navy/shared";
+import type { Ref } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { Icon } from "../Icon";
@@ -10,6 +11,11 @@ export interface IconAction {
   icon: string;
   label: string;
   onPress: () => void;
+  /**
+   * The button itself, for a screen that has to move reader focus back to it — `3i` §9 returns focus
+   * to the HUD's Menu button when the pause sheet dismisses.
+   */
+  buttonRef?: Ref<View>;
 }
 
 export interface ScreenHeaderProps {
@@ -66,6 +72,7 @@ export function ScreenHeader({
           icon={action.icon}
           label={action.label}
           onPress={action.onPress}
+          {...(action.buttonRef === undefined ? {} : { ref: action.buttonRef })}
         />
       ))}
     </View>

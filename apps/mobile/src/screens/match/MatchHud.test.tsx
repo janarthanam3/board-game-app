@@ -8,6 +8,7 @@ import { renderRouter, screen as routerScreen, waitFor } from "expo-router/testi
 import { BackHandler, Dimensions } from "react-native";
 
 import { useMatchStore } from "../../stores/match";
+import { focusOn } from "../../ui/accessibilityFocus";
 import { useSessionStore } from "../../stores/session";
 import { useSettingsStore } from "../../stores/settings";
 
@@ -98,6 +99,10 @@ function textsUnder(node: RenderedNode | string): string[] {
   }
   return (node.children ?? []).flatMap(textsUnder);
 }
+
+jest.mock("../../ui/accessibilityFocus", () => ({ focusOn: jest.fn() }));
+
+const focusOnMock = focusOn as jest.MockedFunction<typeof focusOn>;
 
 /** A rendered element's style, flattened — RN allows an array of styles on any node. */
 function flattenStyle(element: { props: { style?: unknown } }): Record<string, unknown> {
@@ -371,13 +376,20 @@ describe("1c interactions (§6)", () => {
     state.rules.rounds.turnTimerSeconds = null;
     renderHud({ state });
     fireEvent.press(screen.getByLabelText("Menu"));
-    expect(screen.getByTestId("pause-no-timer")).toHaveTextContent("No turn timer on this board.");
+    expect(screen.getByTestId("pause-status")).toHaveTextContent("No turn timer on this board.");
   });
 
-  it("a board that sets a timer leaves the status line to E6, not to a wrong claim", () => {
-    renderHud();
+  it("names the actor in the sheet's status line when it is not your turn (3i §5)", () => {
+    // The fixture's turn is Arun's and the viewer is Naveen; E6 supplies the seconds.
+    renderHud({ secondsLeft: 21 });
     fireEvent.press(screen.getByLabelText("Menu"));
-    expect(screen.queryByTestId("pause-no-timer")).toBeNull();
+    expect(screen.getByTestId("pause-status")).toHaveTextContent("Arun's turn · 21s left");
+  });
+
+  it("claims nothing about the board's timer before the first snapshot", () => {
+    renderHud({ state: null });
+    fireEvent.press(screen.getByLabelText("Menu"));
+    expect(screen.queryByTestId("pause-status")).toBeNull();
   });
 
   it("a local match is told the match is saved, not that it goes bankrupt", () => {
@@ -420,6 +432,32 @@ describe("1c accessibility (§9)", () => {
   it("money in the cash row is announced in words, not as ₹", () => {
     renderHud();
     expect(screen.getByTestId("cash-value").props.accessibilityLabel).toBe("six thousand two hundred rupees");
+  });
+});
+
+describe("3i §9: focus returns to the Menu button", () => {
+  it("hands focus back to the control that opened the sheet, once it has animated away", () => {
+    renderHud();
+    fireEvent.press(screen.getByLabelText("Menu"));
+    focusOnMock.mockClear();
+
+    fireEvent.press(screen.getByTestId("pause-resume"));
+    // §10 dismisses over 200 ms; focus moves after that, not under a sheet still on screen.
+    expect(focusOnMock).not.toHaveBeenCalled();
+    settle();
+    expect(focusOnMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does the same when Android back closes the sheet", () => {
+    renderHud();
+    fireEvent.press(screen.getByLabelText("Menu"));
+    focusOnMock.mockClear();
+
+    act(() => {
+      BackHandler.mockPressBack();
+    });
+    settle();
+    expect(focusOnMock).toHaveBeenCalledTimes(1);
   });
 });
 

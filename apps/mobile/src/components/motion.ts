@@ -11,6 +11,9 @@ export function easingFor(cssEasing: string): EasingFunction {
       return Easing.linear;
     case "ease-out":
       return Easing.out(Easing.ease);
+    // 3i §10 dismisses the pause sheet on this curve; no docs/02 token uses it.
+    case "ease-in":
+      return Easing.in(Easing.ease);
     case "ease-in-out":
       return Easing.inOut(Easing.ease);
     case "cubic-bezier(.2,.8,.2,1)":

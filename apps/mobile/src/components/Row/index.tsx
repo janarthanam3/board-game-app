@@ -1,11 +1,12 @@
-import { green, surface, text } from "@royal-navy/shared";
+import { green, surface, text, type TypeStyle } from "@royal-navy/shared";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { GradientView } from "../GradientView";
-import { Icon } from "../Icon";
+import { Icon, type IconSize } from "../Icon";
 import { IconButton } from "../IconButton";
-import { Toggle } from "../Toggle";
+import { Toggle, type ToggleAppearance } from "../Toggle";
+import { textStyle } from "../typography";
 import { styles } from "./styles";
 
 export type RowAccessory =
@@ -16,6 +17,26 @@ export type RowAccessory =
   | { kind: "check" }
   | { kind: "menu"; onPress: () => void }
   | { kind: "none" };
+
+/**
+ * Values a screen spec states for its own rows, where they differ from `docs/03`'s component — `3i`
+ * §3 #5–#6 gives a shorter row, a smaller radius and a lighter label than `control.listRow` and
+ * `type.title`. Recorded in `docs/design-concerns.md`; the component's defaults are unchanged.
+ */
+export interface RowAppearance {
+  /** `3i`: 48, where `control.listRow.minHeight` is 56. */
+  minHeight?: number;
+  /** `3i`: 16, where `control.listRow.radius` is 17. */
+  radius?: number;
+  /** `3i`: `600 14px`, where `type.title` is `700 15px`. */
+  titleStyle?: TypeStyle;
+  /** `3i`: `text.secondary`, where the component uses `text.primary`. */
+  titleColour?: string;
+  /** `3i` §3 #6: `ph-caret-right` at 16 dp, where the component draws 19. */
+  caretSize?: IconSize;
+  /** Passed through to a `toggle` accessory — `3i` §3 #5's switch is not the token switch. */
+  toggleAppearance?: ToggleAppearance;
+}
 
 export interface RowProps {
   title: string;
@@ -33,6 +54,8 @@ export interface RowProps {
   locked?: boolean;
   /** 1 dp `danger.border`; meta in `danger`. */
   error?: boolean;
+  /** Per-instance overrides for a screen whose spec states its own values. */
+  appearance?: RowAppearance;
   testID?: string;
 }
 
@@ -47,9 +70,18 @@ export function Row({
   disabled = false,
   locked = false,
   error = false,
+  appearance,
   testID,
 }: RowProps) {
   const interactive = onPress !== undefined && !disabled;
+  // A screen-stated size applies to the frame and to the content, which carries the same minimum.
+  const sizing =
+    appearance?.minHeight === undefined && appearance?.radius === undefined
+      ? null
+      : {
+          ...(appearance.minHeight === undefined ? {} : { minHeight: appearance.minHeight }),
+          ...(appearance.radius === undefined ? {} : { borderRadius: appearance.radius }),
+        };
 
   return (
     <Pressable
@@ -64,16 +96,29 @@ export function Row({
         error && styles.error,
         disabled && styles.disabled,
         pressed && interactive && styles.pressedFrame,
+        sizing,
       ]}
     >
       {({ pressed }) => (
         <>
           <GradientView gradient={surface.card} style={StyleSheet.absoluteFill} />
           {pressed && interactive ? <View style={styles.pressOverlay} pointerEvents="none" testID="row-press-overlay" /> : null}
-          <View style={styles.content}>
+          <View
+            style={[
+              styles.content,
+              appearance?.minHeight === undefined ? null : { minHeight: appearance.minHeight },
+            ]}
+          >
             {leading ? <View style={styles.leading}>{leading}</View> : null}
             <View style={styles.middle}>
-              <Text style={styles.title} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.title,
+                  appearance?.titleStyle === undefined ? null : textStyle(appearance.titleStyle),
+                  appearance?.titleColour === undefined ? null : { color: appearance.titleColour },
+                ]}
+                numberOfLines={1}
+              >
                 {title}
               </Text>
               {meta ? (
@@ -83,7 +128,14 @@ export function Row({
               ) : null}
             </View>
             {locked ? <Icon name="ph-lock" size={15} color={text.muted} testID="row-lock" /> : null}
-            <Accessory accessory={accessory} locked={locked} disabled={disabled} title={title} />
+            <Accessory
+              accessory={accessory}
+              locked={locked}
+              disabled={disabled}
+              title={title}
+              {...(meta === undefined ? {} : { meta })}
+              {...(appearance === undefined ? {} : { appearance })}
+            />
           </View>
         </>
       )}
@@ -96,12 +148,14 @@ interface AccessoryProps {
   locked: boolean;
   disabled: boolean;
   title: string;
+  meta?: string;
+  appearance?: RowAppearance;
 }
 
-function Accessory({ accessory, locked, disabled, title }: AccessoryProps) {
+function Accessory({ accessory, locked, disabled, title, meta, appearance }: AccessoryProps) {
   switch (accessory.kind) {
     case "caret":
-      return <Icon name="ph-caret-right" size={19} color={text.muted} />;
+      return <Icon name="ph-caret-right" size={appearance?.caretSize ?? 19} color={text.muted} />;
     case "value":
       return <Text style={styles.value}>{accessory.value}</Text>;
     case "toggle":
@@ -110,7 +164,10 @@ function Accessory({ accessory, locked, disabled, title }: AccessoryProps) {
           value={accessory.value}
           onValueChange={accessory.onValueChange}
           label={title}
+          // The row's hint belongs to the switch, not only to the text beside it (3i §9).
+          {...(meta === undefined ? {} : { accessibilityHint: meta })}
           disabled={disabled || locked}
+          {...(appearance?.toggleAppearance === undefined ? {} : { appearance: appearance.toggleAppearance })}
         />
       );
     case "radio":

@@ -10,13 +10,14 @@
 import type { MatchState, PlayerId } from "@royal-navy/game-engine";
 import { netWorth } from "@royal-navy/game-engine";
 import { formatRupees, radius, responsive } from "@royal-navy/shared";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 
 import { Screen } from "../../components/Screen";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { Skeleton } from "../../components/Skeleton";
 import { useDocumentedBack } from "../../navigation/backBehaviour";
+import { focusOn } from "../../ui/accessibilityFocus";
 import { BoardMap, FIT_ZOOM } from "../../ui/board";
 import { boardShape, boardViewport, playerTokens } from "./boardShape";
 import { CashRow } from "./CashRow";
@@ -31,7 +32,7 @@ import {
   type PrimaryActionModel,
   turnLine,
 } from "./hudModel";
-import { PauseSheet } from "./PauseSheet";
+import { PAUSE_MOTION, PauseSheet } from "./PauseSheet";
 import { CHIP_MIN_HEIGHT, CHIP_MIN_HEIGHT_LARGE_TEXT, LARGE_TEXT_SCALE, PlayerStrip } from "./PlayerStrip";
 
 /** §2: "Frame 360 × 780, padding 17, flex-column, gap 13." Screen supplies the padding. */
@@ -55,6 +56,13 @@ export interface MatchHudProps {
   sort: HoldingsSort;
   /** True while a token animation runs: the board locks and the action goes to `OK` (§5). */
   moving?: boolean;
+  /**
+   * Seconds left on the turn clock, for the pause sheet's status line (`3i` §4–§5). E6 owns the
+   * countdown, so the number arrives from above. Whether the clock is *held* is not a clock value:
+   * `3i` §4 derives it from the mode — pass-and-play and solo hold it, online never does — so this
+   * screen reads it off `local` and does not take it as a prop.
+   */
+  secondsLeft?: number | null;
   onViewChange: (view: HoldingsView) => void;
   onSortChange: (sort: HoldingsSort) => void;
   onPrimaryAction: (action: PrimaryActionModel) => void;
@@ -78,6 +86,8 @@ export function MatchHud({
   view,
   sort,
   moving = false,
+  secondsLeft = null,
+
   onViewChange,
   onSortChange,
   onPrimaryAction,
@@ -93,6 +103,8 @@ export function MatchHud({
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [expandedTileIndex, setExpandedTileIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(FIT_ZOOM);
+  // 3i §9: focus returns to the Menu button when the sheet dismisses, so the HUD holds its node.
+  const menuRef = useRef<View>(null);
 
   // §8: tablet and landscape both split board left / strip and holdings right — but only landscape
   // turns the strip itself into a vertical column. A portrait tablet keeps §2's horizontal strip.
@@ -102,18 +114,25 @@ export function MatchHud({
 
   // §6 and AC9: Android back opens the pause sheet and never leaves the match. With an overlay up it
   // dismisses the topmost one instead (docs/04 "Overlays": "Android back dismisses the topmost").
+  // 3i §9: dismissing the sheet hands reader focus back to the control that opened it, once the
+  // sheet has animated away (§10's 200 ms) — moving it sooner lands focus under a view still on screen.
+  const closePauseSheet = useCallback(() => {
+    setPauseOpen(false);
+    setTimeout(() => focusOn(menuRef), PAUSE_MOTION.dismiss.durationMs);
+  }, []);
+
   const handleBack = useCallback(() => {
     if (leaveOpen) {
       setLeaveOpen(false);
       return true;
     }
     if (pauseOpen) {
-      setPauseOpen(false);
+      closePauseSheet();
       return true;
     }
     setPauseOpen(true);
     return true;
-  }, [leaveOpen, pauseOpen]);
+  }, [leaveOpen, pauseOpen, closePauseSheet]);
   useDocumentedBack({ kind: "custom", handle: handleBack });
 
   const header = state ? hudHeader(state, matchName) : { title: matchName, meta: "" };
@@ -127,7 +146,7 @@ export function MatchHud({
           title={header.title}
           subtitle={header.meta}
           titleSize={19}
-          actions={[{ icon: MENU_ICON, label: MENU_LABEL, onPress: () => setPauseOpen(true) }]}
+          actions={[{ icon: MENU_ICON, label: MENU_LABEL, onPress: () => setPauseOpen(true), buttonRef: menuRef }]}
         />
 
         <View style={split ? styles.split : styles.stack}>
@@ -190,7 +209,12 @@ export function MatchHud({
         boardName={boardName}
         local={local}
         turnTimerSeconds={state === null ? undefined : state.rules.rounds.turnTimerSeconds}
-        onDismiss={() => setPauseOpen(false)}
+        secondsLeft={secondsLeft}
+        // §4: the local modes are the ones that genuinely hold the clock.
+        held={local}
+        // §5's "not your turn" line names the actor; on your own turn there is nobody to name.
+        actorName={state === null || viewerId === state.turn.playerId ? null : (state.players[state.turn.playerId]?.name ?? null)}
+        onDismiss={closePauseSheet}
         onOpenRules={onOpenRules}
         onOpenSettings={onOpenSettings}
         onLeaveMatch={onLeaveMatch}

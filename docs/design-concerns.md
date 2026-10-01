@@ -1253,3 +1253,86 @@ the second.
 **If OQ-51 is answered:** `docs/02-design-tokens.md` gains the group palette, `docs/08`'s seed section
 states the colours with it, and `GROUP_COLOURS` collapses into the token file. Added to the regeneration
 table.
+
+## E1a: `3i` tells an online player the timer is held, and §4 says it is not
+
+**Found:** 1 October 2026, implementing the pause sheet. Recorded, with the reading the code took.
+
+`3i` §3 #4 gives the status line one copy — `Turn timer held · <n>s left` in `#FFC84A` — and §4 then
+says the opposite for online play: "The **match does not pause**… the status line counts the real
+remaining turn time so the player knows what they are spending", ending "This distinction must be
+implemented exactly: an online player cannot buy time by opening the menu." §5 adds a second copy,
+`Turn timer running · <n>s left` in `#FF9A93`, but only for "timer under 10s (online)".
+
+So for an online turn with more than ten seconds left, §3 says "held" and §4 says nothing is held, and
+there is no third sentence. Rendering §3's line there would tell the player the clock has stopped
+while it runs down — the exact misunderstanding §4 exists to prevent.
+
+**The code uses §5's `running` copy for the whole of an online turn** and changes only its colour at
+ten seconds (`gold.flat` → `danger`), keeping §3's `held` copy for pass-and-play and solo, where §4
+says the engine really is held. Both sentences are the design's own; what the implementation picked is
+which of the two covers the gap, and it picked the one that is true.
+
+`statusLine()` in `apps/mobile/src/screens/match/PauseSheet.tsx` is the whole decision, and
+`PauseSheet.test.tsx` pins all four lines.
+
+**If regenerated:** §3 #4 should carry the copy for a running clock as its default and name `held` as
+the local-mode variant, or §5 should extend its running row to every remaining time rather than the
+last ten seconds. Added to the regeneration table.
+
+## E1a: four more from the pause sheet's design check
+
+Raised 1 October 2026 by `design-guardian` over the E1a diff. Recorded verbatim where they are its
+words; none is resolved in code.
+
+CONCERN: `docs/03-design-system.md` §`Sheet` says "Backdrop `scrim` fades in 140 ms" while `3i` §10
+bundles the scrim fade into the 240 ms present. Two derived docs give the same animation two
+durations; I judged against §10 for this screen, but the pair belongs in the regeneration table next
+to the other `3i`-vs-`docs/03` divergences already listed there.
+
+CONCERN: `3i` §8 caps the tablet sheet at 420dp, `docs/02` `responsive.tabletContentMaxWidth` is 480,
+and `docs/12`'s tablet rule reads "no new layout, no two-column redesign". Three documents, three
+answers for one breakpoint — and `docs/12` does not mention sheets anywhere, so nothing adjudicates.
+
+CONCERN: `3i` §9 asks the timer line to announce "at 30s, 10s and 5s" while §10 row 4 makes the digit
+change "instant, once per second". A `polite` live region on a once-per-second string announces every
+second by construction; hitting three announcements needs a gate the spec never describes, and the
+screen cannot build one while E6 owns the count. §9 should either state the gate or drop to announcing
+on the colour change.
+
+**Implemented as the gate** (the alternative was announcing sixty times a turn): the live region is
+`polite` only at 30, 10 and 5 seconds, and for the no-timer line, which changes rarely. The constant
+is `ANNOUNCE_AT_SECONDS` in `PauseSheet.tsx` and each boundary is tested. If the design means
+something else, that is the one line to change.
+
+CONCERN: `3i` §8 says rows "grow to 60dp" at 130% font scale, `docs/02`'s
+`responsive.fontScale130.rowMinHeight` says 56, and `3i` §3 #5 sets their resting height to 48. Three
+numbers for one row. The rows carry the resting 48 and grow by React Native's own text scaling, so
+whether they reach 60 is not something the code states either way.
+
+### Two branches that are implemented and unreachable
+
+`3i` §5's `spectating` branch and the HUD's `bankrupt` case are both built and correct, and neither can
+be reached today: `1c` §5 sends a spectator to `1h` and a bankrupt player to `1g`, and the route
+already redirects the second. They wait on `1h`. Noted so nobody reads either branch as wired.
+
+## E1a: in a local match, §5's actor line hides the held line §4 insists on
+
+**Found:** 1 October 2026, by `design-guardian` on the second E1a pass. Recorded verbatim; not resolved
+in code.
+
+CONCERN: `3i` §5's "not your turn" row is unscoped, so it outranks §4's held line in every local match
+where the viewer is not the active seat — in pass-and-play that is five seats out of six, and in solo
+it is every AI turn. §3 #4's `Turn timer held` is therefore visible only on your own turn, and AC5's
+"genuinely held" is true of the clock but invisible in the copy. §5 should either scope the actor row
+to online or say which line wins in a local match.
+
+The code follows §5 as written: the actor line wins wherever there is an actor to name, because §5
+states it without a mode condition and §4 states its line without a turn condition. `statusLine()`
+resolves the states in that order and `PauseSheet.test.tsx` pins it, so an answer is a one-line change.
+
+**Also carried from that pass:** `3i` §8's "Tablet: centred dialog capped at 420dp" against `docs/12`'s
+"Content column capped at 480 dp and centred; no new layout" and `3i` §2's own "sheet · bottom" — three
+documents, three shapes for one breakpoint, with the word "dialog" the only hint that the sheet changes
+shape at all. Implemented at §8's face value: from `responsive.tabletMinWidth` a width-capped sheet
+centres vertically and rounds all four corners.

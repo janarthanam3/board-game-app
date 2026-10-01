@@ -1,5 +1,6 @@
 import { accent, danger, text } from "@royal-navy/shared";
-import { Pressable } from "react-native";
+import { forwardRef } from "react";
+import { Pressable, type View } from "react-native";
 
 import { Icon } from "../Icon";
 import { styles } from "./styles";
@@ -22,17 +23,19 @@ const iconColour: Record<IconButtonTone, string> = {
   danger: danger.text,
 };
 
-/** 39×39 dp, radius 14, `surface.inset` with a `divider` border; hit area padded to 44 dp. */
-export function IconButton({
-  icon,
-  label,
-  onPress,
-  tone = "default",
-  disabled = false,
-  testID,
-}: IconButtonProps) {
+/**
+ * 39×39 dp, radius 14, `surface.inset` with a `divider` border; hit area padded to 44 dp.
+ *
+ * Takes a ref so a screen can move reader focus back to it — `3i` §9 returns focus to the HUD's Menu
+ * button when the pause sheet dismisses.
+ */
+export const IconButton = forwardRef<View, IconButtonProps>(function IconButton(
+  { icon, label, onPress, tone = "default", disabled = false, testID },
+  ref,
+) {
   return (
     <Pressable
+      ref={ref}
       testID={testID ?? `icon-button-${icon}`}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -45,4 +48,4 @@ export function IconButton({
       <Icon name={icon} size={19} color={iconColour[tone]} />
     </Pressable>
   );
-}
+});

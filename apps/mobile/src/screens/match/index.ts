@@ -9,8 +9,14 @@ export {
   LEAVE_DIALOG_ONLINE,
   LEAVE_DIALOG_TITLE,
   NO_TURN_TIMER,
+  PAUSE_MOTION,
   PauseSheet,
   PAUSE_TITLE,
+  ROW_APPEARANCE,
+  RUNNING_OUT_SECONDS,
+  SHEET_APPEARANCE,
+  statusLine,
+  TOGGLE_APPEARANCE,
   type PauseSheetProps,
 } from "./PauseSheet";
 export {

@@ -1,10 +1,11 @@
-import { accent, control, danger, gold, green, motion, surface, text } from "@royal-navy/shared";
+import { accent, control, danger, gold, green, motion, surface, text, type TypeStyle } from "@royal-navy/shared";
 import { useRef, useState } from "react";
 import { ActivityIndicator, Animated, Pressable, Text, View } from "react-native";
 
 import { GradientView } from "../GradientView";
 import { Icon } from "../Icon";
 import { easingFor, effectiveDuration, useReducedMotion } from "../motion";
+import { textStyle } from "../typography";
 import { styles, variantStyles } from "./styles";
 
 export type ButtonVariant = "primary" | "secondary" | "confirm" | "ghost" | "destructive" | "text";
@@ -33,6 +34,18 @@ export interface ButtonProps {
    */
   minHeight?: number;
   minWidth?: number;
+  /**
+   * The rest of what a screen spec can state for one instance. `3i` §3 #8–#9 gives its two buttons
+   * radius 16 and a `700 15px` label where the `ghost` and `destructive` variants are radius 15 and
+   * `800 14px`, and its danger fill and border come off `danger.strong` rather than `danger.fillSoft`
+   * and `danger.border`. Recorded in `docs/design-concerns.md`; the variants are unchanged.
+   */
+  radius?: number;
+  labelStyle?: TypeStyle;
+  labelColour?: string;
+  /** Replaces the variant's fill. */
+  fill?: string;
+  borderColour?: string;
   /** Spoken after the label — §9 of several screens: "when disabled, its reason". */
   accessibilityHint?: string;
   testID?: string;
@@ -66,6 +79,11 @@ export function Button({
   size = "default",
   minHeight,
   minWidth,
+  radius: statedRadius,
+  labelStyle,
+  labelColour,
+  fill,
+  borderColour,
   accessibilityHint,
   testID,
 }: ButtonProps) {
@@ -110,18 +128,34 @@ export function Button({
           !block && styles.inlinePadding,
           size === "small" && styles.smallSize,
           disabled && styles.disabled,
-          // A screen-stated size wins over the variant's, which is why it comes last.
+          // A screen-stated value wins over the variant's, which is why these come last.
           minHeight === undefined ? null : { minHeight },
           minWidth === undefined ? null : { minWidth },
+          statedRadius === undefined ? null : { borderRadius: statedRadius },
+          borderColour === undefined ? null : { borderColor: borderColour },
         ]}
       >
-        {/* Button.small paints its own blue chip fill, so the variant's fill is suppressed. */}
-        {size === "small" ? null : fillFor(variant, pressed && !inert)}
+        {/* Button.small paints its own blue chip fill, so the variant's fill is suppressed; a
+            screen-stated fill replaces the variant's. */}
+        {size === "small" ? null : fill === undefined ? (
+          fillFor(variant, pressed && !inert)
+        ) : (
+          <View style={[styles.fill, { backgroundColor: fill }]} testID="button-fill" />
+        )}
         {/* The label stays in the tree while loading (invisible) so the button keeps its width. */}
         <View testID="button-content" style={[styles.content, loading && styles.contentHidden]}>
           {icon ? <Icon name={icon} size={19} color={size === "small" ? accent.blue : v.labelColor} /> : null}
           <Text
-            style={size === "small" ? [styles.smallLabel, { color: accent.blue }] : [v.label, { color: v.labelColor }]}
+            style={
+              size === "small"
+                ? [styles.smallLabel, { color: accent.blue }]
+                : [
+                    v.label,
+                    { color: v.labelColor },
+                    labelStyle === undefined ? null : textStyle(labelStyle),
+                    labelColour === undefined ? null : { color: labelColour },
+                  ]
+            }
             numberOfLines={1}
           >
             {label}
