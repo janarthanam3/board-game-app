@@ -1389,3 +1389,47 @@ implementation's reasoning is sound on its own terms, and the copy is already sh
 
 `1g`'s other four events (`match:spectate`, `match:unspectate`, `match:rematchIntent`,
 `match:rematchOpened`) are **OQ-56**.
+
+## `3o`'s deletion copy, settled: what the owner replaced, and the two lines still to check
+
+**OQ-7 answered 2 October 2026 (option 1)**, and the copy change it needs was approved the same day.
+`3o-account.md` is a derived doc, so nothing here patches it — this is what its regeneration must carry,
+and the regeneration table in `docs/OPEN-QUESTIONS.md` lists it.
+
+### The promise that was wrong
+
+`3o` §3 #8, the danger explainer, reads today:
+
+> Deleting your account removes your match history, custom boards **and any board you have published**.
+> Players in your live matches keep playing to the end.
+
+Under option 1 a published board is **not** removed: it is unpublished, and its frozen version survives
+so match history, leaderboards and `2b` still resolve, with the author shown as "Deleted player". The
+clause promised a deletion that does not happen.
+
+**The owner's replacement, approved verbatim:**
+
+> Your boards are removed from the catalogue. Copies already in play keep working, credited to
+> "Deleted player".
+
+**The composed explainer**, which is what the regeneration should carry. The first and last sentences are
+the original's own words, kept; the middle two are the owner's:
+
+> Deleting your account removes your match history and your custom boards. Your boards are removed from
+> the catalogue. Copies already in play keep working, credited to "Deleted player". Players in your live
+> matches keep playing to the end.
+
+### What else on `3o` says something about removal
+
+Checked every line of the spec that mentions removing, deleting, erasing or permanence. One of the four
+consequence lines in the confirm dialog is **already correct**, and two are worth a second look:
+
+| `3o` line | Verdict |
+| --- | --- |
+| `<n> published boards are taken offline.` | **Already right.** "Taken offline" is exactly what option 1 does, and it is more accurate than the explainer it sat beside. No change |
+| `This cannot be undone.` | Right. The account and its personal data do not come back |
+| `Match history and stats are erased.` | **True only from the deleter's side.** D5 keeps the rows so that other players' history and the leaderboard still resolve — "users see it as deleted; the data survives". The line is defensible as what *the player* experiences, but the owner may want it to say so |
+| `<n> custom boards are deleted.` | **Needs a look, for a different reason.** A board authored on the device and never published never leaves it (D5; offline-local-mode rule 3), so deleting a *server* account cannot remove it. Either the line means the server's copies only, or local boards have to be deleted by the client at the same moment — and `GET /me/deletion-preview`'s `customBoards` count can only know about the server's |
+
+Neither is the promise the owner replaced, so neither is changed here. Both are recorded so the
+regeneration pass can settle them rather than rediscover them.

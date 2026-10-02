@@ -950,7 +950,7 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/07-api-contract.md` (D5) | §Socket.IO: `match:applied` as `{ seq, action, events, stateHash }` — the action is the field the client re-derives with (OQ-45), superseding the earlier `{ seq, events, stateHash }` note above |
 | `docs/05-game-rules.md` (E4b, OQ-57) | a **"Leaving a match"** section, which `3i` §7 already cites and which has never existed: leaving a running match resolves the player as bankrupt and returns their properties to the bank |
 | `docs/05-game-rules.md` (F5, OQ-8) | §AI drops the word **proposed** from its difficulty table — the values are confirmed as the contract to implement against, to be tuned by play-testing |
-| `docs/screens/3o-account.md` (G1, OQ-7) | the delete-account copy, which promises published boards are "permanently removed" where option 1 unpublishes them and keeps the frozen versions as "Deleted player". **One clause, awaiting the owner's approval** |
+| `docs/screens/3o-account.md` (G1, OQ-7) | §3 #8's danger explainer. **Approved 2 October 2026**, replacing the promise that a published board is removed: "Your boards are removed from the catalogue. Copies already in play keep working, credited to 'Deleted player'." The composed explainer, and the two consequence lines that still want a look (`Match history and stats are erased.` and `<n> custom boards are deleted.`), are in design-concerns.md. The dialog's `<n> published boards are taken offline.` is already correct and does not change |
 | `docs/screens/1n-notification-cards.md` (E4, OQ-1) | two more cards, taking it from seventeen to nineteen: `Turn skipped — out of time` and its auto-action variant naming the expiry default the server applied |
 | `docs/screens/1c-play-hud.md` (E6, OQ-1) | the countdown ring around the active token in §3 and §10 — amber at 10 s, red at 5 |
 | `docs/12-accessibility-and-responsive.md` (H2, OQ-4) | the 130% HUD reference frame, and a statement that no `maxFontSizeMultiplier` is set (option 2's cap was rejected) |
@@ -2461,9 +2461,13 @@ published, and keeps the frozen board versions so match history, leaderboards an
 The author is shown as **"Deleted player"** wherever a name would have appeared. Matches already running
 on one of those versions finish normally.
 
-`3o`'s delete-account copy currently promises that published boards are "permanently removed", which
-option 1 makes untrue. **One clause is being added to that copy; it is drafted and awaiting the owner's
-approval before it is written anywhere**, since screen copy is the design's.
+`3o`'s delete-account copy promised that published boards are "permanently removed", which option 1
+makes untrue. **The owner approved the replacement on 2 October 2026**: "Your boards are removed from the
+catalogue. Copies already in play keep working, credited to 'Deleted player'." It replaces the explainer's
+"and any board you have published" clause rather than being added beside it, so the screen no longer
+promises a deletion that does not happen. The dialog's own `<n> published boards are taken offline.` was
+already right and is untouched. Recorded in design-concerns.md with the composed copy, and in the
+regeneration table — `3o` is a derived doc and is not patched by hand (Rule 0).
 
 **Unblocks `G1`**, and through it `G3`, `G5`, `H2` and `H4`.
 
