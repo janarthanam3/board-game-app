@@ -1,6 +1,8 @@
-import { renderRouter, screen, waitFor } from "expo-router/testing-library";
+import { renderRouter, screen, waitFor, within } from "expo-router/testing-library";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import RootLayout from "../app/_layout";
 import IndexRoute from "../app/index";
@@ -47,6 +49,22 @@ describe("app root", () => {
 
     await screen.findByText("Royal Navy");
     expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it("wraps the whole app in a GestureHandlerRootView that fills the screen", async () => {
+    // Without one, every GestureDetector throws on Android — "must be used as a descendant of
+    // GestureHandlerRootView" — and the screen goes blank. The board map's pinch and pan and the
+    // pause sheet's drag both depend on it, so the app's own root is where it has to be.
+    mockedUseFonts.mockReturnValue([true, null]);
+
+    renderRouter(routes, { initialUrl: "/" });
+
+    await screen.findByText("Royal Navy");
+    // A composite element, so its style is read off its props rather than with toHaveStyle.
+    const root = screen.UNSAFE_getByType(GestureHandlerRootView);
+    expect(StyleSheet.flatten(root.props.style as StyleProp<ViewStyle>)).toMatchObject({ flex: 1 });
+    // And it is an ancestor of the screen, not a sibling of it: the title must be inside it.
+    expect(within(root).getByText("Royal Navy")).toBeTruthy();
   });
 
   it("requests the three bundled Baloo 2 weights from expo-font", () => {
