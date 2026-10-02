@@ -30,6 +30,9 @@ builds it invents it. Phase E's turn-timer task cannot start.
 replacement; a 30 s default timer with no countdown affordance is the single most likely source of
 "it stole my turn" complaints.
 
+
+**ANSWERED 2 October 2026 — option (1).** The ring (amber at 10 s, red at 5) and the two cards are rebuilt: **E6** owns the ring and the clock, **E4** owns the cards, which takes `1n` from seventeen to nineteen. See "Answers — 2 October 2026".
+
 ---
 
 ## OQ-2 · Queued deal offer has no frame (review C5)
@@ -88,6 +91,9 @@ the HUD cannot, and the accessibility gate in Phase H needs a target to compare 
 
 **Recommendation:** (1), with (2) as the fallback if the reflow cannot be made to fit — but capping
 text scale is an accessibility regression and should be a decision, not an accident.
+
+
+**ANSWERED 2 October 2026 — option (1).** The 130% HUD reference frame is rebuilt and **H2** owns producing it; option 2's text-scale cap is explicitly **not** adopted. See "Answers — 2 October 2026".
 
 ---
 
@@ -166,6 +172,9 @@ a Play Store requirement, so this must be settled before Phase G.
 "users see it as deleted; the data survives", and keeps history resolvable. The account screen's copy
 would need one clause added, which is a copy change and therefore the owner's call.
 
+
+**ANSWERED 2 October 2026 — option (1).** Deletion removes the personal data and unpublishes; frozen versions survive with the author shown as "Deleted player". One clause is being added to `3o`'s copy. See "Answers — 2 October 2026".
+
 ---
 
 ## OQ-8 · Solo AI difficulty numbers
@@ -187,6 +196,9 @@ which must be confirmed or replaced.
 bid ceiling as a multiple of tile cost, and a trade-acceptance margin — so tuning is three numbers
 per tier, not a rewrite.
 
+
+**ANSWERED 2 October 2026 — option (1).** The proposed table in `docs/05` §AI stands, tuned later by play-testing; §AI drops the word "proposed" when it is regenerated. **Unblocks F5, and the E7 gate through it.** See "Answers — 2 October 2026".
+
 ---
 
 ## OQ-9 · Is there any server-side match history for pass-and-play and solo?
@@ -206,6 +218,9 @@ on catalogue cards means online plays only.
 
 **Recommendation:** (1). It needs no trust in the client and matches D6's framing that the
 leaderboard is about people you actually played.
+
+
+**ANSWERED 2 October 2026 — option (1).** Local matches stay on the device: a "local" chip in `3h`, excluded from the leaderboard, from play counts and from `3u`. This also settles **OQ-54**'s first sub-question. See "Answers — 2 October 2026".
 
 ---
 
@@ -228,6 +243,9 @@ Session 7. The action currently leads nowhere.
 **Recommendation:** (2). `3q` already has the exact pattern — long-press sheet → reason picker →
 toast — so reusing it costs one reason list and keeps one moderation UI instead of two. (3) is not
 viable if the app is to be published.
+
+
+**ANSWERED 2 October 2026 — option (2).** Board reports reuse `3q`'s sheet with board-appropriate reasons. See "Answers — 2 October 2026".
 
 ---
 
@@ -252,6 +270,9 @@ exists to prevent.
 **Recommendation:** (1). It is the settled decision, and (2) is exactly the silent-change failure D4
 was written to avoid. If (1) cannot be scheduled, (3) is safer than (2) but leaves no way to fix a
 rule across boards.
+
+
+**ANSWERED 2 October 2026 — option (1), reduced for v1:** padlock, "in use by N boards" and "Edit as a copy". **"Replace everywhere" is deferred to `F1a`**, so until that ships a rule cannot be fixed across several boards at once. See "Answers — 2 October 2026".
 
 ---
 
@@ -927,6 +948,15 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/06-state-machines.md` (D4) | the turn deadline as part of turn state: it cannot live in `MatchState` without breaking the re-derived hash (see design-concerns) |
 | `docs/13-error-catalog.md` (D4) | `E_SPECTATE_REFUSED` is used by `1h` §5 with its own copy and is in no table here — it needs a status, a surface and a retry behaviour (OQ-43) |
 | `docs/07-api-contract.md` (D5) | §Socket.IO: `match:applied` as `{ seq, action, events, stateHash }` — the action is the field the client re-derives with (OQ-45), superseding the earlier `{ seq, events, stateHash }` note above |
+| `docs/05-game-rules.md` (E4b, OQ-57) | a **"Leaving a match"** section, which `3i` §7 already cites and which has never existed: leaving a running match resolves the player as bankrupt and returns their properties to the bank |
+| `docs/05-game-rules.md` (F5, OQ-8) | §AI drops the word **proposed** from its difficulty table — the values are confirmed as the contract to implement against, to be tuned by play-testing |
+| `docs/screens/3o-account.md` (G1, OQ-7) | the delete-account copy, which promises published boards are "permanently removed" where option 1 unpublishes them and keeps the frozen versions as "Deleted player". **One clause, awaiting the owner's approval** |
+| `docs/screens/1n-notification-cards.md` (E4, OQ-1) | two more cards, taking it from seventeen to nineteen: `Turn skipped — out of time` and its auto-action variant naming the expiry default the server applied |
+| `docs/screens/1c-play-hud.md` (E6, OQ-1) | the countdown ring around the active token in §3 and §10 — amber at 10 s, red at 5 |
+| `docs/12-accessibility-and-responsive.md` (H2, OQ-4) | the 130% HUD reference frame, and a statement that no `maxFontSizeMultiplier` is set (option 2's cap was rejected) |
+| `docs/screens/1z-rule-control.md`, `1y-card-decks.md` (F1, OQ-11) | the v1 locking UI — padlock, "in use by N boards", "Edit as a copy" — and **no** "Replace everywhere", which is `F1a` |
+| `docs/screens/1f-board-detail.md` (G3, OQ-10) | **Report board** opening `3q`'s sheet shape with board reasons, rather than the sheet deleted in Session 7 |
+| `docs/screens/3h-match-history.md`, `3d-leaderboard.md`, `3u-board-analytics.md` (G2, OQ-9) | local matches shown with a **"local" chip** in `3h` and excluded from `3d`, from catalogue play counts and from `3u`, which count **online matches only** |
 | `docs/screens/1b-host-lobby.md` (E3a) | §6's event list, which names six events the contract covers under other names — `lobby:state`, `lobby:playerJoined`, `lobby:playerLeft`, `lobby:hostLeft`, `match:started`, `match:start`, `lobby:setPiece`. The contract is the source of truth; the mapping is in design-concerns.md |
 | `docs/screens/1g-out-of-match.md` (E4a) | §6's five events: `match:leave` is a rename of the contract's `POST /matches/:matchId/leave`, and the other four are OQ-56 |
 | `docs/screens/3i-pause-sheet.md` (E4a) | §7's cross-reference to `docs/05` § "Leaving a match", a section that does not exist, and §6's dialog copy, which promises an outcome the server does not perform (OQ-57) |
@@ -2352,3 +2382,143 @@ today.
 Raised 2 October 2026, checking whether the contract needed a `match:leave` event. It did not — the
 route exists — but the behaviour behind it is undecided. **Does not block E4a**, which can call the
 route; it decides what the call does and whether `3i`'s dialog copy survives.
+
+
+**ANSWERED 2 October 2026 — option (1).** Leaving a running match marks the player bankrupt and returns their properties to the bank, as `3i` §6's shipped dialog says. **`E4b` owns it**: the server resolution and the `docs/05` section `3i` §7 cites. See "Answers — 2 October 2026".
+
+---
+
+# Answers — 2 October 2026
+
+Eight questions settled in one pass by the owner: OQ-1, OQ-4, OQ-7, OQ-8, OQ-9, OQ-10, OQ-11 and
+OQ-57. Each entry above keeps its question and options; this section records what was decided, what it
+changes, and which task now owns the work. Derived docs that need regenerating are listed in the
+regeneration table — they are edit-denied under Rule 0 and must come from the design, not from a hand
+patch.
+
+**Every `BLOCKED-BY-OQ` marker in `TASKS.md` is now gone.** Seven tasks were blocked before this pass;
+none is.
+
+## OQ-57 — leaving a running match marks the player bankrupt
+
+**Option 1.** A player who leaves a match in progress is resolved as bankrupt and their properties
+return to the bank, which is what `3i` §6's shipped dialog already promises: "You'll be marked bankrupt
+and your properties return to the bank. This can't be undone."
+
+What this settles, and what it costs:
+
+- The **server changes**. `POST /matches/:matchId/leave`'s in-match branch keeps the seat and emits
+  `player:presence { connected: false }` today. It must instead apply the engine's
+  `DECLARE_BANKRUPTCY` for that player, which already resolves deeds, debts and the standings, and
+  then broadcast the resulting state the way any other applied action is broadcast.
+- The seat still is not deleted. The bankruptcy path already keeps an eliminated player in
+  `match_players` with their `bankrupt` record, which is what `2b` needs in order to name them — so the
+  implementation's original reasoning is preserved, and only the resolution changes.
+- A **disconnect remains a disconnect**. Leaving is a deliberate act with a confirm dialog; losing a
+  connection is not, and `docs/flows/reconnect.md`'s 45-second hold and the turn clock's expiry
+  defaults still cover it. The two paths now differ, which is the point.
+- **`docs/05` gains the section `3i` §7 already cites.** There is no "Leaving a match" section today;
+  the cross-reference has always been dangling.
+
+**Owned by `E4b`**, a new task: the server resolution, its tests, and the rulebook section. `E4a` only
+calls the route.
+
+## OQ-8 — the proposed AI table is confirmed
+
+**Option 1.** `docs/05-game-rules.md` §AI's table stands as written, to be tuned by play-testing rather
+than redesigned. Its three numbers per tier — the cash floor, the bid ceiling as a multiple of tile
+cost, and the trade-acceptance margin — are the contract `F5` implements against.
+
+`docs/05` §AI should drop the word **proposed** when it is next regenerated; the values themselves do
+not change, so nothing in the table moves.
+
+**Unblocks `F5`**, and through it `E3c` and the **E7 play gate**, which inherited this block. That is
+nine tasks in total and every remaining phase gate.
+
+## OQ-11 — locking ships in v1; "Replace everywhere" does not
+
+**Option 1, reduced.** For v1 a rule or deck that is in use shows:
+
+- a **padlock** on the row,
+- the usage stated as **"in use by N boards"**,
+- and **"Edit as a copy"** as the only way to change it.
+
+**"Replace everywhere"** — the preview dialog that rebinds every local board at once — is **deferred to
+its own task, `F1a`**, and is not part of v1. The consequence, recorded deliberately: until `F1a` ships
+there is **no way to fix a rule across several boards** except editing each board's copy, which is the
+cost the owner accepted to get locking in.
+
+This keeps D4's guarantee — editing a used rule can never silently change a board that references it —
+which is the whole reason D4 exists.
+
+**Unblocks `F1`**, and through it `F2`, `F3`, `F4`, `F4a`, `F6`, `G4`, `H2` and `H4`: the entire builder
+phase.
+
+## OQ-7 — deletion removes personal data and unpublishes; frozen versions survive
+
+**Option 1.** Deleting an account removes the personal data, unpublishes every board the account
+published, and keeps the frozen board versions so match history, leaderboards and `2b` still resolve.
+The author is shown as **"Deleted player"** wherever a name would have appeared. Matches already running
+on one of those versions finish normally.
+
+`3o`'s delete-account copy currently promises that published boards are "permanently removed", which
+option 1 makes untrue. **One clause is being added to that copy; it is drafted and awaiting the owner's
+approval before it is written anywhere**, since screen copy is the design's.
+
+**Unblocks `G1`**, and through it `G3`, `G5`, `H2` and `H4`.
+
+## OQ-9 — local matches stay on the device
+
+**Option 1.** Pass-and-play and solo matches never reach the server. In `3h` Match history they appear
+from the local store with a **"local" chip**; they are excluded from `3d` the leaderboard, from a
+board's play count on the catalogue card, and from `3u`'s analytics.
+
+Two consequences that follow immediately:
+
+- The leaderboard cannot be farmed against AI, which is why this option was taken.
+- `3u`'s per-board numbers mean **online plays only**, and should say so rather than implying a total.
+  `GET /boards/:id/analytics` already belongs to `G4`.
+- **OQ-54's first sub-question is settled by this**: `GET /me/session` can only know about online
+  matches, so `3c`'s `Resume` must merge the server's answer with the local store (`E2a`) if it is to
+  resume a solo match. `E0b` owns that merge.
+
+**Unblocks `G2`**, and through it `G5`, `H2` and `H4`.
+
+## OQ-10 — board reports reuse `3q`'s pattern
+
+**Option 2.** `1f`'s "Report board" opens the same sheet shape `3q` uses for reporting a player — a
+reason picker, an optional note, a submit, and the confirmation toast — with board-appropriate reasons:
+offensive names, copied or trademarked content, broken or unplayable, other. One moderation surface, not
+two.
+
+`POST /catalogue/:id/report` is the endpoint; the reason list is what differs from `3q`'s.
+
+**Unblocks `G3`**, and through it `G5`, `H2` and `H4`.
+
+## OQ-4 — the 130% HUD reference frame is rebuilt
+
+**Option 1.** The HUD gets a documented 130% font-scale reference: player chips at 64 dp, the strip
+scrolling horizontally, board tile labels dropped below 44 dp rendered size, and the holdings region
+still the only scroller. `allowFontScaling` stays **true** and no `maxFontSizeMultiplier` is set, so
+option 2's cap is explicitly not adopted.
+
+E1 already implements the chip and strip behaviour `1c` §8 states, and `MatchHud.test.tsx` asserts it at
+`fontScale` 1.3. What was missing is the **reference to compare against**, which `H2` now owns
+producing as part of the accessibility matrix.
+
+**Unblocks `H2`**, and through it `H4`.
+
+## OQ-1 — the countdown ring and the "Turn skipped" card are rebuilt
+
+**Option 1.** The turn timer gets back:
+
+- a **ring around the active token**, amber at 10 seconds and red at 5;
+- a **"Turn skipped — out of time"** notification card, with the auto-action variant that names what the
+  server did on the player's behalf (`docs/flows/turn.md`'s expiry defaults, in order).
+
+**`E6` owns the ring and the clock**; the two cards are `1n`'s and therefore **`E4`'s**, which brings its
+card count from seventeen to nineteen. `docs/screens/1n-notification-cards.md` needs both cards when it
+is regenerated, and `1c` needs the ring in §3 and §10.
+
+**Unblocks `E6`**, which nothing else depends on — so this is the smallest of the eight in schedule
+terms, and the most visible in play.
