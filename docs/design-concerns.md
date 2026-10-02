@@ -1362,19 +1362,30 @@ Two of `1b`'s events are **not** renames and are open questions: `lobby:ready` (
 
 **If `1b` is regenerated**, §6 should name the contract's events. Added to the regeneration table.
 
-### `1g` out of match (§6) — one gap that is neither a rename nor an open question
+### `1g` out of match (§6) — a seventh rename, and a promise nothing keeps
 
-CONCERN: `match:leave` is emitted by **two** screens — `3i` §7 ("Leaving an online match emits
-`match:leave`") and `1g` §6 — and it is in neither `docs/07`'s client→server table nor the server's
-namespace. It is not a rename: nothing in the contract ends a player's participation. `docs/05`
-§"Leaving a match" specifies the *behaviour* (the player is resolved as bankrupt and their properties
-return to the bank), so only the wire event is missing.
+**Corrected 2 October 2026.** An earlier version of this entry said `match:leave` was missing from the
+contract and that somebody had to add it. That was wrong, and it was wrong in the direction that would
+have put a new event on the wire for no reason:
 
-It is recorded here rather than raised as an open question because the behaviour is already specified
-and the owner's four new questions were scoped to genuinely undecided things. **Someone has to add the
-event**: either `docs/07` gains `match:leave { matchId }` with the server handler D4 would have written,
-or the two screens are regenerated to use something else. Until then `E4a`'s `Leave` works for a local
-match — which needs no event at all — and `3i`'s online leave has nothing to send.
+CONCERN: `match:leave`, emitted by `3i` §7 and `1g` §6, is the **seventh rename** — the contract has
+`POST /matches/:matchId/leave` → `204` (`docs/07`'s match REST table), D4 implemented it, and
+`contract-coverage.test.ts` lists it. Leaving is a request with one outcome and no payload, so a REST
+call is the contract's answer and no socket event is needed. The two screens should name the route.
+
+What *is* unsettled is what the route does to a seat **in a running match**, and there the three sources
+disagree:
+
+| Source | Says leaving an in-match seat… |
+| --- | --- |
+| `3i` §6's dialog copy | "You'll be marked bankrupt and your properties return to the bank. This can't be undone." |
+| `3i` §7 | "the server resolves the player as bankrupt per `docs/05-game-rules.md` § Leaving a match" |
+| `docs/05` | **has no such section.** Its only leaving rule is edge case #29, the host leaving the *lobby* |
+| `apps/server/src/routes/matches.ts` | keeps the seat, emits `player:presence { connected: false }`, and leaves the rest to the socket's disconnect path — "the player's standings, debts and deeds are part of a match that is still running, and `2b` must still name them" |
+
+So the dialog promises an outcome the rulebook does not define and the server does not perform. The
+implementation's reasoning is sound on its own terms, and the copy is already shipped on `3i`. Raised as
+**OQ-57**, because which of the two is right is a product decision, not a code fix.
 
 `1g`'s other four events (`match:spectate`, `match:unspectate`, `match:rematchIntent`,
 `match:rematchOpened`) are **OQ-56**.

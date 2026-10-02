@@ -928,8 +928,8 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/13-error-catalog.md` (D4) | `E_SPECTATE_REFUSED` is used by `1h` §5 with its own copy and is in no table here — it needs a status, a surface and a retry behaviour (OQ-43) |
 | `docs/07-api-contract.md` (D5) | §Socket.IO: `match:applied` as `{ seq, action, events, stateHash }` — the action is the field the client re-derives with (OQ-45), superseding the earlier `{ seq, events, stateHash }` note above |
 | `docs/screens/1b-host-lobby.md` (E3a) | §6's event list, which names six events the contract covers under other names — `lobby:state`, `lobby:playerJoined`, `lobby:playerLeft`, `lobby:hostLeft`, `match:started`, `match:start`, `lobby:setPiece`. The contract is the source of truth; the mapping is in design-concerns.md |
-| `docs/screens/1g-out-of-match.md` (E4a) | §6's five events, none of which is in the contract: `match:leave` needs adding to `docs/07` (two screens emit it), and the other four are OQ-56 |
-| `docs/07-api-contract.md` (E4a) | a client→server `match:leave`, which `3i` §7 and `1g` §6 both emit and no table carries |
+| `docs/screens/1g-out-of-match.md` (E4a) | §6's five events: `match:leave` is a rename of the contract's `POST /matches/:matchId/leave`, and the other four are OQ-56 |
+| `docs/screens/3i-pause-sheet.md` (E4a) | §7's cross-reference to `docs/05` § "Leaving a match", a section that does not exist, and §6's dialog copy, which promises an outcome the server does not perform (OQ-57) |
 | `docs/02-design-tokens.md` (E1) | the colour-group palette `1x`'s picker offers — ten swatches, named and valued, since a group's colour is both a fill and a word (OQ-51); `docs/08` §Seed's colours follow from it |
 | `docs/screens/1c-play-hud.md` (E1) | §2's list-view sample prints `Park Place` and `Boardwalk` — Monopoly board names in a derived doc · §3 #11 `PlayerChip` against docs/03's own `PlayerChip` · §3 #4's 17 dp Menu icon, a size docs/03 does not list · §3 #13's 44 dp primary against `control.primaryButton`'s 50 · §10's 320 ms cash count against `motion.count`'s 600 · §3 #15's build line, which has no singular and no zero form · §5's ring on "your token" against AC5's "active token" · §5's loading state, which names no state for the cash row or the holdings header |
 | `docs/12-accessibility-and-responsive.md` (E1) | the per-screen note "`1c` … The player list is the scroll region", against `1c` §8 and AC8's holdings-only scroller · the tablet rule "no new layout, no two-column redesign", against `1c` §8's 60/40 split |
@@ -2301,3 +2301,54 @@ and inventing one would be inventing product.
 
 Raised 2 October 2026 while drafting E4a. **Does not block E4a**, which ships the standings, `Leave` and
 the automatic move to `2b`.
+
+---
+
+## OQ-57 · What happens to a seat that leaves a running match?
+
+**Affects:** `docs/screens/3i-pause-sheet.md` §6 and §7; `docs/screens/1g-out-of-match.md` §6;
+`docs/05-game-rules.md` (the section §7 cites and which does not exist);
+`apps/server/src/routes/matches.ts` (`POST /matches/:matchId/leave`); tasks **E4a** and **E1a**
+(whose leave dialog already ships the copy).
+
+**Why it matters:** three sources describe three different outcomes, and one of them is already on a
+player's screen.
+
+- `3i` §6's dialog says: "You'll be marked bankrupt and your properties return to the bank. This can't
+  be undone." **That copy is shipped** — E1a built the dialog.
+- `3i` §7 says the server "resolves the player as bankrupt per `docs/05-game-rules.md` § Leaving a
+  match". **`docs/05` has no such section.** Its only leaving rule is edge case #29, which is the host
+  leaving the *lobby* before start.
+- The server does neither. `POST /matches/:matchId/leave` keeps the seat and emits
+  `player:presence { connected: false }`, with the comment that "the player's standings, debts and deeds
+  are part of a match that is still running, and `2b` must still name them". The turn clock's expiry
+  defaults then play that seat (`docs/flows/turn.md`), which is also what a disconnect does.
+
+Both behaviours are defensible and they are materially different for the other players: a bankruptcy
+returns deeds to the bank and may hand the match to the next player, while a disconnect leaves a passive
+seat holding its property to the round cap.
+
+**Options**
+
+1. **Bankrupt on leave**, as the dialog says. The engine already has `DECLARE_BANKRUPTCY` and the
+   bankruptcy flow resolves deeds, so this is a server change rather than new rules — and `docs/05`
+   gains the section §7 already cites. It also means a player can end their own participation
+   irreversibly with two taps, which is what the copy warns about.
+2. **Disconnect on leave**, as implemented. The seat stays, the expiry defaults play it, and the match
+   is unaffected for everyone else. Then `3i` §6's copy is wrong and must be regenerated — it currently
+   threatens a consequence that does not happen.
+3. **Bankrupt only when the match cannot continue without them** (two players, where one leaving ends
+   it anyway) and disconnect otherwise. Matches `players:insufficient`'s existing 10-second rule, but it
+   makes one control mean two things.
+
+**Recommendation:** (1). The design states the consequence twice, in the dialog and in §7, and a leave
+that silently leaves a passive seat holding half the board for another twenty rounds is worse for the
+other four players than an elimination they can see. It is also the only option under which the shipped
+copy is true — and the alternative requires regenerating a screen to walk a promise back.
+
+Whichever is chosen, **`docs/05` needs the section `3i` §7 cites**, since there is nothing to point at
+today.
+
+Raised 2 October 2026, checking whether the contract needed a `match:leave` event. It did not — the
+route exists — but the behaviour behind it is undecided. **Does not block E4a**, which can call the
+route; it decides what the call does and whether `3i`'s dialog copy survives.
