@@ -927,6 +927,9 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/06-state-machines.md` (D4) | the turn deadline as part of turn state: it cannot live in `MatchState` without breaking the re-derived hash (see design-concerns) |
 | `docs/13-error-catalog.md` (D4) | `E_SPECTATE_REFUSED` is used by `1h` §5 with its own copy and is in no table here — it needs a status, a surface and a retry behaviour (OQ-43) |
 | `docs/07-api-contract.md` (D5) | §Socket.IO: `match:applied` as `{ seq, action, events, stateHash }` — the action is the field the client re-derives with (OQ-45), superseding the earlier `{ seq, events, stateHash }` note above |
+| `docs/screens/1b-host-lobby.md` (E3a) | §6's event list, which names six events the contract covers under other names — `lobby:state`, `lobby:playerJoined`, `lobby:playerLeft`, `lobby:hostLeft`, `match:started`, `match:start`, `lobby:setPiece`. The contract is the source of truth; the mapping is in design-concerns.md |
+| `docs/screens/1g-out-of-match.md` (E4a) | §6's five events, none of which is in the contract: `match:leave` needs adding to `docs/07` (two screens emit it), and the other four are OQ-56 |
+| `docs/07-api-contract.md` (E4a) | a client→server `match:leave`, which `3i` §7 and `1g` §6 both emit and no table carries |
 | `docs/02-design-tokens.md` (E1) | the colour-group palette `1x`'s picker offers — ten swatches, named and valued, since a group's colour is both a fill and a word (OQ-51); `docs/08` §Seed's colours follow from it |
 | `docs/screens/1c-play-hud.md` (E1) | §2's list-view sample prints `Park Place` and `Boardwalk` — Monopoly board names in a derived doc · §3 #11 `PlayerChip` against docs/03's own `PlayerChip` · §3 #4's 17 dp Menu icon, a size docs/03 does not list · §3 #13's 44 dp primary against `control.primaryButton`'s 50 · §10's 320 ms cash count against `motion.count`'s 600 · §3 #15's build line, which has no singular and no zero form · §5's ring on "your token" against AC5's "active token" · §5's loading state, which names no state for the cash row or the holdings header |
 | `docs/12-accessibility-and-responsive.md` (E1) | the per-screen note "`1c` … The player list is the scroll region", against `1c` §8 and AC8's holdings-only scroller · the tablet rule "no new layout, no two-column redesign", against `1c` §8's 60/40 split |
@@ -2140,3 +2143,161 @@ asserts the seeded boards use only that list, with no two groups on one board sh
 entry. An answer here replaces all nine values; the guard stays either way. The engine's own test
 fixtures still carry `sky`, `rose` and `amber` on purpose — `groupColour.test.ts` uses them as its
 unrenderable cases.
+
+---
+
+## OQ-52 · `lobby:ready` — is there a ready toggle, and what does it gate?
+
+**Affects:** `docs/screens/1b-host-lobby.md` §3 and §6; `docs/07-api-contract.md` §Socket.IO;
+`apps/server/src/sockets/match.ts`; task **E3a**.
+
+**Why it matters:** `1b` draws a `Ready` toggle per player and §6 emits `lobby:ready`. The contract has
+no such event, the server has no handler, and `lobby:updated`'s player rows carry `connected` but no
+ready flag. D4 recorded the gap; this asks what the toggle is *for*. `lobby:start` is already host-only
+and already refuses under two players, so readiness gates nothing today — which is either a missing
+rule or a control the design dropped.
+
+**Options**
+
+1. **Ready gates start**: the host's `Start game` is refused until every seated player is ready. Needs
+   `lobby:ready { ready }`, a `ready` field on `lobby:updated`'s rows, and an `E_PLAYERS_NOT_READY`
+   refusal with copy in `docs/13`.
+2. **Ready is advisory**: it shows in the list and the host may start regardless. One event, one field,
+   no new refusal. Closest to what `1b` draws, since the toggle sits beside each player rather than
+   beside `Start game`.
+3. **Drop it**: remove the toggle from `1b`. `lobby:start`'s two-player minimum is the only gate.
+
+**Recommendation:** (2). It is the smallest change that makes the drawn control mean something, and it
+does not hand one player a veto over the host — which (1) does, on a screen where `1h` §5 and OQ-43
+already show the host is the authority.
+
+Raised 2 October 2026 while drafting E3a.
+
+---
+
+## OQ-53 · `lobby:invite` — what does inviting a friend actually send?
+
+**Affects:** `docs/screens/1b-host-lobby.md` §6; `docs/screens/3g-friends.md`;
+`docs/07-api-contract.md`; task **E3a**, and **G3** which owns `3g`.
+
+**Why it matters:** `1b`'s `Invite friends` opens `3g` and §6 emits `lobby:invite`. Neither the event nor
+any invite endpoint exists, and nothing says what an invited player receives: the room code is already
+visible on `1b` and shareable by any means, so an invite is either a notification to a friend, or it is
+the share sheet with extra steps.
+
+**Options**
+
+1. **A notification to the friend**, delivered by the `notification:new` event of OQ-55, carrying the
+   room code. Needs both to be answered together, and needs a notifications surface that no screen
+   currently draws.
+2. **The platform share sheet** with the code and a deep link (`royalnavy://join/<code>` — the resolver
+   already exists). No server involvement, nothing to store, and it works for a friend who is offline.
+3. **Drop the event**: `3g` selects friends and the host reads them the code. Leaves `1b`'s button with
+   nothing to do.
+
+**Recommendation:** (2). The deep-link resolver is already built and tested, nothing new goes on the
+wire, and it works for someone who is not in the app — which (1) does not until there is a push path,
+and `docs/11` plans for none.
+
+Raised 2 October 2026 while drafting E3a.
+
+---
+
+## OQ-54 · `GET /me/session` — the endpoint `3c`'s resume button needs
+
+**Affects:** `docs/screens/3c-game-modes.md` §6; `docs/07-api-contract.md`'s REST tables;
+`apps/server/src/routes/*`; tasks **E0b** and **G2**.
+
+**Why it matters:** `3c` §6 reads `GET /me/session` → `{ activeMatch: { id, name, round } | null,
+unreadNotifications: number }`, and it is in no contract table and no route. It is what decides whether
+the home screen shows `Resume` at all, so without it `3c` ships with the button permanently hidden.
+
+`apps/server/test/contract-coverage.test.ts` asserts the registered-route count, so adding the route
+without adding it to `docs/07` fails the D5 gate — the contract has to move first either way.
+
+Two sub-questions the answer has to settle:
+
+1. **Does it count local matches?** It cannot: pass-and-play and solo never reach the server (**OQ-9**).
+   So either `Resume` is online-only, or the client merges the server's answer with the local store
+   (`E2a`), which is the only way it can resume a solo match.
+2. **What is `unreadNotifications`?** No screen draws a notification list, and `notification:new`
+   (**OQ-55**) is the only other mention of notifications anywhere.
+
+**Options**
+
+1. **Add the endpoint as `3c` specifies it**, and have the client merge it with the local store for the
+   local modes. Honest about both sources, and `Resume` then works offline too.
+2. **Add it without `unreadNotifications`** until a notifications surface exists, leaving the bell dot
+   out of `3c`.
+3. **Drop the endpoint**: derive `Resume` from the local store only, which makes it work offline and
+   never resume an online match from another device.
+
+**Recommendation:** (1) with (2)'s caution — add `activeMatch`, leave `unreadNotifications` out until
+OQ-55 says what a notification is, and merge the local store client-side so `Resume` means what the
+player expects in all three modes.
+
+Raised 2 October 2026 while drafting E0b.
+
+---
+
+## OQ-55 · `notification:new` — what is a notification, and what shows them?
+
+**Affects:** `docs/screens/3c-game-modes.md` §3 and §6 (the bell and its dot);
+`docs/07-api-contract.md` §Socket.IO; tasks **E0b**, **G3**.
+
+**Why it matters:** `3c` subscribes to `notification:new` and draws a bell with an unread dot. That
+event is not among the seventeen in the contract, has no schema in `packages/shared`, and **no screen in
+the design shows a notification**. So the dot can be incremented and never read, and nothing says what
+produces one — a friend request, a trade offer while you are elsewhere, a match ending without you?
+
+**Options**
+
+1. **Define the event and a surface**: a notification list screen, which the design does not contain, so
+   it would have to be designed before it can be built.
+2. **Define the event with no list**: the bell opens `3g` Friends, which is the only social surface that
+   exists, and a notification is a friend request only. Small, and consistent with what is drawn.
+3. **Drop the bell from `3c`** until there is something to show. `E0b` then ships the four mode rows and
+   `Resume`, which is the whole of the screen's stated purpose.
+
+**Recommendation:** (3) now, (2) when **G3** lands. An indicator that cannot be acted on is worse than
+one that is not drawn, and `3c` §1 describes the screen as "four mode rows plus a conditional resume
+button" — the bell is not in that sentence.
+
+Raised 2 October 2026 while drafting E0b.
+
+---
+
+## OQ-56 · `1g`'s `Watch` and `Rematch` — five events, no contract, and no second screen
+
+**Affects:** `docs/screens/1g-out-of-match.md` §2, §5 and §6; `docs/screens/1h-spectating.md`;
+`docs/07-api-contract.md` §Socket.IO; `docs/screens/2b-match-result.md`; task **E4a**.
+
+**Why it matters:** `1g` gives a bankrupt player three exits — `Watch`, `Leave` and the automatic move to
+`2b` — and §6 emits five events for them: `match:spectate`, `match:unspectate`, `match:leave`,
+`match:rematchIntent`, plus `match:rematchOpened` inbound. **None is in the contract.** The standings and
+`Leave` are specified well enough to build (the rulebook's net-worth formula, and `docs/05` §"Leaving a
+match"), so **E4a ships those** and this question carries the other two.
+
+- **Watch** turns an eliminated player into a spectator, which is `1h`. But spectating is ungated today
+  (**OQ-43**: `1h` §5 names a refusal whose control nothing draws), while a spectator socket is already
+  redacted server-side (D4). So `Watch` needs `match:spectate` / `match:unspectate` **and** OQ-43's
+  answer about who may spectate at all.
+- **Rematch** appears nowhere else in the repository: not in `docs/07`, not in `2b`, not in `docs/05`,
+  not in any other screen. `1g` is the only place the word occurs. Nothing says who may open one, what
+  carries over (the board? the roster? the seed?), or what becomes of the finished match.
+
+**Options**
+
+1. **Both, specified**: add the four events to `docs/07`, answer OQ-43, and design what a rematch
+   carries over. The largest answer, and the rematch half needs design input rather than a decision.
+2. **Watch now, rematch later**: add `match:spectate` / `match:unspectate` on the back of OQ-43, and drop
+   the rematch row from `1g` until a flow exists for it.
+3. **Neither**: `1g` offers `Leave` and the automatic move to `2b`, which are its two specified exits.
+   `Watch` and `Rematch` return when the contract and the rematch flow do.
+
+**Recommendation:** (2). Spectating already has a server implementation and a screen; it needs one
+answered question and two events. A rematch has no flow, no screen and no mention outside this one spec,
+and inventing one would be inventing product.
+
+Raised 2 October 2026 while drafting E4a. **Does not block E4a**, which ships the standings, `Leave` and
+the automatic move to `2b`.

@@ -1336,3 +1336,45 @@ resolves the states in that order and `PauseSheet.test.tsx` pins it, so an answe
 documents, three shapes for one breakpoint, with the word "dialog" the only hint that the sheet changes
 shape at all. Implemented at §8's face value: from `responsive.tabletMinWidth` a width-capped sheet
 centres vertically and rounds all four corners.
+
+## `1b` and `1g` name events the contract does not have — the contract wins
+
+**Decided 2 October 2026 by the owner**, while the seven missing screens were given task lines:
+`docs/07-api-contract.md` **is the source of truth**. Where a screen spec names an event that means the
+same thing as one the contract already has, the **screen spec changes**, and the mapping is recorded
+here rather than a second event being added to the wire. Only genuinely new behaviour becomes an open
+question.
+
+### `1b` host lobby (§6) — six renames
+
+| `1b` §6 says | The contract has | Why they are the same |
+| --- | --- | --- |
+| `lobby:state` | `lobby:updated` | Both are the full lobby snapshot — players, host, board, settings. `docs/07` names it `updated`; nothing is partial about it |
+| `lobby:playerJoined` | `lobby:updated` | A join *is* a new snapshot. The contract has no per-delta events, and the socket-contract skill forbids them: "Snapshots, not patches" |
+| `lobby:playerLeft` | `lobby:updated` | As above. A leave that empties the host seat also raises `host:changed` |
+| `lobby:hostLeft` | `lobby:closed` `{ reason: 'hostLeft' }`, or `host:changed` | The contract splits one sentence into two outcomes: the room closes, or the host moves. `1b`'s single event cannot express which |
+| `match:started` | `match:state` + `turn:started` | Starting a match is a snapshot plus the first turn. D4's server emits exactly those two, in that order |
+| `match:start` (emitted) | `lobby:start` | The same host-only request under a different name |
+| `lobby:setPiece` (emitted) | `lobby:setColour` | The "piece" and the seat colour are one identity: `SEAT_COLOURS` is what the server validates, and `docs/02` gives six seat colours and no separate pieces. D4 already recorded that the piece picker has no event of its own |
+
+Two of `1b`'s events are **not** renames and are open questions: `lobby:ready` (**OQ-52**) and
+`lobby:invite` (**OQ-53**).
+
+**If `1b` is regenerated**, §6 should name the contract's events. Added to the regeneration table.
+
+### `1g` out of match (§6) — one gap that is neither a rename nor an open question
+
+CONCERN: `match:leave` is emitted by **two** screens — `3i` §7 ("Leaving an online match emits
+`match:leave`") and `1g` §6 — and it is in neither `docs/07`'s client→server table nor the server's
+namespace. It is not a rename: nothing in the contract ends a player's participation. `docs/05`
+§"Leaving a match" specifies the *behaviour* (the player is resolved as bankrupt and their properties
+return to the bank), so only the wire event is missing.
+
+It is recorded here rather than raised as an open question because the behaviour is already specified
+and the owner's four new questions were scoped to genuinely undecided things. **Someone has to add the
+event**: either `docs/07` gains `match:leave { matchId }` with the server handler D4 would have written,
+or the two screens are regenerated to use something else. Until then `E4a`'s `Leave` works for a local
+match — which needs no event at all — and `3i`'s online leave has nothing to send.
+
+`1g`'s other four events (`match:spectate`, `match:unspectate`, `match:rematchIntent`,
+`match:rematchOpened`) are **OQ-56**.
