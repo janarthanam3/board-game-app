@@ -51,7 +51,7 @@ describe("app root", () => {
     expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1);
   });
 
-  it("wraps the whole app in a GestureHandlerRootView that fills the screen", async () => {
+  it("BUG-003: wraps the whole app in a GestureHandlerRootView that fills the screen", async () => {
     // Without one, every GestureDetector throws on Android — "must be used as a descendant of
     // GestureHandlerRootView" — and the screen goes blank. The board map's pinch and pan and the
     // pause sheet's drag both depend on it, so the app's own root is where it has to be.

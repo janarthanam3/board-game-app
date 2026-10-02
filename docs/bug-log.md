@@ -56,6 +56,35 @@ _None yet — implementation has not started._
 
 ## Fixed
 
+### BUG-003 · Every screen with a gesture went blank: no `GestureHandlerRootView` at the app root
+- severity: 1 — the play HUD rendered nothing at all, and it would have taken the real match screen
+  down as surely as the dev preview it was found on
+- found: 2 October 2026 · dev build · Pixel_6_API_34 emulator, Expo Go
+- area: `apps/mobile/app/_layout.tsx`; `1c` the play HUD through `BoardMap` (E2), and `3i` §6's
+  drag-to-dismiss
+- steps:
+  1. from a cold start, open `/dev-hud` (or any route rendering the HUD)
+  2. the screen is blank grey and the console reads "GestureDetector must be used as a descendant of
+     GestureHandlerRootView. Otherwise the gestures will not be recognized."
+- expected: the HUD renders, and `1c` §6's "Pinch / drag the board" works
+- actual: nothing rendered. Component path `GestureDetector → BoardMap → MatchHud → Screen →
+  DevHudRoute → RootLayout`, with no provider anywhere above it
+- seed / match id: n/a — the `midgame-4p` fixture through `/dev-hud`
+- status: fixed
+- cause: the root layout has not been touched since **A2**, which predates the board map. E2 added
+  `GestureDetector` inside `BoardMap` and tested the component in isolation, where no provider is
+  required, so nothing ever rendered a gesture under the app's real root.
+- fix: `GestureHandlerRootView` wraps the root layout's `Stack`, with `flex: 1` so the gesture area
+  is the whole screen — the documented gesture-handler setup for Expo Router.
+- regression test: `app root > wraps the whole app in a GestureHandlerRootView that fills the screen`
+  — asserts the provider's style **and** that the rendered route is inside it, since a provider
+  mounted as a sibling would satisfy a weaker test and still crash. Verified by removing the wrapper
+  and watching it fail.
+- **why the suite missed it**: `jest.setup.ts` imports `react-native-gesture-handler/jestSetup`,
+  which stubs the native module, so the check that throws on Android does not exist under Jest. A
+  gesture test can pass with no provider in the tree. Worth remembering for H2 and E7: a provider
+  this app needs at its root cannot be proven present by a component test.
+
 ### BUG-002 · A bankrupt player could inherit their own estate
 - severity: 1 — deeds and buildings end up owned by an eliminated player
 - found: 2026-09-27 · engine only, no build · found by the 1,000-match gate (seed 529, step 343)
