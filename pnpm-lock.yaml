@@ -77,6 +77,9 @@ importers:
       react-native-svg:
         specifier: 15.2.0
         version: 15.2.0(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
+      socket.io-client:
+        specifier: 4.8.3
+        version: 4.8.3
       zustand:
         specifier: ^4.5.4
         version: 4.5.7(@types/react@18.2.79)(react@18.2.0)

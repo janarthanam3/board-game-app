@@ -52,7 +52,32 @@ the correct behaviour is unspecified (`docs/OPEN-QUESTIONS.md`), and set the sta
 
 ## Open
 
-_None yet — implementation has not started._
+### BUG-004 · One unnamed mobile test failed once and has not failed since
+- severity: 3 — a test suite that fails one run in five is a suite nobody can trust at a gate, even
+  when the product is fine
+- found: 2 October 2026 · dev · Windows, `pnpm --filter mobile test` (Jest 29, jest-expo 51)
+- area: `apps/mobile` — the suite as a whole; the failing test is **not identified**
+- steps:
+  1. the first full run after `/dev-hud` was wired to the turn loop reported
+     `Test Suites: 1 failed, 39 passed` and `Tests: 1 failed, 435 passed`
+  2. every run since — four more, one of them `--runInBand` — is 436/436
+- expected: a deterministic suite. The `test-writer` skill: "Every test is deterministic. Seed the
+  RNG, freeze the clock, never sleep on a real timer."
+- actual: one failure, then five clean runs. **The name was lost**: the grep that read that run
+  matched `FAIL` and `✕`, and Jest on this machine prints `×`, so the failing line never surfaced and
+  the run's output is gone.
+- seed / match id: n/a
+- status: open — recorded deliberately rather than waiting for a recurrence
+- cause: unknown. The suspects, in order: the three suites that mount animating components under fake
+  timers (`MatchHud`, `PauseSheet`, `BoardMap`) and leave a frame pending across a teardown; and
+  `src/root.test.tsx` plus `src/navigation/*`, which mount the whole route tree with `renderRouter`
+  and now include one more route. Nothing is confirmed.
+- fix: none yet. The next step is capture, not repair: full runs with their output kept, so the name
+  is in hand the moment it recurs.
+- regression test: n/a until it is named.
+- **if it recurs**: the failing test's name, the suite, and whether it reproduces with
+  `--runInBand` (serial) or only in parallel — a frame leaking across suites behaves differently in
+  each.
 
 ## Fixed
 
