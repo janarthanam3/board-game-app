@@ -1419,17 +1419,38 @@ the original's own words, kept; the middle two are the owner's:
 > the catalogue. Copies already in play keep working, credited to "Deleted player". Players in your live
 > matches keep playing to the end.
 
-### What else on `3o` says something about removal
+### The confirm dialog's four consequence lines — all four now settled
 
-Checked every line of the spec that mentions removing, deleting, erasing or permanence. One of the four
-consequence lines in the confirm dialog is **already correct**, and two are worth a second look:
+Checked every line of the spec that mentions removing, deleting, erasing or permanence. Two were already
+right; the other two the owner decided on 2 October 2026, in the same pass.
 
 | `3o` line | Verdict |
 | --- | --- |
-| `<n> published boards are taken offline.` | **Already right.** "Taken offline" is exactly what option 1 does, and it is more accurate than the explainer it sat beside. No change |
-| `This cannot be undone.` | Right. The account and its personal data do not come back |
-| `Match history and stats are erased.` | **True only from the deleter's side.** D5 keeps the rows so that other players' history and the leaderboard still resolve — "users see it as deleted; the data survives". The line is defensible as what *the player* experiences, but the owner may want it to say so |
-| `<n> custom boards are deleted.` | **Needs a look, for a different reason.** A board authored on the device and never published never leaves it (D5; offline-local-mode rule 3), so deleting a *server* account cannot remove it. Either the line means the server's copies only, or local boards have to be deleted by the client at the same moment — and `GET /me/deletion-preview`'s `customBoards` count can only know about the server's |
+| `<n> published boards are taken offline.` | **Already right.** "Taken offline" is exactly what option 1 does, and it was more accurate than the explainer beside it. No change |
+| `This cannot be undone.` | Right. The account and its personal data do not come back. No change |
+| `Match history and stats are erased.` | **Replaced.** It read as a stronger guarantee than the system makes: D5 keeps the rows so other players' history and the leaderboard still resolve |
+| `<n> custom boards are deleted.` | **Replaced.** A board authored on the device and never published never leaves it (D5; offline-local-mode rule 3), so deleting a *server* account cannot remove it |
 
-Neither is the promise the owner replaced, so neither is changed here. Both are recorded so the
-regeneration pass can settle them rather than rediscover them.
+**The two replacements, approved verbatim:**
+
+> Your match history and stats are removed from your profile. In other players' past games, you appear as
+> "Deleted player".
+
+> `<n>` boards saved to your account are deleted. Boards saved only on this device stay here until you
+> delete them or uninstall the app.
+
+Both say what actually happens from the player's side without claiming more. The first stops implying
+that the rows are gone everywhere; the second draws the line the architecture already draws, between the
+account and the device.
+
+**No new behaviour comes with either**, which the owner stated explicitly and which is worth keeping
+written down, because it constrains two things:
+
+- **`DELETE /me` does not touch local boards.** It never could — local boards and local matches live in
+  the device's SQLite and never reach the server (D5; offline-local-mode rules 2 and 3) — and now the copy
+  says so rather than leaving a reader to assume otherwise. No client-side purge is added.
+- **`GET /me/deletion-preview`'s `customBoards` counts the server's copies only.** That is all it can
+  see, and the new wording ("boards saved to your account") is what makes the number honest.
+
+So `3o`'s four consequence lines and its danger explainer are all settled, and `G1` carries no open copy
+question.
