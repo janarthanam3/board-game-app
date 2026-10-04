@@ -207,3 +207,27 @@ export async function writeStoredSession(store: MemoryStore, session: StoredSess
     // As with writeTokens: the session is live in memory either way.
   }
 }
+
+/**
+ * The onboarding flag, which `3a` §6 says the splash reads from the secure store beside the tokens.
+ *
+ * It is a device fact rather than an account one — "has this install shown onboarding" — so it
+ * survives a sign-out, and it is the reason `firstRunGuard` can keep its promise across launches.
+ */
+const ONBOARDING_KEY = "royalnavy.onboardingCompleted";
+
+export async function readOnboardingCompleted(store: MemoryStore): Promise<boolean> {
+  try {
+    return (await store.getItemAsync(ONBOARDING_KEY)) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export async function writeOnboardingCompleted(store: MemoryStore, completed: boolean): Promise<void> {
+  try {
+    await store.setItemAsync(ONBOARDING_KEY, completed ? "true" : "false");
+  } catch {
+    // The flag is a convenience; a store that cannot hold it only costs one extra onboarding.
+  }
+}

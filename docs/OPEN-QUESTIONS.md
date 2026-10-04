@@ -957,6 +957,15 @@ These cannot be hand-patched (Rule 0, and they are edit-denied in `.claude/setti
 | `docs/screens/1z-rule-control.md`, `1y-card-decks.md` (F1, OQ-11) | the v1 locking UI — padlock, "in use by N boards", "Edit as a copy" — and **no** "Replace everywhere", which is `F1a` |
 | `docs/screens/1f-board-detail.md` (G3, OQ-10) | **Report board** opening `3q`'s sheet shape with board reasons, rather than the sheet deleted in Session 7 |
 | `docs/screens/3h-match-history.md`, `3d-leaderboard.md`, `3u-board-analytics.md` (G2, OQ-9) | local matches shown with a **"local" chip** in `3h` and excluded from `3d`, from catalogue play counts and from `3u`, which count **online matches only** |
+| `docs/screens/3a-splash.md`, `docs/02-design-tokens.md` (E0a) | the wordmark: §3 #5 draws it at 800/30 where `type.display` is 800/35 and names this screen. One of the two has to change; §7 corroborates 30. Implemented at 30 |
+| `docs/screens/3a-splash.md`, `docs/07-api-contract.md` (E0a) | §6 names `GET /health`; the server implements **`/healthz`** and the contract lists no health endpoint at all. Implemented against `/healthz` |
+| `docs/13-error-catalog.md` (E0a) | `E_SERVER_UNREACHABLE` and `E_AUTH_REFRESH_FAILED`, which `3a` §5 names and the catalogue does not list — plus which code the 8000 ms timeout uses, which no section says |
+| `docs/02-design-tokens.md`, `docs/03-design-system.md` (E0a) | `3a`s bottom block: a **blue button** variant (`#4FB4F5`→`#2E86D6`, `#04203B` label, `0 4px 0 #1D5EA6` drop), the blue 90° progress fill, **`AlertCard`** (drawn identically by `3a` §3 #11 and `2a5` §3 #10), its 700/14 title, a solid `rgba(126,180,255,.45)` border, and the two inset highlights `rgba(255,255,255,.18)` (§3 #3) and `rgba(255,255,255,.35)` (§3 #15). None is in either doc |
+| `docs/screens/3a-splash.md` (E0a) | §2 gives the centre block `gap 17`; §3 #5 says the wordmark sits `gap 4 below tile`. Both cannot hold, and §3 #6 gives the tagline no gap at all, so one gap is unspecified either way. Built on §2s reading, which its own ASCII art supports |
+| `docs/02-design-tokens.md`, `docs/screens/3a-splash.md` §7 (E0a, H2) | §7 says the frame "stretches to the safe area" on a tablet; docs/02 caps every screen column at 480 and centres it from 600dp, which the shared `Screen` implements. Predates E0a |
+| `docs/02-design-tokens.md` (E0a) | a **13 dp stack gap**, which `3a` §2 states for the frame and `stackGap` has no token for (it has 11, 9 and 8). Stated by the screen meanwhile |
+| `docs/screens/3a-splash.md` §2 vs AC2 (E0a) | §2 draws a `flex:1` centre block above a `flex:none` bottom block **and** says the logo must never be re-centred; AC2 says pixel-identical across all three states. A flex column of those two cannot do both. Built on AC2s reading, with the bottom block anchored — which also costs §2s 13 dp gap its meaning in portrait |
+| `docs/04-navigation-map.md` (E0a, E0b) | `/modes` has no Params, but `3a` §5 sends `Play offline` there with `offline=true` and `3c` §4 has the matching state. The flag belongs in the Params column |
 | `docs/screens/1b-host-lobby.md` (E3a) | §6's event list, which names six events the contract covers under other names — `lobby:state`, `lobby:playerJoined`, `lobby:playerLeft`, `lobby:hostLeft`, `match:started`, `match:start`, `lobby:setPiece`. The contract is the source of truth; the mapping is in design-concerns.md |
 | `docs/screens/1g-out-of-match.md` (E4a) | §6's five events: `match:leave` is a rename of the contract's `POST /matches/:matchId/leave`, and the other four are OQ-56 |
 | `docs/screens/3i-pause-sheet.md` (E4a) | §7's cross-reference to `docs/05` § "Leaving a match", a section that does not exist, and §6's dialog copy, which promises an outcome the server does not perform (OQ-57) |
@@ -2526,3 +2535,37 @@ is regenerated, and `1c` needs the ring in §3 and §10.
 
 **Unblocks `E6`**, which nothing else depends on — so this is the smallest of the eight in schedule
 terms, and the most visible in play.
+
+---
+
+## OQ-58 · `lastServerUrl` — the splash reads a value nothing else in the package defines
+
+**Screen affected:** `3a` (task E0a, built 4 October 2026).
+
+**Why it blocks nothing, but needs an answer:** `3a` §6 says the splash "Reads: secure store
+`refreshToken`, `onboardingCompleted`, `lastServerUrl`." The first two are now read and written
+(`src/net/tokens.ts`). The third appears **nowhere else** in the whole package: no screen writes it, no
+other spec mentions it, `docs/07` has no endpoint that returns it, `docs/09` resolves the server from
+`EXPO_PUBLIC_API_URL`, and there is no server-picker screen in the 93. So either it is a leftover of a
+feature the design dropped, or there is an intended behaviour that nothing else records.
+
+E0a therefore **did not invent one**: the route resolves the API URL from the environment, as `docs/09`
+says, and ignores `lastServerUrl`. Every acceptance criterion passes without it.
+
+**Options**
+
+1. **It is vestigial — delete the clause.** `3a` §6's regeneration drops `lastServerUrl`, and the app
+   resolves the server from `EXPO_PUBLIC_API_URL` only. Nothing changes in code.
+2. **It is a dev convenience.** The splash remembers the last server it reached, so a developer or
+   tester pointing the app at a LAN address does not retype it. Needs: who writes it, where it is
+   edited (no screen does today), and whether it ships in release builds at all.
+3. **It is a self-hosting feature.** The player can point the app at their own server. That is a far
+   bigger change — it needs a screen, validation, a trust story, and it touches the socket URL too.
+
+**Recommendation: option 1.** Two of the three values §6 names are real and now work; the third has no
+writer, no editor and no endpoint anywhere in a 93-screen package, which is what a dropped feature looks
+like rather than a missing one. Option 2 is plausible but would be re-inventing it from scratch: nothing
+records what it was for. If self-hosting is wanted it should be designed, not inferred from one word in
+a data-contract line.
+
+**Blocks:** nothing. `E0a` shipped without it.

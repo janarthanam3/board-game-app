@@ -1,4 +1,5 @@
 // One import for screens: `import { Screen, Row, Button } from "@/components"`.
+export { AlertCard, type AlertCardProps, type AlertCardTone } from "./AlertCard";
 export { Button, type ButtonProps, type ButtonVariant } from "./Button";
 export { Card, type CardProps, type CardTone } from "./Card";
 export { Chip, ChipRow, type ChipProps, type ChipRowProps } from "./Chip";

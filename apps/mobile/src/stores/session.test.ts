@@ -9,11 +9,13 @@ jest.mock("../net/tokens", () => ({
   ...(jest.requireActual("../net/tokens") as object),
   secureStore: { getItemAsync: jest.fn(), setItemAsync: jest.fn(), deleteItemAsync: jest.fn() },
   writeStoredSession: jest.fn(() => Promise.resolve()),
+  writeOnboardingCompleted: jest.fn(() => Promise.resolve()),
   clearTokens: jest.fn(() => Promise.resolve()),
 }));
 
-const { writeStoredSession, clearTokens } = jest.requireMock("../net/tokens") as {
+const { writeStoredSession, writeOnboardingCompleted, clearTokens } = jest.requireMock("../net/tokens") as {
   writeStoredSession: jest.Mock;
+  writeOnboardingCompleted: jest.Mock;
   clearTokens: jest.Mock;
 };
 
@@ -179,5 +181,63 @@ describe("restoreSession: the cold-start read the auth guard waits for", () => {
     useSessionStore.setState({ status: "unknown" });
     await restoreSession(store());
     expect(useSessionStore.getState().status).not.toBe("unknown");
+  });
+});
+
+describe("the onboarding flag, which 3a §6 reads from the secure store", () => {
+  const { writeOnboardingCompleted: realWrite, writeStoredSession: realSession } = jest.requireActual(
+    "../net/tokens",
+  ) as typeof import("../net/tokens");
+
+  function store() {
+    const values: Record<string, string> = {};
+    return {
+      values,
+      getItemAsync: (key: string) => Promise.resolve(values[key] ?? null),
+      setItemAsync: (key: string, value: string) => {
+        values[key] = value;
+        return Promise.resolve();
+      },
+      deleteItemAsync: (key: string) => {
+        delete values[key];
+        return Promise.resolve();
+      },
+    };
+  }
+
+  it("persists when onboarding completes, so it is not shown again next launch", () => {
+    useSessionStore.getState().completeOnboarding();
+
+    expect(useSessionStore.getState().onboardingCompleted).toBe(true);
+    expect(writeOnboardingCompleted).toHaveBeenCalledWith(expect.anything(), true);
+  });
+
+  it("comes back on the next cold start", async () => {
+    const device = store();
+    await realWrite(device, true);
+
+    await restoreSession(device);
+
+    expect(useSessionStore.getState().onboardingCompleted).toBe(true);
+  });
+
+  it("is false on a fresh install, which is what makes it first run", async () => {
+    await restoreSession(store());
+    expect(useSessionStore.getState().onboardingCompleted).toBe(false);
+  });
+
+  it("survives a sign-out, because it is a fact about the device and not the account", async () => {
+    const device = store();
+    await realWrite(device, true);
+    await realSession(device, { accountId: "acc-1", tokens: TOKENS });
+
+    await restoreSession(device);
+    useSessionStore.getState().signOut();
+
+    // The tokens are gone; the flag is not, so signing out does not replay onboarding.
+    expect(useSessionStore.getState().tokens).toBeNull();
+    expect(await (async () => (await device.getItemAsync("royalnavy.onboardingCompleted")) === "true")()).toBe(
+      true,
+    );
   });
 });

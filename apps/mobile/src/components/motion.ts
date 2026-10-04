@@ -16,7 +16,9 @@ export function easingFor(cssEasing: string): EasingFunction {
       return Easing.in(Easing.ease);
     case "ease-in-out":
       return Easing.inOut(Easing.ease);
+    // The specs spell this curve both ways: 1c and 3i without the leading zeros, 3a with them.
     case "cubic-bezier(.2,.8,.2,1)":
+    case "cubic-bezier(0.2,0.8,0.2,1)":
       return Easing.bezier(0.2, 0.8, 0.2, 1);
     default:
       throw new Error(`easingFor: no mapping for "${cssEasing}"`);

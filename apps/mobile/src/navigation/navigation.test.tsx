@@ -1,6 +1,7 @@
-import { act, renderRouter, screen, waitFor } from "expo-router/testing-library";
+import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { BackHandler } from "react-native";
 
+import { secureStore, writeStoredSession } from "../net/tokens";
 import { useBuilderStore } from "../stores/builder";
 import { type MatchGuardFacts, useMatchStore } from "../stores/match";
 import { useSessionStore } from "../stores/session";
@@ -32,6 +33,8 @@ function signedOut() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // The splash reads the keychain on mount, so each test starts with an empty one.
+  (jest.requireMock("expo-secure-store") as { __reset: () => void }).__reset();
   useMatchStore.setState({ current: null });
   useBuilderStore.setState({ boards: {}, tiles: {}, decks: {}, rules: {} });
   signedIn();
@@ -41,6 +44,35 @@ describe("guards on the real route tree", () => {
   it("cold start redirects / to /splash", async () => {
     renderRouter(APP_DIR, { initialUrl: "/" });
     await waitFor(() => expect(screen).toHavePathname("/splash"));
+  });
+
+  // E0a: the splash is a real screen now, so /splash exercises its route wiring end to end. There is
+  // no server under Jest, so the health check fails and the error state is what renders.
+  it("splash: Play offline replaces to /modes with offline=true (3a §5, AC6)", async () => {
+    // The splash restores from the secure store, so the session has to be *there*, not just in the
+    // store object: /modes is behind the auth guard, and this is the player 3a §5 can actually send
+    // there. A player who has never signed in lands on /auth instead (next test).
+    await writeStoredSession(secureStore, {
+      accountId: "acc-1",
+      tokens: { accessToken: "access", refreshToken: "refresh" },
+    });
+    renderRouter(APP_DIR, { initialUrl: "/splash" });
+
+    const playOffline = await screen.findByText("Play offline");
+    act(() => fireEvent.press(playOffline));
+
+    await waitFor(() => expect(screen).toHavePathname("/modes"));
+    expect(screen).toHaveSearchParams(expect.objectContaining({ offline: "true" }));
+  });
+
+  it("splash: Play offline sends a player with no session to /auth, because /modes is guarded", async () => {
+    signedOut();
+    renderRouter(APP_DIR, { initialUrl: "/splash" });
+
+    const playOffline = await screen.findByText("Play offline");
+    act(() => fireEvent.press(playOffline));
+
+    await waitFor(() => expect(screen).toHavePathname("/auth"));
   });
 
   it("auth: a signed-out user opening /modes lands on /auth with the target remembered", async () => {

@@ -1,9 +1,9 @@
 import * as Phosphor from "phosphor-react-native";
 import type { ComponentType } from "react";
 
-// 15 / 19 / 24 from docs/03; 16, 18, 36, 44 and 60 appear in screen specs (3i, 1w2, 3n, 3b).
+// 15 / 19 / 24 from docs/03; 16, 18, 36, 44, 52 and 60 appear in screen specs (3i, 1w2, 3n, 3b, 3a).
 // 14 is the empty map slot's ph-plus (2a §3.1 #5); 16 is the pause sheet's caret (3i §3 #6).
-export type IconSize = 14 | 15 | 16 | 18 | 19 | 24 | 36 | 44 | 60;
+export type IconSize = 14 | 15 | 16 | 18 | 19 | 24 | 36 | 44 | 52 | 60;
 
 export interface IconProps {
   /** Phosphor name as the design writes it, with or without the `ph-` prefix: `ph-caret-left`. */

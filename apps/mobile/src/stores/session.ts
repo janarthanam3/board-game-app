@@ -3,9 +3,11 @@ import { create } from "zustand";
 import {
   clearTokens,
   type MemoryStore,
+  readOnboardingCompleted,
   readStoredSession,
   secureStore,
   type TokenPair,
+  writeOnboardingCompleted,
   writeStoredSession,
 } from "../net/tokens";
 
@@ -76,7 +78,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     // A rotated pair belongs to the same account, so the id is rewritten with it.
     void (tokens && accountId ? writeStoredSession(secureStore, { accountId, tokens }) : clearTokens(secureStore));
   },
-  completeOnboarding: () => set({ onboardingCompleted: true }),
+  completeOnboarding: () => {
+    set({ onboardingCompleted: true });
+    // Persisted because 3a §6 reads this flag from the secure store on every cold start; without the
+    // write, a returning player would be shown onboarding again.
+    void writeOnboardingCompleted(secureStore, true);
+  },
   setPendingHref: (href) => set({ pendingHref: href }),
 }));
 
@@ -91,12 +98,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
  * up with no connection — the documented offline entry path, `3a` → `3c`.
  */
 export async function restoreSession(store: MemoryStore = secureStore): Promise<void> {
-  const stored = await readStoredSession(store);
-  const { restore, onboardingCompleted } = useSessionStore.getState();
-  restore({
+  const [stored, onboardingCompleted] = await Promise.all([
+    readStoredSession(store),
+    readOnboardingCompleted(store),
+  ]);
+  useSessionStore.getState().restore({
     accountId: stored?.accountId ?? null,
-    // Not persisted yet: the device-preferences store (E2a) owns that. Left false here, which only
-    // keeps /onboarding reachable — firstRunGuard never pushes anyone onto it.
     onboardingCompleted,
     tokens: stored?.tokens ?? null,
   });

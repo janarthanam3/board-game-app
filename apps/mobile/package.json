@@ -11,6 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-community/netinfo": "11.3.1",
     "@royal-navy/game-engine": "workspace:^",
     "@royal-navy/shared": "workspace:^",
     "expo": "~51.0.0",

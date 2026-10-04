@@ -78,6 +78,39 @@ the correct behaviour is unspecified (`docs/OPEN-QUESTIONS.md`), and set the sta
 - **if it recurs**: the failing test's name, the suite, and whether it reproduces with
   `--runInBand` (serial) or only in parallel — a frame leaking across suites behaves differently in
   each.
+- **still not recurred** as of 4 October 2026, across every run in tasks G0 and E0a — the mobile suite
+  is 559/559. The server flake found that day is [[BUG-005]], a different package and a different
+  profile; do not fold the two together.
+
+### BUG-005 · The two-client socket match failed once in a `pnpm -r test` run, named this time
+- severity: 3 — same reasoning as BUG-004: a suite that fails one run in several is a suite nobody can
+  trust at a phase gate, even when the product is fine
+- found: 4 October 2026 · dev · Windows, `pnpm -r test` from the repo root, during task E0a
+- area: `apps/server` — **`test/two-client-match.test.ts`**, the test
+  "a scripted two-client match, end to end over the real socket > is created over REST, started over the
+  socket, played to its cap and ends with a result"
+- steps:
+  1. a full `pnpm -r test` reported `apps/server: Tests 1 failed | 268 passed (269)` for that test
+  2. the same file run alone passed immediately: 1 passed, 6.8 s
+  3. three further full server suites passed: 269/269, 269/269, 269/269
+- expected: a deterministic suite.
+- actual: one failure in a root-level recursive run, then four clean runs. The assertion text was lost —
+  the grep that read that run kept only the `FAIL` line, and the run's output is gone. **The test's name
+  was captured**, which is what BUG-004 lacks.
+- seed / match id: not captured
+- status: open
+- cause: unknown, but the shape is suggestive and different from BUG-004's. This test takes ~6.8 s on its
+  own, opens two real sockets and plays a full match to its cap. The failing run was `pnpm -r test`,
+  which runs the four packages' suites **concurrently**, so the engine's 1340 tests and the mobile
+  suite's 559 were competing for the same machine. A socket test with a real timeout is exactly what
+  loses that race. The three clean runs afterwards were server-only, i.e. not under that load — so this
+  is not yet evidence either way.
+- fix: none. This is a capture entry.
+- **next step**: run `pnpm -r test` (not the server alone) with its full output kept, and when it fails,
+  record the assertion and which timeout expired. If it is load, the fix is a longer timeout or serial
+  execution for that one file, not a product change.
+- **not BUG-004.** That one is `apps/mobile` and has never recurred — the mobile suite is 559/559 across
+  every run in this task. Two separate flakes, in two packages, with two different profiles.
 
 ## Fixed
 

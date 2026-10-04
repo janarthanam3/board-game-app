@@ -52,9 +52,27 @@ interface VariantStyle {
 // One entry per row of the "Button" table in docs/03-design-system.md. Heights are minimums
 // (docs/02 "Heights are never fixed on a text-bearing box"; buttons grow to 56 at 130% scale).
 export const variantStyles: Record<
-  "primary" | "secondary" | "confirm" | "ghost" | "destructive" | "text",
+  "primary" | "secondary" | "confirm" | "ghost" | "destructive" | "text" | "primaryBlue",
   VariantStyle
 > = {
+  // docs/03's Button table has no blue variant; `3a` §3 #15 is the only screen that draws one, with
+  // its own height, radius and 700/15 label. Recorded in docs/design-concerns.md.
+  primaryBlue: {
+    frame: {
+      minHeight: control.minTapTarget,
+      borderRadius: radius.button,
+      shadowColor: accent.blueShadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 0,
+      shadowOpacity: 1,
+      // "inset 0 1px 0 rgba(255,255,255,.35)": RN has no inset shadow, so the highlight is drawn as a
+      // 1 dp top border, the way player.tokenEdge expresses an inset edge.
+      borderTopWidth: 1,
+      borderTopColor: surface.insetHighlightStrong,
+    },
+    label: textStyle(type.title),
+    labelColor: text.onBlue,
+  },
   primary: {
     frame: { minHeight: control.primaryButton.height, borderRadius: control.primaryButton.radius },
     label: textStyle(type.button),

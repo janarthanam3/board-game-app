@@ -11,7 +11,35 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
   "color": {
     "accent": {
       "blue": "#5FC0FF",
+      "blueButton": {
+        "angle": 180,
+        "stops": [
+          {
+            "color": "#4FB4F5",
+            "position": 0,
+          },
+          {
+            "color": "#2E86D6",
+            "position": 100,
+          },
+        ],
+      },
       "blueDeep": "#2E86D6",
+      "blueLight": "#4FB4F5",
+      "blueProgress": {
+        "angle": 90,
+        "stops": [
+          {
+            "color": "#5FC0FF",
+            "position": 0,
+          },
+          {
+            "color": "#4FB4F5",
+            "position": 100,
+          },
+        ],
+      },
+      "blueShadow": "#1D5EA6",
     },
     "danger": {
       "border": "rgba(255,138,122,.6)",
@@ -137,6 +165,11 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
         "style": "solid",
         "width": 1,
       },
+      "ghostBorderStrong": {
+        "color": "rgba(126,180,255,.45)",
+        "style": "solid",
+        "width": 1,
+      },
       "imageSlotHighlight": "rgba(255,255,255,.05)",
       "imageSlotWash": {
         "angle": 180,
@@ -157,6 +190,8 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
         "width": 1,
       },
       "inset": "rgba(8,26,64,.35)",
+      "insetHighlight": "rgba(255,255,255,.18)",
+      "insetHighlightStrong": "rgba(255,255,255,.35)",
       "insetStrong": "rgba(8,26,64,.5)",
       "pressOverlay": "rgba(255,255,255,.04)",
       "scrim": "rgba(5,15,40,.66)",
@@ -193,6 +228,7 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
       "dim": "rgba(198,220,255,0.72)",
       "faint": "rgba(198,220,255,0.75)",
       "muted": "rgba(198,220,255,0.8)",
+      "onBlue": "#04203B",
       "onGold": "#3A2402",
       "onGreen": "#0E2E66",
       "primary": "#FFFFFF",
@@ -595,6 +631,10 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
       "size": 35,
       "weight": 800,
     },
+    "displaySm": {
+      "size": 30,
+      "weight": 800,
+    },
     "h1": {
       "size": 21,
       "weight": 700,
@@ -642,6 +682,10 @@ exports[`design tokens > match the recorded snapshot of every value 1`] = `
     },
     "title": {
       "size": 15,
+      "weight": 700,
+    },
+    "titleSm": {
+      "size": 14,
       "weight": 700,
     },
     "value": {

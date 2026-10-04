@@ -114,6 +114,8 @@ export const surface = {
   // ── Values used by docs/03 and the screen specs that the 02 census does not list
   //    (recorded in docs/design-concerns.md "Token census gaps").
   dashedStrong: { width: 1, color: "rgba(126,180,255,.45)", style: "dashed" } satisfies Stroke, // ImageSlot border (1c, 1n, 1o, 2a, 3n)
+  // Same colour as dashedStrong, solid: the splash's `Play offline` border (3a §3 #16).
+  ghostBorderStrong: { width: 1, color: "rgba(126,180,255,.45)", style: "solid" } satisfies Stroke,
   inputBorder: { width: 1, color: "rgba(126,180,255,0.27)", style: "solid" } satisfies Stroke, // Input border (1a, 1b)
   imageSlotWash: {
     angle: 180,
@@ -123,6 +125,10 @@ export const surface = {
     ],
   } as const satisfies Gradient, // ImageSlot hero fill (1a §3 #2)
   imageSlotHighlight: "rgba(255,255,255,.05)", // ImageSlot inset highlight (1a §3 #2)
+  // The two inset highlights 3a states (§3 #3 the logo tile, §3 #15 the Retry button). RN cannot draw
+  // an inset shadow, so both are applied as a 1 dp top border.
+  insetHighlight: "rgba(255,255,255,.18)",
+  insetHighlightStrong: "rgba(255,255,255,.35)",
   skeleton: "rgba(126,180,255,.16)", // Skeleton bars (3c, 3d, 3e)
   pressOverlay: "rgba(255,255,255,.04)", // Row pressed — "surface lightens 4%" (03)
 } as const;
@@ -140,6 +146,7 @@ export const text = {
   dim: "rgba(198,220,255,0.72)", // text.dim — disabled row text
   onGold: "#3A2402", // text.onGold — text on any gold fill
   onGreen: "#0E2E66", // confirm Button label (03 "Actions" table); same value as the screen bg bottom stop
+  onBlue: "#04203B", // text on accent.blueButton — the splash's Retry label (3a §3 #15); not in the 02 census
 } as const;
 
 // ─── Colour — roles ─────────────────────────────────────────────────────────────
@@ -147,6 +154,24 @@ export const text = {
 export const accent = {
   blue: "#5FC0FF", // accent.blue — links, section kickers, icons, informational
   blueDeep: "#2E86D6", // accent.blue.deep — pressed blue, chart line
+  // ── The splash's blue treatment (3a §3 #9, #15). The 02 census lists none of these three values,
+  //    and docs/03's Button table has no blue variant at all — see docs/design-concerns.md.
+  blueLight: "#4FB4F5", // the lighter stop of both the blue button and the blue progress fill
+  blueShadow: "#1D5EA6", // the blue button's 4 dp solid drop (3a §3 #15)
+  blueButton: {
+    angle: 180,
+    stops: [
+      { color: "#4FB4F5", position: 0 },
+      { color: "#2E86D6", position: 100 },
+    ],
+  } as const satisfies Gradient, // Button.primaryBlue fill (3a §3 #15)
+  blueProgress: {
+    angle: 90,
+    stops: [
+      { color: "#5FC0FF", position: 0 },
+      { color: "#4FB4F5", position: 100 },
+    ],
+  } as const satisfies Gradient, // the splash progress fill, which runs across rather than down (3a §3 #9)
 } as const;
 
 export const stroke = {
@@ -292,12 +317,18 @@ export const font = {
 
 export const type = {
   display: { weight: 800, size: 35 }, // type.display — splash wordmark, big result numbers
+  // 3a §3 #5 draws the splash wordmark at 800/30, not the 800/35 above, and §7 shrinks it to 26 at
+  // 130%. The two derived docs disagree; recorded in docs/design-concerns.md. Used only by 3a.
+  displaySm: { weight: 800, size: 30 },
   hero: { weight: 800, size: 28 }, // type.hero — handover cover title
   h1: { weight: 700, size: 21 }, // type.h1 — dialog titles
   h2: { weight: 700, size: 19 }, // type.h2 — sheet titles, empty-state titles
   h3: { weight: 700, size: 17 }, // type.h3 — screen titles in headers
   h4: { weight: 700, size: 16 }, // type.h4 — row titles, card titles
   title: { weight: 700, size: 15 }, // type.title — list-row primary text
+  // AlertCard's title, at 700/14 in both specs that draw one (3a §3 #13, 2a5 §3 #10). The 02 scale
+  // jumps from 700/15 to 800/14, so neither fits; see docs/design-concerns.md "Token census gaps".
+  titleSm: { weight: 700, size: 14 },
   button: { weight: 800, size: 16 }, // type.button — primary button label (50 dp tall)
   buttonSm: { weight: 800, size: 15 }, // type.button.sm — 48 dp button label
   buttonXs: { weight: 800, size: 14 }, // type.button.xs — 44 dp button label

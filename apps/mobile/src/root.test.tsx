@@ -25,12 +25,14 @@ describe("app root", () => {
     expect(await screen.findByText("Royal Navy")).toBeTruthy();
   });
 
-  it("renders the splash title in Baloo 2 (Bold, per type.h3 in the placeholder header)", async () => {
+  // E0a replaced the placeholder with 3a itself, whose wordmark is 800/30 (§3 #5) — ExtraBold,
+  // where the placeholder header had been type.h3 at 700.
+  it("renders the splash wordmark in Baloo 2 ExtraBold, per 3a §3 #5", async () => {
     mockedUseFonts.mockReturnValue([true, null]);
 
     renderRouter(routes, { initialUrl: "/" });
 
-    expect(await screen.findByText("Royal Navy")).toHaveStyle({ fontFamily: "Baloo2-Bold" });
+    expect(await screen.findByText("Royal Navy")).toHaveStyle({ fontFamily: "Baloo2-ExtraBold" });
   });
 
   it("holds the splash screen and renders nothing while fonts are still loading (no FOUT)", () => {

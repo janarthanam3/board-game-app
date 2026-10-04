@@ -11,6 +11,8 @@ const heights: Record<ButtonVariant, number> = {
   ghost: 46,
   destructive: 44,
   text: 44,
+  // 3a §3 #15, the splash's Retry: min-height 44, radius 16, 700/15 label on a blue gradient.
+  primaryBlue: 44,
 };
 
 describe("Button", () => {

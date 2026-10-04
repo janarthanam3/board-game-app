@@ -8,7 +8,7 @@ import { easingFor, effectiveDuration, useReducedMotion } from "../motion";
 import { textStyle } from "../typography";
 import { styles, variantStyles } from "./styles";
 
-export type ButtonVariant = "primary" | "secondary" | "confirm" | "ghost" | "destructive" | "text";
+export type ButtonVariant = "primary" | "secondary" | "confirm" | "ghost" | "destructive" | "text" | "primaryBlue";
 
 export interface ButtonProps {
   variant: ButtonVariant;
@@ -41,6 +41,12 @@ export interface ButtonProps {
    * and `danger.border`. Recorded in `docs/design-concerns.md`; the variants are unchanged.
    */
   radius?: number;
+  /**
+   * The padding this one instance states, where a screen gives its button one: `3a` §3 #15–#16
+   * draw both splash buttons at "min-height 44, radius 16, padding 13". It matters beyond looks — a
+   * padded button grows with the label at 130% font scale, where a bare minHeight pins it.
+   */
+  padding?: number;
   labelStyle?: TypeStyle;
   labelColour?: string;
   /** Replaces the variant's fill. */
@@ -55,6 +61,7 @@ export interface ButtonProps {
 const pressedGradient = {
   primary: { angle: 180, stops: [{ color: gold.deep, position: 0 }, { color: gold.deep, position: 100 }] },
   confirm: { angle: 180, stops: [{ color: green.gradient.stops[1].color, position: 0 }, { color: green.gradient.stops[1].color, position: 100 }] },
+  primaryBlue: { angle: 180, stops: [{ color: accent.blueDeep, position: 0 }, { color: accent.blueDeep, position: 100 }] },
 } as const;
 
 const PRESSED_SCALE = 0.98;
@@ -80,6 +87,7 @@ export function Button({
   minHeight,
   minWidth,
   radius: statedRadius,
+  padding,
   labelStyle,
   labelColour,
   fill,
@@ -131,6 +139,7 @@ export function Button({
           // A screen-stated value wins over the variant's, which is why these come last.
           minHeight === undefined ? null : { minHeight },
           minWidth === undefined ? null : { minWidth },
+          padding === undefined ? null : { paddingVertical: padding, paddingHorizontal: padding },
           statedRadius === undefined ? null : { borderRadius: statedRadius },
           borderColour === undefined ? null : { borderColor: borderColour },
         ]}
@@ -179,6 +188,8 @@ function fillFor(variant: ButtonVariant, pressed: boolean) {
       return <GradientView gradient={pressed ? pressedGradient.confirm : green.gradient} style={styles.fill} testID="button-fill" />;
     case "secondary":
       return <GradientView gradient={surface.card} style={styles.fill} testID="button-fill" />;
+    case "primaryBlue":
+      return <GradientView gradient={pressed ? pressedGradient.primaryBlue : accent.blueButton} style={styles.fill} testID="button-fill" />;
     case "destructive":
       return <View style={[styles.fill, { backgroundColor: danger.fillSoft }]} testID="button-fill" />;
     case "ghost":
@@ -195,4 +206,5 @@ export const buttonLabelColour: Record<ButtonVariant, string> = {
   ghost: text.secondary,
   destructive: danger.soft,
   text: accent.blue,
+  primaryBlue: text.onBlue,
 };

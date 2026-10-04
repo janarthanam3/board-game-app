@@ -206,6 +206,20 @@ shadow, which is black, blurred by the OS and cannot be inset. The design's `sha
 `elevation`, because a black OS shadow would look further from the design than no shadow. Inset
 shadows are dropped on both platforms. Raised 20 September 2026 during B3.
 
+**Amended 4 October 2026 (E0a).** "Dropped on both platforms" is no longer the whole story. `3a` states
+an inset highlight on two elements — §3 #3's logo tile (`rgba(255,255,255,.18)`) and §3 #15's Retry
+button (`rgba(255,255,255,.35)`) — and both are now drawn as a **1 dp top border**, which is how
+`player.tokenEdge` already expresses an inset edge. Two consequences worth knowing:
+
+- A top border **replaces** whatever border that edge had. The logo tile's stated 1 dp
+  `rgba(126,180,255,.34)` border is therefore drawn on three sides, with the highlight on the fourth.
+  React Native cannot draw both on one edge, so this is a trade, not an oversight.
+- A view that clips (`overflow: "hidden"`) clips its own drop shadow. The logo tile briefly had both,
+  which would have lost §3 #3's 4 dp drop on iOS as well as Android; the clip is gone and the inner
+  gradient carries its own radius instead.
+
+The outer drops themselves are still invisible on Android, which is the original concern and unchanged.
+
 ## Status tag colours: `03` and `2a2` disagree
 
 **Implemented:** `Pill` tones as `03-design-system.md` names them (`gold` = published, `green` =
@@ -1454,3 +1468,201 @@ written down, because it constrains two things:
 
 So `3o`'s four consequence lines and its danger explainer are all settled, and `G1` carries no open copy
 question.
+
+## `3a`'s splash: five places the derived docs disagree with each other (task E0a)
+
+Implemented as `3a` specifies in every case, per Rule 1. What follows is what had to be chosen, and why,
+because in each case the conflict is between **two derived docs**, not between the design and the code —
+and the design file `Royal Navy 1080 v2.dc.html` is not part of this handoff package, so authority 1
+could not be consulted to settle any of them.
+
+### 1. The wordmark is 800/30 here and 800/35 in the token census
+
+`3a` §3 #5 draws the wordmark at `800 30px`. `docs/02-design-tokens.md` lists `type.display` as
+**800 / 35 dp** and its usage column names "Splash wordmark, big result numbers" — this screen.
+
+Implemented at **30**, as `3a` says, through a new `type.displaySm`. Two reasons: the screen spec is the
+per-screen authority in CLAUDE.md's order, and §7 corroborates 30 independently by shrinking the
+wordmark "to 26dp" at 130% scale, which is a sensible step down from 30 and an odd one from 35.
+
+`type.display` is untouched, so the result screens that also use it are unaffected. **One of the two
+docs needs regenerating to agree with the other.**
+
+### 2. `GET /health` does not exist; the server implements `/healthz`
+
+`3a` §6 names `GET /health`. The implementation — shipped in phase B, in
+`apps/server/src/plugins/health.ts` — is **`/healthz`**, alongside `/readyz`. `docs/07-api-contract.md`
+lists neither: it has no health endpoint at all.
+
+The route calls `/healthz`, because that is the endpoint that answers. `3a` §6 and `docs/07` should both
+be regenerated to name it.
+
+### 3. A failed refresh: the error card, or `/auth`?
+
+`3a` §5's failure column says a refresh failure shows the error state with `E_AUTH_REFRESH_FAILED`.
+But §1 says the splash "Exits to … `/auth` (no valid session)", and `docs/13`'s `E_UNAUTHENTICATED` row
+says "Silent refresh first; only shown if refresh fails" with the action "screen → `/auth`". Read
+literally, a player whose 30-day refresh token has simply expired would be held on an error card
+offering **Retry** and **Play offline**, with no way to sign in — and Retry would fail identically for
+ever.
+
+Implemented by splitting the two outcomes a refresh actually has, which satisfies all three lines:
+
+| Outcome | Meaning | Behaviour |
+| --- | --- | --- |
+| `refused` (401) | the server answered, and the answer was no | sign out, exit to `/auth` (§1, docs/13) |
+| `failed` (transport, 5xx, no answer) | nothing is known about the session | error card, `E_AUTH_REFRESH_FAILED` (§5) |
+
+**If the owner wants §5 read literally instead**, the change is one line in `splashSequence.ts` — but
+then `3a` needs a way off that card for an expired session, which it does not currently have.
+
+### 4. Neither error code is in the error catalogue
+
+§5 names `E_SERVER_UNREACHABLE` and `E_AUTH_REFRESH_FAILED`. `docs/13-error-catalog.md` contains
+neither. The screen does not need the catalogue's copy — §3 #13–#14 give the card's own title and body
+verbatim, and those are what ship — but the catalogue is supposed to be the list of every refusal
+reason, and these two are missing from it.
+
+Also unspecified: **which code the 8000 ms timeout uses.** §4 lists the timeout as a trigger for the
+error state but names no code for it. `E_SERVER_UNREACHABLE` is used, being the same condition from the
+player's side.
+
+### 5. `3a`'s bottom block uses a button treatment the design system does not describe
+
+`docs/03-design-system.md`'s Button table has six variants: `primary` (gold), `secondary`, `confirm`
+(green), `ghost`, `destructive`, `text`. `3a` §3 #15 draws **`Button.primaryBlue`** — a blue gradient
+`linear-gradient(180deg,#4FB4F5,#2E86D6)` with a `#04203B` label and a `0 4px 0 #1D5EA6` drop. None of
+those three values is in the `docs/02` census either, and nor is the blue 90° progress fill in §3 #9.
+
+Added as a seventh variant and two gradient tokens rather than hand-styled at the call site, since the
+spec names it as a variant. `3a` §3 #16's ghost also states its own fill and border, which the existing
+per-instance props already cover (the pattern `3i` established).
+
+**docs/02 and docs/03 both need regenerating** to include the blue treatment, `AlertCard` (which `3a`
+§3 #11 and `2a5` §3 #10 both draw, with identical values, and which docs/03 does not list), the 700/14
+`AlertCard` title, and the solid `rgba(126,180,255,.45)` border.
+
+### Smaller notes, implemented as specified
+
+- **§3 #1's 2 dp `#2C6BE0` frame border** is the design mock's phone chrome, which `tokens.ts` already
+  records as "mock chrome only". Not drawn, consistent with every screen built so far.
+- **§3 #8's "radius 3"** on a 6 dp bar is a pill, which is what the shared `ProgressBar` draws with
+  `radius.pill`. Identical rendering.
+- **§3 #7's version label** is `v1.0.0` at `700 10px`, letter-spacing `.18em`, `#5FC0FF` — exactly
+  `type.kicker`, except that the kicker is uppercase and would render `V1.0.0`. The transform is
+  switched off for this one label so the copy ships as written.
+- **§3 #9's "62%"** is the mock's frozen value; §4's "animates 0 → 100% over the real request, never
+  fakes completion" is what governs, so the fill reports completed steps only and never reaches 100%
+  on a failure.
+
+### `3a`'s design check: the concerns it raised, verbatim
+
+Recorded as `/design-check` requires — appended, never acted on in code.
+
+> **CONCERN:** §2 and §3 #5 contradict each other on the centre block. §2 gives the centre block
+> `gap 17`, which puts 17dp between the logo tile and the wordmark; §3 #5 says the wordmark sits
+> "gap 4 below tile". Both cannot be true, and §3 #6 gives the tagline no gap at all, so whichever
+> reading is taken leaves one gap unspecified. The code chose §2's 17 below the tile and reassigned the
+> 4 to wordmark → tagline. This is a sixth doc-vs-doc conflict of exactly the kind design-concerns
+> records five of, and it should be regenerated from `Royal Navy 1080 v2.dc.html` rather than inferred.
+
+> **CONCERN:** §7 says "Large phone / tablet: frame stretches to the safe area", but the shared
+> `Screen` caps the content column at `responsive.tabletContentMaxWidth` (480) and centres it from
+> 600dp, per docs/02. On a tablet the splash therefore does not stretch as §7 describes. The conflict is
+> docs/02 vs `3a` §7, and it predates this task; one of the two needs regenerating.
+
+> **CONCERN:** `shadowStyle()` deliberately emits no `elevation`, so on Android — the only platform
+> that ships — neither §3 #3's nor §3 #15's `0 4px 0` drop renders at all. This is recorded in
+> design-concerns under "Platform limits on shadows", so it is not counted against E0a, but it means
+> two documented shadows are invisible in the APK.
+
+**On the first of those**, the implementation still reads §2's 17dp, and that choice is now stated here
+rather than left silent — which was the reviewer's actual complaint. The ASCII art in §2 supports it: it
+draws a blank line between the tile and the wordmark, which 4dp would not leave room for. It is the
+owner's to settle.
+
+### Two things the check turned up that are not about `3a`'s drawing
+
+**A player who has never signed in cannot reach `/modes`, so `Play offline` sends them to `/auth`.**
+§5 says `Play offline` replaces to `/modes` with `offline=true`, unconditionally. But `/modes` is behind
+`docs/04`'s auth guard, and the splash has just restored the session, so a device with no stored session
+is signed out when the button is pressed and the guard redirects to `/auth`. For the player the skill's
+rule 9 describes — "a signed-in user whose token has expired" — it works exactly as written, because the
+session restores from the keychain without the network. Both paths are now asserted in
+`navigation.test.tsx`. If offline play is meant to work before a player has ever signed in, that is a
+product decision, not a bug in this screen: it would need a session-less `/modes`.
+
+**The sequence used to run twice per cold start.** Not a design matter, but worth recording because of
+what it would have done: `useReducedMotion` resolves its `AccessibilityInfo` promise *after* mount,
+which changed the mount effect's identity and re-entered the whole sequence — two `GET /healthz` calls
+and, worse, two `POST /auth/refresh` calls. The refresh token rotates on every refresh (`docs/07`), so
+the second call would present a token the first had already spent, the server would refuse it, and the
+player would be **signed out on launch**. Found while writing §9's hold-the-bar test, fixed by reading
+reduced motion through a ref and guarding the effect, and now covered by two regression tests. Nothing
+shipped with it.
+
+## `3a` §7's 26 dp wordmark floor is not enforced on Android
+
+**Concern:** §7 says the splash wordmark may "shrink to 26dp via `adjustsFontSizeToFit` with
+`numberOfLines={1}`" rather than wrap. Both props are set, and `minimumFontScale` is set to 26/30 so
+the floor is exactly the stated 26. But **`minimumFontScale` is iOS-only in React Native 0.74**: on
+Android, `adjustsFontSizeToFit` shrinks text with no floor at all. At a large enough font scale on a
+narrow enough screen the wordmark can therefore go below 26 dp rather than stopping there.
+
+Android is the only platform this app ships (Rule 3, and `TASKS.md`'s APK goal), so the floor the spec
+states is the one platform where it does not hold. Implemented as specified; raised rather than worked
+around, because the workarounds all involve measuring text and choosing a size in JavaScript, which is
+a redesign of §7's mechanism. Raised 4 October 2026 during E0a.
+
+### `3a`'s second design check: the two it found that the first pass missed
+
+**The logo was being re-centred on every state change** — which §2 forbids in words ("Never move,
+resize or re-centre the logo between states") and AC2 states as a pixel rule. A `flex:1` centre block
+above a `flex:none` bottom block re-centres whenever the bottom block's height changes, and §2's own
+error block (a card plus two 44 dp buttons plus two 11 dp gaps) is well over a hundred dp taller than
+its default block (a 10 px label). The logo was rising by roughly 70 dp between default and error.
+
+Fixed by anchoring the bottom block over the frame in portrait rather than beneath it in the column,
+which is also what §7 asks for in as many words: "the centre block stays centred, the bottom block
+stays bottom-anchored". In landscape the two sit side by side, so they share the column and neither can
+push the other.
+
+**One consequence to record, because it undoes part of an earlier fix:** §2's "gap 13dp" is a gap
+between two in-flow siblings, and in portrait there is now only one. The 13 dp is therefore observable
+in landscape only. This is a direct consequence of §2 contradicting itself — the reviewer put it well:
+
+> **CONCERN:** §2 cannot be satisfied as written. It gives the centre block `flex:1` with a `flex:none`
+> bottom block beneath it, and in the same breath says "Never move, resize or re-centre the logo
+> between states" — a flex-column of those two blocks necessarily re-centres the logo when the bottom
+> block's height changes, and §2's own error block is ten times the height of its default block. AC2
+> states the stronger reading. Which of the two is the design's intent can only be read off
+> `Royal Navy 1080 v2.dc.html` (whether the three exported screens place the tile at the same y), which
+> is not in this package. This is a seventh doc-internal conflict of the same family as the five
+> already recorded, and should be regenerated rather than inferred.
+
+The stronger, twice-stated rule won: the logo does not move. If the regeneration says otherwise, the
+change is one style line.
+
+**And the second:** §9's "min visible 300ms" was honoured on the success branch only, so a failure
+arriving just after the 400 ms mark showed the fill for a few milliseconds — the exact flash the rule
+exists to prevent. The hold now applies to whichever block replaces the bar, and is skipped entirely
+when the bar never appeared, since nothing is owed for a bar nobody saw.
+
+> **CONCERN:** §5 sends `Play offline` to `/modes` with `offline=true`, and `3c` §4 has the matching
+> "entered via Play offline" state, but `docs/04-navigation-map.md:17` gives `/modes` no params. The
+> code follows §5, which is right; docs/04's Params column needs the flag at the next regeneration.
+
+### What the second pass also corrected in the first pass's own fixes
+
+- The fill's tween duration was a number I chose (180 ms). It now comes from `motion.instant` — 90 ms,
+  and the census's only **linear** duration, which is what §9 gives this fill.
+- `padding 13` was being applied vertically only; it is all four sides, which is what §3 #15–#16 say
+  and what keeps the label off the button edge at 130%.
+- The outgoing block in the cross-fade was `absoluteFill`, so it borrowed the incoming block's height
+  and squashed the error card into the loading block's ~33 dp for the whole 180 ms of a Retry. It is
+  bottom-anchored now and keeps its own height.
+- The logo tile had both a clip and a drop shadow, and a clipping layer clips its own shadow — §3 #3's
+  drop would have been lost on iOS too, not just Android. Recorded under "Platform limits on shadows".
+- `accessibilityLabel` sat on a view with `accessible={false}`, reading as though it were doing §8's
+  announcing while the announcement actually comes from `announceForAccessibility`. Removed.
+- Two raw `17`s where `radius.card` is 17.
