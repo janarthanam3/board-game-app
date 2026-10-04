@@ -214,7 +214,7 @@ describe("deep links", () => {
     await waitFor(() => expect(screen).toHavePathname("/auth"));
     expect(useSessionStore.getState().pendingHref).toBe("/settings/privacy");
 
-    act(() => useSessionStore.getState().signIn("acc-1"));
+    act(() => useSessionStore.getState().signIn("acc-1", { accessToken: "access", refreshToken: "refresh" }));
 
     await waitFor(() => expect(screen).toHavePathname("/settings/privacy"));
     expect(useSessionStore.getState().pendingHref).toBeNull();
